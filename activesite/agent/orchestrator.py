@@ -21,6 +21,8 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from activesite.adapters.scout import DataScout as CaseLoader
+from activesite.adapters.zetaris import get_adapter
+from activesite.llm import ModelClient
 from pydantic import BaseModel, Field
 
 from activesite.agent.core import Critic, DataScout, Explainer, NullAdapter, Planner, Runner, Setup
@@ -58,6 +60,21 @@ def _env_sample_mode() -> bool:
     return os.getenv("SAMPLE_MODE", "true").lower() in ("true", "1", "yes")
 
 
+def _adapter_and_llm(adapter: Any, llm: Any, case: Dict[str, Any]):
+    """Default data adapter (Zetaris if configured, else the DuckDB stand-in) and model client (only with a key)."""
+    if adapter is None:
+        adapter = get_adapter()
+    if hasattr(adapter, "prepare"):
+        try:
+            adapter.prepare(case)
+        except Exception:
+            pass
+    if llm is None:
+        client = ModelClient()
+        llm = client if client.available else None
+    return adapter, llm
+
+
 def _load(case: Dict[str, Any] | str) -> Dict[str, Any]:
     return CaseLoader().load_benchmark_case(case) if isinstance(case, str) else case
 
@@ -90,10 +107,11 @@ def run_metal_case(case: Dict[str, Any] | str, adapter: Any = None, hmem_db: Pat
         store = MemoryStoreService(hmem_db or DEFAULT_DB_PATH, ledger_path or DEFAULT_LEDGER_PATH)
     retrieval = MemoryRetrievalService(store)
 
+    adapter, llm = _adapter_and_llm(adapter, llm, case)
     planner = Planner(llm, trace)
     plan = planner.plan(case)
     theory = plan["theory"]
-    data = DataScout(adapter or NullAdapter(), trace).gather(case)
+    data = DataScout(adapter, trace).gather(case)
 
     system = MolSystem(case["parm7"], case["coords"])
     setup_agent = Setup(retrieval, trace, run_id)
@@ -168,9 +186,10 @@ def run_ligand_case(case: Dict[str, Any] | str, adapter: Any = None, hmem_db: Pa
     retrieval = MemoryRetrievalService(store)
     work = Path(workroot) / run_id
 
+    adapter, llm = _adapter_and_llm(adapter, llm, case)
     planner = Planner(llm, trace)
     plan = planner.plan(case)
-    data = DataScout(adapter or NullAdapter(), trace).gather(case)
+    data = DataScout(adapter, trace).gather(case)
     setup = LigandSetup(retrieval, trace, run_id, work, sample_mode=sample_mode).build(case)
     critic = LigandCritic(store, trace, run_id)
     checks = critic.precheck(setup, data.get("expert"))

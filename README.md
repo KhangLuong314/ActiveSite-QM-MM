@@ -57,7 +57,7 @@ flowchart TD
 
 ## 🤝 Sponsor Integrations
 * **Meterless H-MEM:** Powers the agent's episodic memory and Trust Ledger. Remembers ligand parameter overrides, active site boundaries, and prior error resolutions to prevent repeated mistakes across simulation sessions.
-* **Zetaris:** Target federated data harness. Today the MCP catalog tools are served by **catalog-STANDIN (DuckDB)**, a local stand-in over the benchmark cases; it is swapped for a real Zetaris connection once `ZETARIS_REST_URL` and `ZETARIS_API_KEY` are set.
+* **Zetaris:** `activesite/adapters/zetaris.py` posts SQL to the Zetaris REST endpoint when `ZETARIS_REST_URL` and `ZETARIS_API_KEY` are set. Otherwise **catalog-STANDIN (DuckDB)** (`activesite/adapters/catalog_standin.py`) federates Postgres (`lab_runs`), MinIO Parquet (`eda_synthetic`, a clearly synthetic placeholder) and a cached RCSB entries table in one DuckDB connection. Seed the stand-in with `docker compose up -d && uv run python seed/seed.py`. Every DataScout trace line and card source names which adapter ran. The MCP server (`python -m activesite.adapters.zetaris_mcp`) exposes `list_sources` and a read-only `query`.
 * **Cursor:** Primary IDE used to build, orchestrate, and audit agent workflows, governed by project `.cursorrules`.
 
 ---
