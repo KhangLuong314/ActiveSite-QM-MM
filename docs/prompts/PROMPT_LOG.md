@@ -331,6 +331,24 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-22 01:11 CDT] — P8: model client and data adapters (branch `feat/p8-adapters`, stacked on `feat/p7-ligand`)
+- **Tool / Environment:** Claude Code (Fable 5.1); no Postgres/MinIO/Zetaris/NVIDIA endpoints reachable here, all network paths tested with httpx mocked or in offline mode
+- **Target Component:** `activesite/llm.py`, `activesite/adapters/catalog_standin.py`, `activesite/adapters/zetaris.py`, `activesite/adapters/zetaris_mcp.py`, `seed/seed.py`, `activesite/agent/orchestrator.py`, `tests/test_llm.py`, `tests/test_catalog.py`, `tests/conftest.py`
+- **Developer Prompt:**
+  > "Create activesite/llm.py, activesite/adapters/catalog_standin.py, activesite/adapters/zetaris.py, and wire DataScout and the Zetaris MCP server to them. ModelClient reads MODEL_* env, generate posts an OpenAI-compatible chat completion at temperature 0.1 or returns None without a key. The stand-in is one DuckDB connection attaching Postgres, reading MinIO Parquet and an RCSB entries table; seed/seed.py creates lab_runs and uploads a small EDA Parquet. zetaris.run_sql posts with bearer, org id and a fresh request id; get_adapter() picks zetaris when configured. MCP tools list_sources and read-only query."
+- **Agent Action:**
+  - `ModelClient`: unavailable without a key (no HTTP call), counts calls, returns None on any transport or schema error, and `plan_json` only extracts the first JSON object; the Planner still allow-lists every step.
+  - `CatalogStandin` (label `catalog-STANDIN (DuckDB)`): lazily attaches Postgres read-only, sets httpfs S3 settings for MinIO and a view over `eda_synthetic.parquet`, and registers `rcsb_entries` from the RCSB search + entry REST (cached under `data/cache/rcsb/`). Every source records its status in `sources`; `CATALOG_OFFLINE=1` skips remote sources so tests and offline judging stay deterministic.
+  - `ZetarisAdapter` (label `zetaris`): the three headers with a fresh `uuid4` per call, defensive row parsing (columns+rows, list of dicts, or nested), table names from `ZETARIS_TABLE_*`. `get_adapter()` chooses by env; the orchestrator calls it when no adapter is passed and calls `prepare(case)` so the RCSB table knows the case's `pdb_query`.
+  - `seed/seed.py`: `lab_runs` rows per case (site A expert mask/charge from `gen_inputs.sh`, site B's bare residue list from `gen_qmmask.py` marked unverified, ligand cases `:LIG` with no expert); `eda_synthetic.parquet` is written with DuckDB and uploaded through httpfs, named and annotated as synthetic because `theories.csv` is a theory-level list, not an EDA table.
+  - MCP server: `list_sources` and `query`; `validate_select` accepts one SELECT/WITH statement and rejects any write or control keyword. The old benchmark-case DuckDB table is gone.
+- **Verification:**
+  - `uv run pytest -q` → `106 passed, 3 skipped, 113 warnings in 23.71s`
+  - `echo '...DROP TABLE x...' | uv run python -m activesite.adapters.zetaris_mcp` → `rejected: only SELECT queries are allowed`.
+  - **To run on a Docker host with services:** `docker compose up -d && uv run python seed/seed.py && uv run python run.py --case ippoi_site_a` should show Q1 returning the expert record and cards citing `catalog-STANDIN (DuckDB)`; with `ZETARIS_*` set the same run cites `zetaris`.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
