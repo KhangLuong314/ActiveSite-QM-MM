@@ -130,6 +130,22 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-21 20:32 CDT] — ChimeraX Visualization Script Generator (.cxc)
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/chem/chimerax.py`, `tests/test_chimerax.py`
+- **Developer Prompt:**
+  > "Implement features step-by-step according to our .cursorrules: Feature 8 - ChimeraX Visualization Script Generator."
+- **Agent Action:**
+  - Implemented `ChimeraXGenerator` providing automated `.cxc` command scripts for 3D molecular visualization in UCSF ChimeraX.
+  - Automatically color-codes the partitioned QM system (magenta for ligand, cyan for catalytic residues, light green for metal centers, grey translucent ribbon for MM backbone).
+  - Renders yellow spheres at calculated 3D coordinates for all covalent link atoms along severed C_alpha - C_beta sigma bonds.
+  - Generates pseudobonds for active-site hydrogen bond networks and centers camera view on the QM pocket.
+  - Implemented unit tests for command script creation and spec generation.
+- **Verification:**
+  - `pytest tests/test_chimerax.py` passed with 1/1 test green in 0.16s.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
