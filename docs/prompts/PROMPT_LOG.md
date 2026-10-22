@@ -295,6 +295,24 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-22 00:56 CDT] — P6: agents and the orchestrator retry loop, metal case (branch `feat/p6-loop`, stacked on `feat/p5-trace-memory`)
+- **Tool / Environment:** Claude Code (Fable 5.1); engine mocked at the subprocess boundary in tests, real `--demo-memory` needs a Docker host
+- **Target Component:** `activesite/agent/core.py`, `activesite/agent/orchestrator.py`, `activesite/agent/legacy_pipeline.py`, `activesite/models.py`, `run.py`, `tests/test_loop.py`, `.gitignore`
+- **Developer Prompt:**
+  > "Create activesite/agent/core.py (Planner, DataScout, Setup, Runner, Critic, Explainer) and rewrite activesite/agent/orchestrator.py around a retry loop. Every action traced. Confidence from measured margins, never constants. Planner allow-lists steps; DataScout validates ids before SQL and uses a NullAdapter until P8; Setup proposes the region and recalls the charge rule from H-MEM; Runner runs P3; Critic prechecks, diagnoses odd electrons, remembers only after a successful retry, validates against the expert mask; Explainer builds cards and the report. run.py gains --demo-memory and --reset-memory."
+- **Agent Action:**
+  - `core.py`: the six agents. The Planner keeps only allow-listed steps and accepts mode "model" only when the full list survives. The DataScout rejects system ids outside `[a-z0-9_]+` and sites outside `[A-Z]` before any SQL is built and keeps the three query strings for the UI. Setup takes the charge from the MM partial-charge sum only when an H-MEM hit carries `extra.rule == mm_partial_sum`, otherwise from the textbook sum of whole-residue formal charges (which is 0 on I-PpoI and fails with an odd electron count). The Critic's diagnose returns the nearest-integer MM sum with a why-text; `remember` is called only after the retry converged. Every card confidence is a function of a measured quantity (coordination count, shell distance, P-P gap, angle gap, base distance, charge fraction, PM6 parameter coverage, check margin, Jaccard).
+  - `orchestrator.py`: `run_case(case, adapter, hmem_db, on_event, ...)` runs the loop, writes `logs/report-<run_id>.md` and `logs/cards-<run_id>.json` and returns the stats dict. `MasterOrchestrator` is kept as the compatibility entry point: metal cases go through the loop (wrapped into the old `WorkflowOutput`), ligand cases through the legacy pipeline now living in `legacy_pipeline.py`, so `/api/run`, `--case` and the older tests keep working. Without Docker or in SAMPLE_MODE the Runner records an explicit skip; nothing is retried or learned from a skip.
+  - `run.py --demo-memory` runs site A then site B and prints retries/memory_used side by side; `--reset-memory` deletes the sqlite db and the ledger after a typed confirmation.
+  - Added `CUT_LEVEL`, `VALIDATION`, `ANALOGY` to `DecisionCategory`; report and card files under `logs/` are gitignored.
+- **Verification:**
+  - `uv run pytest -q` → `96 passed, 3 skipped, 113 warnings in 21.99s`
+  - `tests/test_loop.py`: with `subprocess.run` faked to serve the odd fixture then the ok fixture, cold `ippoi_site_a` gives retries 1, one memory written, a trace with all six agents, and a qmcharge card naming the rejected first attempt; warm `ippoi_site_b` on the same db gives retries 0 and memory_used True with a `create`,`read` ledger.
+  - `uv run python run.py --demo-memory` here prints both sites with `qm_ok False`, `ESCF null` and the line "Engine skipped (engine not run: SAMPLE_MODE=true)".
+  - **To run on a Docker host:** `SAMPLE_MODE=false uv run python run.py --demo-memory --docker` should show cold retries=1 and warm retries=0 with finite ESCF values.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
