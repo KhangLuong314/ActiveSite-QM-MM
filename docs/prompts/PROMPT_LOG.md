@@ -194,6 +194,26 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-22 16:32 CDT] — Official Open Agent Hackathon Smoke Test & Environment Config
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `smoke_test.py`, `.env.example`, `pyproject.toml`, `tests/test_smoke.py`
+- **Developer Prompt:**
+  > "Implement the official Open Agent Hackathon 2026 smoke test based on the Participant Setup Guide: 1. Create smoke_test.py with official 3-layer validation logic (Zetaris web UI, Zetaris REST API query, NVIDIA Nemotron / Meterless model response with PASS/FAIL format). 2. Create/update .env.example with documented variables. 3. Ensure dependencies (openai, requests, python-dotenv). 4. Audit & Commit: pytest, log, commit message 'feat(infra): add official hackathon smoke_test.py and .env.example for Zetaris and Nemotron'."
+- **Agent Action:**
+  - Added `openai`, `requests`, and `python-dotenv` dependencies to `pyproject.toml` and lockfile.
+  - Implemented `smoke_test.py` with 3-layer validation:
+    - Check 1 (Data): Zetaris web interface at `ZETARIS_BASE_URL` (`http://localhost:3000`).
+    - Check 2 (Data): Zetaris REST API query at `ZETARIS_REST_URL` (`POST /sql-editor/sqls/run` with `SELECT 1`, `ZETARIS_API_KEY`, `X-Org-ID`, and `X-Request-ID`).
+    - Check 3 (Power): NVIDIA Nemotron / Meterless response using `openai` SDK with `MODEL_BASE_URL`, `MODEL_API_KEY`, and `NEMOTRON_MODEL`.
+    - Standardized `PASS <LayerName>` and `FAIL <LayerName> <detail>` console outputs and exit codes.
+  - Created `.env.example` documenting all configuration variables for Zetaris and Nemotron.
+  - Added test suite `tests/test_smoke.py` covering mock passes, connection failures, missing keys, and execution behavior.
+- **Verification:**
+  - `pytest` passed with 37/37 tests green in 3.11s.
+  - Validated live execution of `smoke_test.py` against active local Zetaris services (Web UI: PASS, REST API: PASS).
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
