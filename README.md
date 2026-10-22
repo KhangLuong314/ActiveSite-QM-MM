@@ -86,7 +86,7 @@ Declared in full in [`docs/PRE_EXISTING.md`](docs/PRE_EXISTING.md). In short:
 - **Chemistry spike benchmark:** none of its files are included.
 - **Docker base images:** `mambaorg/micromamba:1.5.10` with conda-forge `ambertools=26.0`, `xtb=6.7.1`, `rdkit=2026.03.1`, `pdb2pqr=3.6.1`, `propka=3.5.1`; `postgres:16-alpine`; `bitnamilegacy/minio:2025.4.22`.
 - **Pre-window scaffold (2026-10-21):** first-pass modules whose fabricated energies, seeded memories and radius pipeline were removed during the window (see `PROMPT_LOG.md` P0 and P7).
-Large binaries are hashed in `data/reference/LARGE_FILES.sha256` and restorable with `scripts/fetch_reference.sh`.
+The large reference files (`*.parm7`, `*.ncrst`, `fmatch/*.npy`, `eda/*.pkl`, about 21 MB) ship in the repo as ordinary git objects: no Git LFS, no download step. `data/reference/LARGE_FILES.sha256` lists their hashes and `scripts/fetch_reference.sh` is an optional path for refreshing them from a mirror; a clean clone never needs it.
 
 ## Project structure
 ```text

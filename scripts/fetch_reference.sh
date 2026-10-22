@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Restore the large reference files (parm7, ncrst, fmatch npy, eda pkl) from REFERENCE_URL (http base) or
+# OPTIONAL. The large reference files ship in the repo; a clean clone never needs this script.
+# Refresh the large reference files (parm7, ncrst, fmatch npy, eda pkl) from REFERENCE_URL (http base) or
 # REFERENCE_PATH (local directory mirroring data/reference/) and verify SHA-256 against data/reference/LARGE_FILES.sha256.
 set -euo pipefail
 cd "$(dirname "$0")/.."

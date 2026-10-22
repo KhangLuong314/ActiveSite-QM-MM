@@ -386,6 +386,22 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-22 13:13 CDT] — P11: publish the P0–P10 stack (commit on `feat/p10-judge-pack` tip)
+- **Tool / Environment:** Claude Code (Fable 5.1); `gh` authenticated, `origin` = github.com/KhangLuong314/ActiveSite-QM-MM
+- **Target Component:** `.github/workflows/ci.yml` (compared, unchanged), `README.md`, `docs/PRE_EXISTING.md`, `scripts/fetch_reference.sh`, `docs/prompts/PROMPT_LOG.md`
+- **Developer Prompt:**
+  > "GitHub still has only main at d73cf94. Publish now, then stop. Report remotes/branches/count and confirm every feat/p<N> is stacked on feat/p<N-1>. Push all eleven branches with upstream tracking in one command. Open ONE PR base main, head feat/p10-judge-pack, title 'P0-P10: rebuild engine, loop, memory, adapters, UI, judge pack'. Fix the CI pins before pushing (new commit on the P10 tip, no rewrite): checkout v4.2.2 = 11bd719…, setup-python v5.3.0 = 0b93645…; change only if different. Large files: keep them tracked, no LFS, no history rewrite; fetch_reference.sh stays optional and the README says the files ship in the repo. Append a P11 entry."
+- **Agent Action:**
+  - Stack check: `main → feat/p0-cleanup → … → feat/p10-judge-pack`, every branch an ancestor of the next and of the P10 tip; 37 commits ahead of `main` (d73cf94).
+  - CI pins: both SHAs in `ci.yml` already equal the verified values (`actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683`, `actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b`); nothing changed.
+  - Large files decision recorded: `data/reference/*.parm7`, `*.ncrst`, `fmatch/*.npy`, `eda/*.pkl` stay tracked as ordinary git objects (about 21 MB); no LFS, no history rewrite. README, `docs/PRE_EXISTING.md` and the script header now say the files ship in the repo and `scripts/fetch_reference.sh` is only for refreshing them.
+  - One commit on the `feat/p10-judge-pack` tip, then `git push -u origin` for all eleven branches in one command, then one PR (base `main`, head `feat/p10-judge-pack`).
+- **Verification:**
+  - `uv run pytest -q` → (see hand-off; judge-pack consistency test re-run after the README edit)
+  - Push output and PR URL reported in the hand-off; `git status --short` empty afterwards.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name

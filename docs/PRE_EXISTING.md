@@ -21,6 +21,6 @@ repository was written during the window; see `docs/prompts/PROMPT_LOG.md`.
 | Pre-window scaffold (2026-10-21) | first-pass modules (`partitioning.py`, `protonation.py`, `chimerax.py`, `critic.py`, `planner.py`, `explainer.py`, `scout.py`) written the day before the window; the fabricated energies, seeded memories and radius pipeline they shipped with were removed in P0/P7 | 2026-10-21 | partly still imported by older tests; not on the judged path |
 | Chemistry spike benchmark | none of its files are included | — | — |
 
-Large binary files (`*.parm7`, `*.ncrst`, `fmatch/*.npy`, `eda/*.pkl`) are listed with SHA-256 in
-`data/reference/LARGE_FILES.sha256`; `scripts/fetch_reference.sh` restores them from `REFERENCE_URL` or
-`REFERENCE_PATH` and verifies the hashes.
+Large binary files (`*.parm7`, `*.ncrst`, `fmatch/*.npy`, `eda/*.pkl`) ship in the repo as ordinary git objects
+(no LFS, no download step) and are listed with SHA-256 in `data/reference/LARGE_FILES.sha256`;
+`scripts/fetch_reference.sh` is only for refreshing them from `REFERENCE_URL` or `REFERENCE_PATH`, verifying the hashes.
