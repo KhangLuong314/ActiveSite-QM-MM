@@ -215,6 +215,22 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-22 00:22 CDT] — P1: `activesite/chem/system.py` geometry & charge layer (branch `feat/p1-system`, stacked on `feat/p0-cleanup`)
+- **Tool / Environment:** Claude Code (Fable 5.1); no Docker (pure parmed/numpy, nothing to run on a Docker host)
+- **Target Component:** `activesite/chem/system.py`, `tests/test_system.py`
+- **Developer Prompt:**
+  > "Create activesite/chem/system.py: a small geometry and charge layer over parmed for Amber systems. ATOMIC_Z, ChargeReport dataclass, MolSystem(parm7, coords) with label/res_label/select/dist/angle/within/charge_report/ring_bonds_cut/atom_mask. Fast tests on a 3-atom water built in code; slow tests on the I-PpoI parm7+ncrst (skip if missing). Acceptance: tests green; no side effects on import."
+- **Agent Action:**
+  - `MolSystem` wraps `parmed.load_file(parm7, coords)`; `from_structure()` builds one from an in-memory Structure for tests and prep code. Coordinates are cached as a `(N,3)` numpy array; distances are plain Euclidean (no periodic imaging).
+  - `charge_report` sums MM partial charges, rounds to the implied integer, reports the residual fraction, electrons as `sum(Z) - nearest_int`, and counts boundary bonds (exactly one end in QM) as link atoms. Atomic numbers come from the topology, with `ATOMIC_Z` as the fallback.
+  - `ring_bonds_cut` flags intra-residue boundary bonds whose atoms stay connected through the residue's bond graph once that bond is removed (BFS over `bond_partners` restricted to the residue).
+  - `atom_mask` compacts 0-based indices into a 1-based Amber range mask.
+  - Tests: water (built with `parmed.Structure`) covers labels, dist/angle/within/select/charge/mask; the I-PpoI reference checks MG371, a neutral whole-system charge report with zero link atoms, and that selecting only C3' of a nucleotide flags its two furanose ring bonds while the whole nucleotide flags none. A subprocess import verifies no side effects.
+- **Verification:**
+  - `uv run pytest -q` → `46 passed, 49 warnings in 10.01s` (slow tests ran; the reference files are present).
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
