@@ -365,6 +365,27 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-22 01:23 CDT] — P10: sample mode and the judge pack (branch `feat/p10-judge-pack`, stacked on `feat/p9-ui`)
+- **Tool / Environment:** Claude Code (Fable 5.1); no Docker, so `data/sample/` and `samples/*/outputs` could NOT be generated here (nothing was hand-written in their place)
+- **Target Component:** `activesite/sample.py`, `activesite/models.py`, `activesite/chem/runner.py`, `activesite/agent/{core,ligand,orchestrator}.py`, `scripts/{make_samples,fetch_reference,smoke_clean_clone}.sh`, `data/sample/MANIFEST.md`, `samples/`, `metadata.json`, `README.md`, `docs/PRE_EXISTING.md`, `data/reference/LARGE_FILES.sha256`, `.pre-commit-config.yaml`, `.github/workflows/ci.yml`, `CONTRIBUTING.md`, `tests/test_sample_mode.py`, `tests/test_judge_pack.py`
+- **Developer Prompt:**
+  > "Finish the judged path. Sample mode replays data/sample/<case>/attempt<N>/sp.out through parse_sander_output and data/sample/<case>/prep/ for ligand cases; every other agent runs its real logic; SimulationResult.engine = 'cached engine output (sample mode)'. scripts/make_samples.sh on a Docker host, MANIFEST with date+commit, track data/sample. samples/ with three inputs and saved outputs. metadata.json. README sections incl. Limitations and 'Pre-existing components and data'. docs/PRE_EXISTING.md. Large files behind scripts/fetch_reference.sh or Git LFS, whichever I confirm. pre-commit (gitleaks, ruff), CI with SHA-pinned actions, CONTRIBUTING.md. scripts/smoke_clean_clone.sh."
+- **Agent Action:**
+  - `activesite/sample.py`: `cached_engine_result` reads `charge<±N>/sp.out`, falling back to `attempt<N>/sp.out` only when the `qmcharge` echoed in its namelist matches the requested charge, and parses it with the P3 parser; `cached_prep` copies the saved preparation and its `prep.json` evidence into the run's work dir. A missing cache yields `engine unavailable` with "no cached sample output", never a number. The metal Runner and the ligand `run_qmmm` take this path in SAMPLE_MODE or without Docker; the real retry, memory, prechecks, validation and cards all still run. `SimulationResult.engine` is now the label string and the raw parse moved to `engine_output`; reports print `**Engine:**`.
+  - `scripts/make_samples.sh` runs the five cases with `--docker --json`, copies every `sp.out` keyed by attempt and by echoed charge, the ligand prep artefacts and `prep.json`, the three sample reports/cards/traces/stats, and stamps `data/sample/MANIFEST.md` with date and commit; it also runs site B cold so a cold sample-mode run of site B has its odd-electron attempt. `.gitignore` re-includes `data/sample/**` and `samples/**`.
+  - `metadata.json`, the README rewrite (five-line what-it-does, quickstart, the three sample cases with expected outputs, architecture, sponsors with the modules that use them, models/frameworks, Limitations, "Pre-existing components and data"), `docs/PRE_EXISTING.md` (table with path, origin, date, used by; declares every file under `data/reference/`, the absent spike benchmark, the Docker base images and the pre-window scaffold). `tests/test_judge_pack.py` asserts that metadata, README and the declaration table agree and that no code unpickles reference data.
+  - Large files: `data/reference/LARGE_FILES.sha256` + `scripts/fetch_reference.sh` (REFERENCE_URL or REFERENCE_PATH, hash-verified). The files are still tracked: removing them from history is the maintainer's call (LFS vs fetch script, see open questions).
+  - Guardrails: `.pre-commit-config.yaml` (gitleaks v8.21.2, ruff v0.8.4), `.github/workflows/ci.yml` (checkout and setup-python pinned to SHAs, uv via pip, pytest, gitleaks via its pinned image tag), `CONTRIBUTING.md`.
+  - `scripts/smoke_clean_clone.sh`: fresh clone, optional compose, `uv sync`, the three cases in SAMPLE_MODE, asserts the cached-engine label and a trace file, prints total seconds.
+- **Verification:**
+  - `uv run pytest -q` → `118 passed, 3 skipped, 161 warnings in 31.93s`
+  - `tests/test_sample_mode.py`: cached odd→ok outputs give cold retries 1 / warm retries 0 with the cached label; a cache for the wrong charge is refused; a missing cache is reported; a cached ligand preparation drives the prechecks and the cached GB single point.
+  - `SKIP_COMPOSE=1 scripts/smoke_clean_clone.sh` here: clone + sync + three runs complete, then FAILS on the label assertion because `data/sample/` is empty in this environment (expected until `make_samples.sh` runs on a Docker host).
+  - `grep -rn "cached engine output" samples/*/report.md` → no hits yet (outputs not generated here).
+  - **To run on a Docker host:** build both images, `scripts/make_samples.sh`, commit `data/sample/` and `samples/`, then `scripts/smoke_clean_clone.sh` must pass in under 10 minutes without network.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
