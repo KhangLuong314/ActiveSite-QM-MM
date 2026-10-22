@@ -162,6 +162,23 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-21 20:35 CDT] — Interactive Web Dashboard, SSE Live Streaming & CLI Runner
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/server/main.py`, `activesite/server/index.html`, `run.py`, `tests/test_server.py`
+- **Developer Prompt:**
+  > "Implement features step-by-step according to our .cursorrules: Feature 10 - Interactive Web Interface & Live SSE Streaming."
+- **Agent Action:**
+  - Implemented FastAPI server (`activesite.server.main`) with SSE live streaming for internal agent thoughts (`/api/stream/{stream_id}`), simulation execution (`/api/run`), case queries (`/api/cases`), and trust ledger audits (`/api/ledger`).
+  - Created a single-page interactive dashboard (`index.html`) featuring quick-select benchmark case buttons, conversational setup prompt box, real-time thought stream, simulation metrics, filterable Decision Cards deck, and ChimeraX script download.
+  - Upgraded CLI runner `run.py` to support `--benchmark`, `--case`, `--query`, `--web`, `--port`, and `--sample-mode`.
+  - Implemented unit tests for dashboard HTML, case listing, simulation execution, and ledger retrieval.
+- **Verification:**
+  - `pytest tests/test_server.py` passed with 4/4 tests green.
+  - `python run.py --benchmark` successfully executed EGFR erlotinib, I-PpoI Site A, and ABL imatinib benchmarks in < 3s.
+  - Full test suite passed with 30/30 tests green in 3.07s.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name

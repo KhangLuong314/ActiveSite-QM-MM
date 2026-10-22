@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ActiveSite — Autonomous QM/MM Assistant (Track 02)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0b0f19; color: #f1f5f9; }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+    .glass { background: rgba(18, 24, 38, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    .glass-card { background: rgba(23, 31, 48, 0.95); border: 1px solid rgba(255, 255, 255, 0.08); }
+    .glow-cyan { box-shadow: 0 0 20px rgba(6, 182, 212, 0.25); }
+    .badge-track02 { background: linear-gradient(135deg, #06b6d4, #3b82f6); }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Top Navbar -->
+  <header class="glass sticky top-0 z-50 px-6 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-cyan-500/20">
+        🔬
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-xl font-bold tracking-tight text-white">ActiveSite</h1>
+          <span class="badge-track02 text-xs font-semibold px-2.5 py-0.5 rounded-full text-white shadow-sm">
+            Track 02: Explainable Agents
+          </span>
+        </div>
+        <p class="text-xs text-slate-400">Autonomous QM/MM Assistant with Verifiable Scientific Reasoning</p>
+      </div>
+    </div>
+
+    <!-- Integrations Badges -->
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-xs px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1.5">
+        <i class="fa-solid fa-atom text-cyan-400"></i> AmberTools 26 / xtb
+      </span>
+      <span class="text-xs px-2.5 py-1 rounded-md bg-purple-950/60 text-purple-300 border border-purple-800/50 flex items-center gap-1.5">
+        <i class="fa-solid fa-brain text-purple-400"></i> Meterless H-MEM
+      </span>
+      <span class="text-xs px-2.5 py-1 rounded-md bg-blue-950/60 text-blue-300 border border-blue-800/50 flex items-center gap-1.5">
+        <i class="fa-solid fa-database text-blue-400"></i> Zetaris MCP
+      </span>
+      <span class="text-xs px-2.5 py-1 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-800/50 flex items-center gap-1.5 font-medium">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Sample Mode (Offline CPU)
+      </span>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl mx-auto w-full">
+
+    <!-- Left Column: Controls & Live Thought Stream (5 cols) -->
+    <div class="lg:col-span-5 flex flex-col gap-6">
+
+      <!-- Query / Benchmark Selector Card -->
+      <div class="glass-card p-5 rounded-2xl flex flex-col gap-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <i class="fa-solid fa-flask-vial text-cyan-400"></i> Benchmark Cases
+          </h2>
+          <span class="text-xs text-slate-400">Zero-Key Evaluation</span>
+        </div>
+
+        <!-- Quick Select Buttons -->
+        <div class="grid grid-cols-3 gap-2">
+          <button onclick="selectCase('egfr_erlotinib')" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-left transition text-xs flex flex-col gap-1 group">
+            <span class="font-semibold text-white group-hover:text-cyan-300">EGFR + Erlotinib</span>
+            <span class="text-slate-400 text-[10px]">PDB 1M17 &bull; pH 7.4</span>
+          </button>
+          <button onclick="selectCase('ippoi_site_a')" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-left transition text-xs flex flex-col gap-1 group">
+            <span class="font-semibold text-white group-hover:text-cyan-300">I-PpoI Endonuclease</span>
+            <span class="text-slate-400 text-[10px]">Site A (Mg:371)</span>
+          </button>
+          <button onclick="selectCase('abl_imatinib_a')" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-left transition text-xs flex flex-col gap-1 group">
+            <span class="font-semibold text-white group-hover:text-cyan-300">ABL + Imatinib</span>
+            <span class="text-slate-400 text-[10px]">PDB 2HYY &bull; DFG-out</span>
+          </button>
+        </div>
+
+        <!-- Conversational Prompt Box -->
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-medium text-slate-300">Conversational Setup Request</label>
+          <textarea id="promptInput" rows="3" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition resize-none placeholder-slate-500" placeholder="e.g. Set up a QM/MM simulation of EGFR kinase with erlotinib (PDB 1M17) at pH 7.4 and explain every setup choice.">Set up a QM/MM simulation of EGFR kinase with erlotinib (PDB 1M17) at pH 7.4 and explain every setup choice.</textarea>
+        </div>
+
+        <button id="runBtn" onclick="runSimulation()" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold text-sm shadow-lg shadow-cyan-500/25 transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-play"></i> Run Autonomous Setup & Explanation
+        </button>
+      </div>
+
+      <!-- Live Thought Stream (SSE) -->
+      <div class="glass-card p-5 rounded-2xl flex-1 flex flex-col gap-3 min-h-[300px]">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <i class="fa-solid fa-network-wired text-cyan-400"></i> Agent Thought Stream (SSE)
+          </h2>
+          <span id="streamStatus" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">Idle</span>
+        </div>
+        <div id="thoughtStream" class="flex-1 bg-slate-950/70 rounded-xl p-3 border border-slate-800/80 font-mono text-xs text-slate-300 overflow-y-auto max-h-[360px] flex flex-col gap-2">
+          <div class="text-slate-500 italic">Waiting for simulation launch... Select a benchmark case or enter a prompt above.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Results & Decision Cards (7 cols) -->
+    <div class="lg:col-span-7 flex flex-col gap-6">
+
+      <!-- Metrics Ribbon -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="glass-card p-4 rounded-xl flex flex-col">
+          <span class="text-xs text-slate-400">QM/MM Energy</span>
+          <span id="metricEnergy" class="text-lg font-bold text-cyan-400 font-mono">-- kcal/mol</span>
+          <span id="metricHartree" class="text-[10px] text-slate-500 font-mono">-- Hartree</span>
+        </div>
+        <div class="glass-card p-4 rounded-xl flex flex-col">
+          <span class="text-xs text-slate-400">QM Residues / Charge</span>
+          <span id="metricResidues" class="text-lg font-bold text-white font-mono">--</span>
+          <span id="metricCharge" class="text-[10px] text-slate-400 font-mono">qmcharge: --</span>
+        </div>
+        <div class="glass-card p-4 rounded-xl flex flex-col">
+          <span class="text-xs text-slate-400">Spin & Valence</span>
+          <span id="metricSpin" class="text-lg font-bold text-emerald-400 font-mono">--</span>
+          <span id="metricElectrons" class="text-[10px] text-slate-400 font-mono">-- e⁻ (Closed Shell)</span>
+        </div>
+        <div class="glass-card p-4 rounded-xl flex flex-col">
+          <span class="text-xs text-slate-400">Execution Time</span>
+          <span id="metricTime" class="text-lg font-bold text-white font-mono">-- s</span>
+          <span class="text-[10px] text-slate-400 font-mono">CPU Sample Mode</span>
+        </div>
+      </div>
+
+      <!-- Tabs Header -->
+      <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
+        <button onclick="switchTab('cards')" id="tabBtnCards" class="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-cyan-400 border border-slate-700 flex items-center gap-2">
+          <i class="fa-solid fa-address-card"></i> Decision Cards (<span id="cardsCount">0</span>)
+        </button>
+        <button onclick="switchTab('report')" id="tabBtnReport" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2">
+          <i class="fa-solid fa-file-lines"></i> Full Report (Markdown)
+        </button>
+        <button onclick="switchTab('ledger')" id="tabBtnLedger" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2">
+          <i class="fa-solid fa-shield-halved"></i> Trust Ledger
+        </button>
+        <div class="ml-auto">
+          <a id="downloadCxcBtn" href="#" class="hidden px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-cyan-300 border border-slate-700 items-center gap-1.5">
+            <i class="fa-solid fa-download"></i> ChimeraX (.cxc)
+          </a>
+        </div>
+      </div>
+
+      <!-- Tab 1: Decision Cards Deck -->
+      <div id="tabCards" class="flex flex-col gap-4">
+        <div id="cardsList" class="flex flex-col gap-3">
+          <div class="glass-card p-6 rounded-2xl text-center text-slate-500">
+            <i class="fa-solid fa-layer-group text-3xl mb-2 text-slate-600"></i>
+            <p>No simulation run yet. Click "Run Autonomous Setup" to generate scientific Decision Cards.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Full Report Preview -->
+      <div id="tabReport" class="hidden glass-card p-6 rounded-2xl">
+        <pre id="reportContent" class="text-xs text-slate-300 whitespace-pre-wrap font-mono"></pre>
+      </div>
+
+      <!-- Tab 3: Trust Ledger -->
+      <div id="tabLedger" class="hidden glass-card p-6 rounded-2xl flex flex-col gap-3">
+        <h3 class="text-sm font-semibold text-white">Meterless H-MEM Episodic Memory & Trust Ledger</h3>
+        <p class="text-xs text-slate-400">Verifiable trace of past diagnostic self-corrections (e.g. odd-electron spin fixes, pKa shifts).</p>
+        <div id="ledgerContent" class="flex flex-col gap-2 mt-2"></div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    let activeCaseId = "egfr_erlotinib";
+
+    function selectCase(caseId) {
+      activeCaseId = caseId;
+      const prompts = {
+        "egfr_erlotinib": "Prepare EGFR kinase with erlotinib from the 1M17 crystal structure at pH 7.4 and compute PM6 QM/MM energy. Explain every protonation and setup choice.",
+        "ippoi_site_a": "Set up a QM/MM model for DNA phosphodiester cleavage at I-PpoI active site A (Mg :371) and compute PM6 energy. Explain every setup choice.",
+        "abl_imatinib_a": "Prepare ABL kinase with imatinib from the 2HYY crystal structure and compute PM6 QM/MM energy. Explain every protonation and setup choice."
+      };
+      document.getElementById("promptInput").value = prompts[caseId] || "";
+    }
+
+    function switchTab(tab) {
+      document.getElementById("tabCards").classList.add("hidden");
+      document.getElementById("tabReport").classList.add("hidden");
+      document.getElementById("tabLedger").classList.add("hidden");
+
+      document.getElementById("tabBtnCards").className = "px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2";
+      document.getElementById("tabBtnReport").className = "px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2";
+      document.getElementById("tabBtnLedger").className = "px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2";
+
+      if (tab === "cards") {
+        document.getElementById("tabCards").classList.remove("hidden");
+        document.getElementById("tabBtnCards").className = "px-4 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-cyan-400 border border-slate-700 flex items-center gap-2";
+      } else if (tab === "report") {
+        document.getElementById("tabReport").classList.remove("hidden");
+        document.getElementById("tabBtnReport").className = "px-4 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-cyan-400 border border-slate-700 flex items-center gap-2";
+      } else if (tab === "ledger") {
+        document.getElementById("tabLedger").classList.remove("hidden");
+        document.getElementById("tabBtnLedger").className = "px-4 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-cyan-400 border border-slate-700 flex items-center gap-2";
+        loadLedger();
+      }
+    }
+
+    async function runSimulation() {
+      const btn = document.getElementById("runBtn");
+      const thoughtStream = document.getElementById("thoughtStream");
+      const status = document.getElementById("streamStatus");
+      const prompt = document.getElementById("promptInput").value;
+
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Reasoning & Simulating...`;
+      status.innerText = "Running...";
+      status.className = "text-[11px] px-2 py-0.5 rounded-full bg-cyan-900/60 text-cyan-300 animate-pulse";
+      thoughtStream.innerHTML = "";
+
+      try {
+        const resp = await fetch("/api/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: prompt, sample_mode: true })
+        });
+        const data = await resp.json();
+
+        // Connect SSE stream for thought history
+        if (data.logs) {
+          data.logs.forEach(log => {
+            const el = document.createElement("div");
+            el.className = "p-1.5 rounded bg-slate-900/80 border border-slate-800 text-slate-300";
+            el.innerText = log;
+            thoughtStream.appendChild(el);
+          });
+          thoughtStream.scrollTop = thoughtStream.scrollHeight;
+        }
+
+        // Update metrics
+        document.getElementById("metricEnergy").innerText = `${data.energy_kcal_mol.toLocaleString()} kcal/mol`;
+        document.getElementById("metricHartree").innerText = `${data.energy_hartree.toFixed(5)} Hartree`;
+        document.getElementById("metricResidues").innerText = `${data.decision_cards.length} moieties`;
+        document.getElementById("metricCharge").innerText = `qmcharge: ${data.qm_charge >= 0 ? '+' : ''}${data.qm_charge}`;
+        document.getElementById("metricSpin").innerText = `Singlet (M=${data.spin_multiplicity})`;
+        document.getElementById("metricElectrons").innerText = `${data.valence_electrons} e⁻ (Closed Shell)`;
+        document.getElementById("metricTime").innerText = `${data.execution_time_seconds} s`;
+
+        // Render Decision Cards
+        renderDecisionCards(data.decision_cards);
+        document.getElementById("cardsCount").innerText = data.decision_cards.length;
+
+        // Render Report
+        document.getElementById("reportContent").innerText = data.report_markdown;
+
+        // ChimeraX download button
+        const cxcBtn = document.getElementById("downloadCxcBtn");
+        cxcBtn.href = `/api/chimerax/${data.system_name}`;
+        cxcBtn.classList.remove("hidden");
+        cxcBtn.classList.add("flex");
+
+        status.innerText = "Completed";
+        status.className = "text-[11px] px-2 py-0.5 rounded-full bg-emerald-900/60 text-emerald-300";
+
+      } catch (err) {
+        thoughtStream.innerHTML += `<div class="text-rose-400 p-2">Error: ${err.message}</div>`;
+        status.innerText = "Failed";
+        status.className = "text-[11px] px-2 py-0.5 rounded-full bg-rose-900/60 text-rose-300";
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-play"></i> Run Autonomous Setup & Explanation`;
+      }
+    }
+
+    function renderDecisionCards(cards) {
+      const container = document.getElementById("cardsList");
+      container.innerHTML = "";
+
+      cards.forEach((card, idx) => {
+        const el = document.createElement("div");
+        el.className = "glass-card p-5 rounded-2xl flex flex-col gap-3 border border-slate-800 hover:border-slate-700 transition";
+
+        let altHtml = "";
+        if (card.alternatives && card.alternatives.length > 0) {
+          altHtml = `
+            <div class="mt-2 pt-2 border-t border-slate-800/80">
+              <span class="text-[11px] font-semibold uppercase text-slate-400">Evaluated & Rejected Alternatives:</span>
+              <ul class="mt-1 space-y-1">
+                ${card.alternatives.map(a => `
+                  <li class="text-xs text-slate-300 flex items-start gap-1.5">
+                    <span class="text-rose-400">❌</span>
+                    <span><strong>${a.name}:</strong> ${a.rejected_reason}</span>
+                  </li>
+                `).join('')}
+              </ul>
+            </div>
+          `;
+        }
+
+        let evHtml = "";
+        if (card.evidence && Object.keys(card.evidence).length > 0) {
+          evHtml = `
+            <div class="flex flex-wrap gap-2 mt-1">
+              ${Object.entries(card.evidence).map(([k, v]) => `
+                <span class="text-[10px] px-2 py-0.5 rounded bg-slate-900 text-slate-400 font-mono border border-slate-800">
+                  ${k}: <strong class="text-cyan-300">${v}</strong>
+                </span>
+              `).join('')}
+            </div>
+          `;
+        }
+
+        el.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800/60 uppercase">
+                ${card.category}
+              </span>
+              <span class="text-xs text-slate-400 font-mono">${card.target}</span>
+            </div>
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-800/50">
+              ${Math.round(card.confidence * 100)}% Confidence
+            </span>
+          </div>
+
+          <div>
+            <h4 class="text-sm font-bold text-white">${card.choice}</h4>
+            <p class="text-xs text-slate-300 mt-1 leading-relaxed">${card.rationale}</p>
+          </div>
+
+          ${evHtml}
+          ${altHtml}
+        `;
+        container.appendChild(el);
+      });
+    }
+
+    async function loadLedger() {
+      const container = document.getElementById("ledgerContent");
+      try {
+        const resp = await fetch("/api/ledger");
+        const data = await resp.json();
+        container.innerHTML = "";
+
+        data.records.forEach(r => {
+          const card = document.createElement("div");
+          card.className = "p-3 rounded-xl bg-slate-900 border border-slate-800 flex flex-col gap-1.5 text-xs";
+          card.innerHTML = `
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-cyan-300">${r.record_id}</span>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800/50">${r.outcome}</span>
+            </div>
+            <div class="text-slate-300 font-mono text-[11px]">${r.action_taken}</div>
+            <div class="text-slate-400 text-xs italic">"${r.learned_rule}"</div>
+            <div class="text-[10px] text-slate-500">Trust Score: ${r.trust_score} &bull; System: ${r.system_id}</div>
+          `;
+          container.appendChild(card);
+        });
+      } catch (e) {
+        container.innerHTML = `<div class="text-rose-400 text-xs">Failed to load ledger: ${e.message}</div>`;
+      }
+    }
+  </script>
+</body>
+</html>
