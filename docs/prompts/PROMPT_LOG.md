@@ -98,6 +98,22 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-21 20:30 CDT] — Critic Agent & Episodic Self-Correction Loop
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/agent/critic.py`, `tests/test_critic.py`
+- **Developer Prompt:**
+  > "Implement features step-by-step according to our .cursorrules: Feature 6 - Critic Agent & Self-Correction Feedback Loop."
+- **Agent Action:**
+  - Implemented `CriticAgent` with valence electron counting and closed-shell parity inspection.
+  - Linked the Critic directly with `MeterlessHMEM` to automatically recall episodic lessons upon detecting anomalies such as `ODD_ELECTRON_SPIN_MISMATCH`.
+  - Implemented automatic self-correction of the QM charge (e.g. converting `qmcharge` from 0 to +1 in I-PpoI endonuclease to prevent open-shell radical collapse).
+  - Emitted Track 02 `CRITIC_CORRECTION` Decision Cards detailing diagnosed cause, recalled lesson, and verified singlet multiplicity.
+  - Recorded audited decisions into the persistent Meterless Trust Ledger.
+- **Verification:**
+  - `pytest tests/test_critic.py` passed with 2/2 tests green in 0.16s.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
