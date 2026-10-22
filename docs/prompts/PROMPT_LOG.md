@@ -247,6 +247,22 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-22 00:36 CDT] — P3: `activesite/chem/sander.py` containerised sander single point (branch `feat/p3-sander`, stacked on `feat/p2-qmregion`)
+- **Tool / Environment:** Claude Code (Fable 5.1); `docker info` fails here, so the engine test is skip-marked and listed for a Docker host
+- **Target Component:** `activesite/chem/sander.py`, `activesite/chem/runner.py`, `activesite/models.py`, `tests/test_sander.py`, `tests/fixtures/sander_ok.out`, `tests/fixtures/sander_odd.out`
+- **Developer Prompt:**
+  > "Create activesite/chem/sander.py: run one sander QM/MM single point in the activesite-engine:at26 container and parse the output. PME and GB mdin templates; parse_sander_output(text, theory) pure function; run_single_point(...) with docker run --rm --name sander-<hex> -v refdir:/ref:ro -v workdir:/work, timeout -> docker rm -f. Fixtures in sander's real mdout layout; docker command test with subprocess.run monkeypatched; slow engine test on a Docker host. Replace the engine stub in runner.py; no placeholder energy path."
+- **Agent Action:**
+  - `sander.py`: PME and GB templates whose title line names theory and charge; an allow-list on theory, an Amber-mask character class on `qmmask`, int-only charge and a two-value solvent switch, because these strings reach the mdin and the docker command line. `parse_sander_output` reads ESCF and the NSTEP/ENERGY table only from the block after `FINAL RESULTS`, plus the RESP charge sum, `nlink`, the odd-electron count and every diagnostic `QMMM:` line; a NaN/Inf/overflow ESCF yields `ok=False` with "non-finite QM energy". `run_single_point` writes `sp.mdin`, runs the exact container command from the prompt, removes the container on timeout, and falls back to the stderr tail when sander exits non-zero without a diagnosable line.
+  - `runner.py`: the stub is gone. `run_simulation` now returns one of three honest skips (SAMPLE_MODE on, no Docker/image, no Amber topology for the system) or maps the parsed engine output onto `SimulationResult` (total QM/MM energy in kcal/mol and Hartree, raw parse in the new `engine` field). PME vs GB is chosen from `%FLAG BOX_DIMENSIONS` in the parm7.
+  - Fixtures were written by hand in the Amber 26 mdout layout (file assignments, echoed input, sections 1-5, link-atom table, RESP sum, pre-final and FINAL RESULTS energy blocks; the odd case carries the three-line `QMMM: System specified with odd number of electrons (  203)` diagnostic and a SANDER BOMB with no ESCF).
+  - Tests: parser on both fixtures, FINAL-RESULTS-only reading, non-finite ESCF, theory name matching, template contents, allow-list rejections, exact docker command, timeout path with `docker rm -f`, stderr fallback, same-directory requirement, and the runner mapped through a mocked `run_single_point`. `slow` marker registered in `pyproject.toml`.
+- **Verification:**
+  - `uv run pytest -q` → `72 passed, 1 skipped, 65 warnings in 14.71s` (the skip is `test_engine_site_a_single_point`, needs Docker)
+  - **To run on a Docker host:** `docker build -f docker/engine.Dockerfile -t activesite-engine:at26 .` then `uv run pytest -q tests/test_sander.py -m slow`: expects charge 0 on the P2 site-A mask → `ok False` with `odd_electrons` set, charge +1 → `ok True` with finite ESCF and `data/runs/sander_engine_test/charge1/sp.out` present. Also `SAMPLE_MODE=false uv run python run.py --case ippoi_site_a --docker`.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
