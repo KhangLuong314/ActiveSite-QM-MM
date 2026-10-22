@@ -231,6 +231,22 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-22 00:30 CDT] — P2: `activesite/chem/qmregion.py` QM region proposal with numeric evidence (branch `feat/p2-qmregion`, stacked on `feat/p1-system`)
+- **Tool / Environment:** Claude Code (Fable 5.1); no Docker (geometry only, nothing to run on a Docker host)
+- **Target Component:** `activesite/chem/qmregion.py`, `tests/test_qmregion.py`
+- **Developer Prompt:**
+  > "Create activesite/chem/qmregion.py: propose a QM region for a Mg-dependent phosphodiester-cleavage active site, with numeric evidence for every choice so the Explainer can cite it. Choice/Proposal dataclasses; propose(sys, metal_resid, cut_level) with rules metal / first shell (2.8 Å, whole waters, protein side chains) / scissile phosphate / nucleophile (largest O(w)-P-O3' angle within 4 Å) / general base (His ring N within 6 Å); cut levels minimal then sugar, accepted only if charge.fraction <= 0.10 and no ring bonds cut; compare(sys, ours, expert). Tests against the I-PpoI reference and the expert mask."
+- **Agent Action:**
+  - Five rules each append a `Choice(residue, role, rule, evidence)` with distances, angles, the search radius and every rejected candidate (waters with their in-line angle, other His N with their distance), so the Explainer can cite numbers rather than slogans.
+  - Cut levels are tried smallest first; `minimal` is rejected on I-PpoI because it cuts the furanose ring bonds C3'-C2' and C3'-C4' of the leaving nucleotide, `sugar` is accepted (charge fraction 0.032, four link atoms). Both reasons land in `Proposal.notes`.
+  - The expert mask for this exact parm7/ncrst is `QMMASK` in `gen_inputs.sh` (site Mg371, qmcharge +1). `gen_qmmask.py` is a fragment listing whole residues for the other site (Mg372) and `qmhub.ini` only carries engine settings, so the test parses `gen_inputs.sh` for the mask/charge and reads the other two to document what they contain.
+  - `propose(sys, 371)` reproduces the 64-atom expert region with atom Jaccard 1.0 and `nearest_int == +1`; `propose(sys, 372)` yields a 67-atom region on the DG35/DA34 phosphodiester with every residue within 8 Å of the metal.
+- **Verification:**
+  - `uv run pytest -q` → `52 passed, 65 warnings in 13.64s`
+  - Every `Choice` carries at least one numeric evidence value (asserted in the tests for both sites).
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
