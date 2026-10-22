@@ -198,3 +198,11 @@ def test_full_prep_abl_imatinib(tmp_path):
     assert r["ligand_site"]["atom"] in ("N51", "N48") and r["ligand_parameters"]["net_charge"] == 1
     assert r["minimisation"]["last"]["gmax"] < 10
     assert r["pose"]["centroid_shift"] < 1.0
+
+
+def test_tleap_template_combines_units_with_single_braces():
+    """tleap reads ``combine {PROT LIG}``; doubled braces make a list-of-lists, the combine is skipped and
+    ``charge COMPLEX`` fails on a String (seen in a real EGFR run, 2026-10-22)."""
+    from activesite.chem import prep as prep_mod
+    assert "COMPLEX = combine {PROT LIG}" in prep_mod.TLEAP_TEMPLATE
+    assert "{{" not in prep_mod.TLEAP_TEMPLATE and "}}" not in prep_mod.TLEAP_TEMPLATE

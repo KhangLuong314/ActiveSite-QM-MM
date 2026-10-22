@@ -456,7 +456,7 @@ set default PBRadii mbondi2
 loadamberparams ligand.frcmod
 LIG = loadmol2 ligand.mol2
 PROT = loadpdb protein_final.pdb
-COMPLEX = combine {{PROT LIG}}
+COMPLEX = combine {PROT LIG}
 charge COMPLEX
 saveamberparm COMPLEX complex.parm7 complex.rst7
 quit
