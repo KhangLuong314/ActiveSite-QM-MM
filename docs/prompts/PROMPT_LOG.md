@@ -263,6 +263,22 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-22 00:45 CDT] — P4: `activesite/chem/prep.py` + `ligand_rdkit.py` complex preparation with evidence (branch `feat/p4-prep`, stacked on `feat/p3-sander`)
+- **Tool / Environment:** Claude Code (Fable 5.1); no Docker here, so the two full-preparation tests are skip-marked and listed for a Docker host
+- **Target Component:** `activesite/chem/prep.py`, `activesite/chem/ligand_rdkit.py`, `tests/test_prep.py`, `tests/fixtures/methanol.mol2`, `tests/fixtures/methanol.sdf`
+- **Developer Prompt:**
+  > "Create activesite/chem/prep.py and activesite/chem/ligand_rdkit.py: prepare a protein-ligand complex from a raw PDB for QM/MM, recording evidence for every decision. Every chemistry tool runs inside activesite-prep:at26. choose_chain / extract / protonate / ligand_protonation_site / review_uncertain / ligand_parameters (cached GAFF2+BCC, mol2 finalisation refusing order mismatch or residual >= 0.01 e) / build_complex / minimise / built_pose / polar_contacts. No-Docker tests on 1M17 and 2HYY; slow Docker tests for the full EGFR and ABL preparations."
+- **Agent Action:**
+  - `dock` runs an argv list (no shell) in the prep container with `work` at `/work`, optionally under `micromamba run -n prep`; merged output and seconds are returned and every tool's log is saved in `work`.
+  - Pure parts testable without Docker: REMARK 465/470 parsing and chain scoring (gaps adjacent to the 12 Å CA pocket, missing-atom residues in the pocket, missing residues, chain id); altloc-filtered extraction; tertiary-amine detection (N with exactly three C within 1.6 Å) against backbone O within 3.3 Å; His review inside the 1.0 pKa window with the ring N facing the ligand cation left unprotonated; PROPKA summary and pdb4amber renum parsing; mol2 finalisation that keeps cached charges/types, takes this run's SDF coordinates, refuses count/element-order mismatches and residuals >= 0.01 e, and spreads smaller residuals evenly; polar-contact geometry shared by the crystal and built poses.
+  - Container stages: pdb2pqr/PROPKA, the standalone `ligand_rdkit.py` (bond orders from the SMILES template, optional +1/explicit-H on the named N, H placement, one JSON line), antechamber+parmchk2 cached under `data/cache/ligands/<sha256[:16]>`, pdb4amber, tleap (fails on Errors > 0, parses the total charge), restrained GB minimisation, and `built_pose` via parmed with partners reported in crystal numbering. `prepare_complex` chains them and keeps every stage's dict.
+  - On 2HYY chain A the amine rule picks N51 (N-methyl piperazine) with its closest backbone carbonyl under 3.3 Å; on 1M17 erlotinib has no tertiary amine and the function returns None. MET769 appears as a crystal polar contact under 3.3 Å.
+- **Verification:**
+  - `uv run pytest -q` → `83 passed, 3 skipped, 65 warnings in 14.12s` (skips: the sander engine test and the two prep Docker tests)
+  - **To run on a Docker host:** `docker build -f docker/prep.Dockerfile -t activesite-prep:at26 .` (after the engine image) then `uv run pytest -q tests/test_prep.py -m slow`: expects complex.parm7 and min.rst7 for both cases, final GMAX < 10, ligand centroid shift < 1 Å, a MET769 contact under 3.3 Å for EGFR, net charge 0 (erlotinib) and +1 (imatinib), and nothing written outside the work and cache directories.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
