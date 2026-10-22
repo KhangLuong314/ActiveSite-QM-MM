@@ -349,6 +349,22 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-22 01:15 CDT] — P9: live server and dashboard (branch `feat/p9-ui`, stacked on `feat/p8-adapters`)
+- **Tool / Environment:** Claude Code (Fable 5.1); server tested with the orchestrator monkeypatched, UI not exercised in a browser here
+- **Target Component:** `activesite/server/main.py`, `activesite/server/index.html`, `activesite/agent/orchestrator.py`, `run.py`, `tests/test_server.py`
+- **Developer Prompt:**
+  > "Make the web dashboard stream the run live and show memory and data honestly. POST /api/run starts the orchestrator in a worker thread and returns a stream id; GET /api/stream/{id} is SSE fed by Trace.on_event with step events, a final result event and pings; /api/cases, /api/ledger, POST /api/memory/reset, /api/chimerax, GET /run/stream alias, POST /run returns the run.py JSON. UI: live steps, pipeline strip with handoffs, metrics with an engine badge and null rendered as 'not computed', cards with source, SQL sheet, memory table, reset button, trace link. Do not display any number that did not come from the stream."
+- **Agent Action:**
+  - Server: each run gets a `RunState` (events list + done flag) filled by the Trace `on_event` from a worker thread; the SSE generator replays stored events, follows new ones, pings every 15 s, and ends with one `result` (public stats, cards, validation, checks, engine result without the docker argv, SQL strings, report) or an `error`. `POST /run` runs synchronously and returns `public_stats`, the same dict `run.py --case <id> --json` prints. `/api/ledger` returns the memories, the last 50 ledger lines and the record view; `/api/memory/reset` deletes the db and ledger and reopens an empty store; `/api/trace/{run_id}` serves the JSONL.
+  - Orchestrator: `resolve_case_id(prompt)`, `public_stats(stats)` and an `engine_label` in every stats dict ("sander in Docker" / "cached engine output (sample mode)" / "engine unavailable").
+  - UI (same head, header, left-column look): the trace feed opens an EventSource on `/run/stream` before the run finishes and appends each step with its real timestamp, agent, action, status, confidence and retry count; a pipeline strip highlights the acting agent and shows `agent → target`; metrics show ESCF/total as "not computed" until the result event carries a number, the engine badge, qmcharge, retries/memory_used, catalog and model mode; tabs for cards (decision, rationale, source, confidence, evidence), report, "What the system remembers" (memories table plus the ledger tail) and the SQL sheet; a reset-memory button; a trace-file link. All placeholders are text, never numbers.
+- **Verification:**
+  - `uv run pytest -q` → `108 passed, 3 skipped, 113 warnings in 21.41s`
+  - `tests/test_server.py`: `/api/run` returns a stream id, the stream yields three `step` events then `result` (also via `/run/stream`), prompts map to cases with 400/404 on bad input, `/run` returns the CLI JSON shape, and the reset endpoint empties memories and ledger.
+  - **To run on a Docker host:** `SAMPLE_MODE=false uv run python run.py --server`, open http://localhost:8088, run I-PpoI site A and watch the steps arrive while sander runs, then the retry and the `remember` step.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
