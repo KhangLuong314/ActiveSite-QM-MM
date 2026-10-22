@@ -35,6 +35,22 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-21 20:25 CDT] — Meterless H-MEM Episodic Memory & Trust Ledger
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/memory/meterless.py`, `activesite/memory/meterless_mcp.py`, `tests/test_memory.py`
+- **Developer Prompt:**
+  > "Implement features step-by-step according to our .cursorrules: Feature 2 - Meterless H-MEM Episodic Memory & Trust Ledger."
+- **Agent Action:**
+  - Implemented `MeterlessHMEM` managing episodic memory records and verifiable trust ledger with zero external key dependency.
+  - Pre-seeded domain memories for benchmark cases (I-PpoI catalytic Mg2+ coordination rule, EGFR erlotinib hinge H-bond rule, ABL imatinib DFG-out rule).
+  - Implemented `recall_corrective_action` to enable autonomous self-correction by the Critic Agent.
+  - Implemented standard JSON-RPC MCP server (`activesite.memory.meterless_mcp`) for tool-based recall and ledger audits.
+  - Created unit tests verifying initialization, seeding, error recall, and MCP dispatching.
+- **Verification:**
+  - `pytest tests/test_memory.py` passed with 4/4 tests green in 0.03s.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
