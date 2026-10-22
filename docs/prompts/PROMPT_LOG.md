@@ -20,6 +20,21 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-21 20:24 CDT] — Core Domain Models & Decision Cards (Track 02)
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/models.py`, `tests/test_models.py`
+- **Developer Prompt:**
+  > "Implement features step-by-step according to our .cursorrules: Feature 1 - Core Domain Models & Decision Cards."
+- **Agent Action:**
+  - Implemented `DecisionCard` and `AlternativeChoice` adhering to Track 02 mandatory fields (`decision_id`, `choice`, `alternatives`, `rationale`, `confidence`, `evidence`).
+  - Added domain models for `LinkAtom`, `ResidueSelection`, `QMMMPartition`, and `SimulationResult`.
+  - Added Markdown formatting method `to_markdown()` for readable explanation rendering in UI and report artifacts.
+  - Implemented and passed unit tests covering card generation, partition assembly, and simulation result serialization.
+- **Verification:**
+  - `pytest tests/test_models.py` passed with 3/3 tests green in 0.18s.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
