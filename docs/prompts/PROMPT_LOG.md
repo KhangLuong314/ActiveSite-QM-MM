@@ -82,6 +82,22 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-21 20:29 CDT] — QM/MM Active Site Partitioning & Link Atom Placement
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/chem/partitioning.py`, `tests/test_partitioning.py`
+- **Developer Prompt:**
+  > "Implement features step-by-step according to our .cursorrules: Feature 5 - QM/MM Active Site Partitioning & Link Atom Placement."
+- **Agent Action:**
+  - Implemented `QMMMPartitioner` with distance-based active site pocket selection around ligands and catalytic metal centers.
+  - Added link atom cut generator placing capping hydrogens along single C_alpha - C_beta sigma bonds to minimize orbital distortion artifacts.
+  - Supported metalloenzyme partitioning for I-PpoI endonuclease (Mg2+ coordinating sphere, catalytic waters, scissile phosphate).
+  - Emitted Track 02 Decision Cards for radius selection, residue inclusion/exclusion (e.g. Met769 inclusion vs Thr766 exclusion), link atom boundary cuts, and formal charge balance.
+  - Implemented unit tests verifying link atom geometry, EGFR erlotinib partitioning, and metal center active site construction.
+- **Verification:**
+  - `pytest tests/test_partitioning.py` passed with 3/3 tests green in 1.28s.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
