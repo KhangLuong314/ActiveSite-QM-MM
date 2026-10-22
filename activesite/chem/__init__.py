@@ -1,1 +1,4 @@
-"""Chemistry execution, active site partitioning, and QM/MM interface."""
+"""ActiveSite computational chemistry package."""
+from activesite.chem.protonation import ProtonationAgent, ProtonationReport, ResidueProtonation
+
+__all__ = ["ProtonationAgent", "ProtonationReport", "ResidueProtonation"]

@@ -66,6 +66,22 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-21 20:27 CDT] — Structure Prep & Explainable Protonation Agent
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/chem/protonation.py`, `tests/test_protonation.py`
+- **Developer Prompt:**
+  > "Implement features step-by-step according to our .cursorrules: Feature 4 - Structure Prep, PROPKA & Protonation Agent with Explainability."
+- **Agent Action:**
+  - Implemented `ProtonationAgent` calculating chemical environmental pKa shifts (coordinating metals, dielectric burial, hydrogen bond networks) across titratable residues.
+  - Added tautomer selection for Histidines (HIE vs HID vs HIP), showing why coordinating divalent Mg2+ suppresses double protonation and directs lone-pair orientation.
+  - Added ligand protonation predictors for erlotinib (AQ4 quinazoline base) and imatinib (STI N-methylpiperazine tertiary ammonium cation).
+  - Every protonation prediction generates a complete Track 02 `DecisionCard` with alternatives, scientific rationale, and numerical pKa evidence.
+  - Implemented unit tests covering metal coordination, hydrophobic burial shifts, and ligand ionization.
+- **Verification:**
+  - `pytest tests/test_protonation.py` passed with 4/4 tests green in 0.03s.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
