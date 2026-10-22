@@ -117,7 +117,7 @@ class CriticAgent:
 
             # Query Meterless H-MEM for known resolution
             recalled_lesson = self.hmem.recall_corrective_action(
-                system_id=partition.system_name,
+                system_class_tag=partition.system_name,
                 error_type="ODD_ELECTRON_SPIN_MISMATCH",
             )
 

@@ -23,26 +23,24 @@ def _lesson(record_id: str = "MEM_TEST_001", system_id: str = "test_kinase") -> 
 
 
 def test_fresh_ledger_starts_empty(tmp_path: Path):
-    ledger_file = tmp_path / "test_ledger.json"
-    hmem = MeterlessHMEM(storage_path=ledger_file)
+    hmem = MeterlessHMEM(db_path=tmp_path / "hmem.sqlite", ledger_path=tmp_path / "hmem_ledger.jsonl")
 
     assert hmem.query_memories() == []
     assert hmem.get_ledger() == []
     assert hmem.recall_corrective_action("ippoi_wt", "ODD_ELECTRON_SPIN_MISMATCH") is None
-    # Nothing is written to disk until a record is actually stored.
-    assert not ledger_file.exists()
+    # Nothing is written to the ledger until a record is actually stored.
+    assert not (tmp_path / "hmem_ledger.jsonl").exists()
 
 
-def test_committed_default_ledger_is_empty():
-    data = json.loads(Path("data/memory/meterless_ledger.json").read_text())
-    assert data["records"] == []
-    assert data["ledger"] == []
+def test_no_seeded_ledger_is_committed():
+    assert not Path("data/memory/meterless_ledger.json").exists()
+    assert "_seed_foundational" not in Path("activesite/memory/meterless.py").read_text()
 
 
-def test_corrupt_ledger_starts_empty_without_seeding(tmp_path: Path):
-    ledger_file = tmp_path / "test_ledger.json"
-    ledger_file.write_text("{not json")
-    hmem = MeterlessHMEM(storage_path=ledger_file)
+def test_storage_path_compat_maps_to_sqlite(tmp_path: Path):
+    hmem = MeterlessHMEM(storage_path=tmp_path / "test_ledger.json")
+    assert hmem.db_path == tmp_path / "test_ledger.sqlite"
+    assert hmem.ledger_path == tmp_path / "hmem_ledger.jsonl"
     assert hmem.query_memories() == []
 
 
@@ -51,7 +49,7 @@ def test_hmem_record_persist_and_recall_correction(tmp_path: Path):
     hmem = MeterlessHMEM(storage_path=ledger_file)
     hmem.record_episode(_lesson())
 
-    recalled = hmem.recall_corrective_action(system_id="test_kinase", error_type="CHARGE_DISCREPANCY")
+    recalled = hmem.recall_corrective_action("test_kinase", error_type="CHARGE_DISCREPANCY")
     assert recalled is not None
     assert recalled.corrective_action == "Set qmcharge=-1"
     assert recalled.trust_score == 0.92
@@ -61,14 +59,18 @@ def test_hmem_record_persist_and_recall_correction(tmp_path: Path):
     assert [r.record_id for r in reloaded.query_memories()] == ["MEM_TEST_001"]
 
 
-def test_recall_does_not_cross_systems(tmp_path: Path):
-    """A lesson learned on one system must not be applied to an unrelated one."""
+def test_recall_requires_exact_tag_and_error_type(tmp_path: Path):
+    """A lesson learned on one system must not be applied to an unrelated one; there is no fallback."""
     hmem = MeterlessHMEM(storage_path=tmp_path / "l.json")
     hmem.record_episode(_lesson(system_id="test_kinase"))
     assert hmem.recall_corrective_action("other_enzyme", "CHARGE_DISCREPANCY") is None
-    # 'generic' lessons remain applicable everywhere.
+    assert hmem.recall_corrective_action("test_kinase", "ODD_ELECTRON_SPIN_MISMATCH") is None
+    assert hmem.recall_corrective_action("test_kin", "CHARGE_DISCREPANCY") is None   # substring is not a tag
     hmem.record_episode(_lesson(record_id="MEM_GEN", system_id="generic"))
-    assert hmem.recall_corrective_action("other_enzyme", "CHARGE_DISCREPANCY").record_id == "MEM_GEN"
+    assert hmem.recall_corrective_action("other_enzyme", "CHARGE_DISCREPANCY") is None
+    assert hmem.recall_corrective_action("test_kinase", "CHARGE_DISCREPANCY").record_id == "MEM_TEST_001"
+    # the recall itself is audited
+    assert [e["action"] for e in hmem.ledger_entries()] == ["create", "create", "read"]
 
 
 def test_trust_ledger_entry(tmp_path: Path):
@@ -87,6 +89,8 @@ def test_trust_ledger_entry(tmp_path: Path):
     ledger = hmem.get_ledger()
     assert len(ledger) == 1
     assert ledger[0].decision_id == "DEC_001"
+    raw = hmem.ledger_entries()
+    assert raw[0]["action"] == "trust" and raw[0]["actor"] == "CriticAgent"
 
 
 def test_mcp_handler_records_then_queries(tmp_path: Path):
@@ -112,6 +116,8 @@ def test_mcp_handler_records_then_queries(tmp_path: Path):
         }},
     })
     assert "Lesson recorded" in recorded["result"]["content"][0]["text"]
+    rec_id = recorded["result"]["content"][0]["text"].split("ID: ")[1]
+    assert rec_id.startswith("MEM_USER_") and len(rec_id) == len("MEM_USER_") + 10
 
     found = handle_request(hmem, {
         "jsonrpc": "2.0", "id": 4, "method": "tools/call",

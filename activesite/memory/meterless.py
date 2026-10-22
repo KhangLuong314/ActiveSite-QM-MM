@@ -1,21 +1,28 @@
-"""ActiveSite — Meterless H-MEM (Hierarchical Episodic Memory & Trust Ledger).
+"""ActiveSite — Meterless H-MEM facade.
 
-Implements persistent episodic learning with Markovian state transitions and trust ledger tracking
-for QM/MM simulation choices and error self-correction.
+Keeps the public API the Critic, the MCP server and ``/api/ledger`` already
+use (``record_episode``, ``record_trust_entry``, ``query_memories``,
+``recall_corrective_action``, ``get_ledger``) but stores everything through
+``activesite.memory.hmem.MemoryStoreService`` (SQLite) and reads the
+append-only JSONL ledger. A fresh store is empty; nothing is seeded.
 """
 from __future__ import annotations
 
-import json
 import logging
 import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
+
+from activesite.memory.hmem import MemoryStoreService
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_LEDGER_PATH = Path("data/memory/meterless_ledger.json")
+DEFAULT_DB_PATH = Path("data/memory/hmem.sqlite")
+DEFAULT_LEDGER_PATH = Path("logs/hmem_ledger.jsonl")
+EPISODE_TYPE = "episodic"
 
 
 class EpisodicMemoryRecord(BaseModel):
@@ -31,9 +38,7 @@ class EpisodicMemoryRecord(BaseModel):
     corrective_action: Optional[str] = None
     learned_rule: str
     trust_score: float = Field(default=0.85, ge=0.0, le=1.0)
-    created_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -46,74 +51,61 @@ class TrustLedgerEntry(BaseModel):
     confidence: float
     verified: bool
     verifier_notes: str
-    timestamp: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class MeterlessHMEM:
-    """Meterless Hierarchical Episodic Memory (H-MEM) Manager.
-
-    Provides episodic memory retrieval, Markovian state transition evaluation,
-    and trust auditing with zero external API key requirements in offline mode.
-    """
+    """Facade over the H-MEM store for the episodic-record API."""
 
     def __init__(
         self,
-        storage_path: Optional[Path] = None,
+        db_path: Optional[Path | str] = None,
+        ledger_path: Optional[Path | str] = None,
+        storage_path: Optional[Path | str] = None,
         endpoint_url: Optional[str] = None,
         api_key: Optional[str] = None,
     ):
-        self.storage_path = storage_path or DEFAULT_LEDGER_PATH
+        if storage_path is not None and db_path is None:
+            # Backwards compatibility: an old JSON path maps to a sibling SQLite db + ledger.
+            sp = Path(storage_path)
+            db_path = sp.with_suffix(".sqlite")
+            ledger_path = ledger_path or sp.parent / "hmem_ledger.jsonl"
+        self.db_path = Path(db_path or DEFAULT_DB_PATH)
+        self.ledger_path = Path(ledger_path or DEFAULT_LEDGER_PATH)
         self.endpoint_url = endpoint_url or os.getenv("METERLESS_ENDPOINT", "")
         self.api_key = api_key or os.getenv("METERLESS_API_KEY", "")
-        self._memory_records: List[EpisodicMemoryRecord] = []
-        self._trust_ledger: List[TrustLedgerEntry] = []
-        self._init_storage()
+        self.store = MemoryStoreService(self.db_path, self.ledger_path)
 
-    def _init_storage(self) -> None:
-        """Load an existing ledger from disk. A fresh ledger starts empty.
-
-        Nothing is seeded: every record must come from an actual run or an
-        explicit ``record_episode`` / ``record_lesson`` call.
-        """
-        self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-        if not self.storage_path.exists():
-            return
-        try:
-            with open(self.storage_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            self._memory_records = [
-                EpisodicMemoryRecord(**r) for r in data.get("records", [])
-            ]
-            self._trust_ledger = [
-                TrustLedgerEntry(**e) for e in data.get("ledger", [])
-            ]
-        except Exception as exc:
-            logger.warning("Could not read existing ledger %s: %s. Starting empty.", self.storage_path, exc)
-            self._memory_records = []
-            self._trust_ledger = []
-
-    def _save(self) -> None:
-        """Persist memory records and trust ledger to disk."""
-        data = {
-            "version": "1.0",
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "records": [r.model_dump() for r in self._memory_records],
-            "ledger": [e.model_dump() for e in self._trust_ledger],
-        }
-        with open(self.storage_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
-
-    def record_episode(self, record: EpisodicMemoryRecord) -> None:
-        """Store an episodic memory record and update ledger."""
-        self._memory_records.append(record)
-        self._save()
+    # ------------------------------------------------------------ writes
+    def record_episode(self, record: EpisodicMemoryRecord) -> str:
+        """Store an episodic record as a long-term H-MEM memory tagged with its system and error type."""
+        tags = [record.system_id, record.stage, record.outcome]
+        if record.error_type:
+            tags.append(record.error_type)
+        return self.store.add(
+            content=record.learned_rule, type=EPISODE_TYPE, layer="long_term", tags=tags,
+            source=f"{record.stage}:{record.record_id}", confidence=record.trust_score,
+            agent_id=record.stage, run_id=record.record_id, origin="episode",
+            extra={"record": record.model_dump()},
+        )
 
     def record_trust_entry(self, entry: TrustLedgerEntry) -> None:
-        """Add an audited trust ledger entry."""
-        self._trust_ledger.append(entry)
-        self._save()
+        self.store.ledger("trust", entry.decision_id, entry.agent_name, entry.model_dump(),
+                          new_state={"verified": entry.verified, "confidence": entry.confidence})
+
+    # ------------------------------------------------------------- reads
+    def _records(self) -> List[EpisodicMemoryRecord]:
+        out = []
+        for mem in self.store.all():
+            if mem.get("type") != EPISODE_TYPE:
+                continue
+            raw = (mem.get("extra") or {}).get("record")
+            if raw:
+                try:
+                    out.append(EpisodicMemoryRecord(**raw))
+                except Exception as exc:  # malformed extra; skip rather than guess
+                    logger.warning("skipping memory %s: %s", mem.get("id"), exc)
+        return out
 
     def query_memories(
         self,
@@ -122,42 +114,49 @@ class MeterlessHMEM:
         error_type: Optional[str] = None,
         keywords: Optional[List[str]] = None,
     ) -> List[EpisodicMemoryRecord]:
-        """Query episodic memory for matching past experiences or corrective rules."""
         results = []
-        for r in self._memory_records:
+        for r in self._records():
             if system_id and system_id.lower() not in r.system_id.lower():
                 continue
             if stage and r.stage.lower() != stage.lower():
                 continue
-            if error_type and r.error_type and r.error_type.lower() != error_type.lower():
+            if error_type and (r.error_type or "").lower() != error_type.lower():
                 continue
             if keywords:
-                text_corpus = f"{r.learned_rule} {r.action_taken} {r.diagnosed_cause or ''}".lower()
-                if not any(kw.lower() in text_corpus for kw in keywords):
+                corpus = f"{r.learned_rule} {r.action_taken} {r.diagnosed_cause or ''}".lower()
+                if not any(kw.lower() in corpus for kw in keywords):
                     continue
             results.append(r)
         return results
 
-    def recall_corrective_action(
-        self, system_id: str, error_type: str
-    ) -> Optional[EpisodicMemoryRecord]:
-        """Find a trusted prior resolution for this system and failure mode.
-
-        Only records whose ``system_id`` matches (or is ``generic``) and whose
-        outcome is ``SELF_CORRECTED`` qualify; there is no cross-system fallback.
-        """
-        candidates = [
-            r for r in self._memory_records
-            if (system_id.lower() in r.system_id.lower() or r.system_id == "generic")
-            and r.error_type == error_type
-            and r.outcome == "SELF_CORRECTED"
-        ]
-        if candidates:
-            # Sort by trust_score descending
-            candidates.sort(key=lambda x: x.trust_score, reverse=True)
-            return candidates[0]
-        return None
+    def recall_corrective_action(self, system_class_tag: str, error_type: str) -> Optional[EpisodicMemoryRecord]:
+        """Exact tag match AND error type, outcome SELF_CORRECTED, highest trust. No fallback."""
+        candidates = []
+        for mem in self.store.all():
+            if mem.get("type") != EPISODE_TYPE or system_class_tag not in (mem.get("tags") or []):
+                continue
+            raw = (mem.get("extra") or {}).get("record") or {}
+            if raw.get("error_type") == error_type and raw.get("outcome") == "SELF_CORRECTED" and raw.get("corrective_action"):
+                candidates.append((float(mem.get("confidence") or 0.0), mem["id"], raw))
+        if not candidates:
+            return None
+        candidates.sort(key=lambda c: c[0], reverse=True)
+        _, mem_id, raw = candidates[0]
+        self.store.touch(mem_id)
+        self.store.ledger("read", mem_id, "recall_corrective_action",
+                          {"system_class_tag": system_class_tag, "error_type": error_type})
+        return EpisodicMemoryRecord(**raw)
 
     def get_ledger(self) -> List[TrustLedgerEntry]:
-        """Retrieve all trust ledger entries."""
-        return list(self._trust_ledger)
+        out = []
+        for e in self.store.read_ledger():
+            if e.get("action") == "trust" and isinstance(e.get("details"), dict):
+                try:
+                    out.append(TrustLedgerEntry(**e["details"]))
+                except Exception:
+                    continue
+        return out
+
+    def ledger_entries(self) -> List[Dict[str, Any]]:
+        """Every raw ledger line (create/read/trust), for the UI."""
+        return self.store.read_ledger()

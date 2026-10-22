@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import sys
-import time
+import uuid
 from typing import Any, Dict
 from activesite.memory.meterless import EpisodicMemoryRecord, MeterlessHMEM, TrustLedgerEntry
 
@@ -77,7 +77,7 @@ def handle_request(hmem: MeterlessHMEM, req: Dict[str, Any]) -> Dict[str, Any]:
 
         elif tool_name == "record_lesson":
             record = EpisodicMemoryRecord(
-                record_id=f"MEM_USER_{int(time.time() * 1000)}",
+                record_id=f"MEM_USER_{uuid.uuid4().hex[:10]}",
                 system_id=args.get("system_id", "generic"),
                 stage=args.get("stage", "general"),
                 state_signature="user_recorded_lesson",

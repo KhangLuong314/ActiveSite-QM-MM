@@ -81,6 +81,7 @@ async def get_ledger():
     return {
         "records": [r.model_dump() for r in records],
         "ledger": [l.model_dump() for l in ledger],
+        "hmem_ledger": hmem.ledger_entries(),
     }
 
 
