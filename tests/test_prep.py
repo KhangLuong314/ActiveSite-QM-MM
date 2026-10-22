@@ -206,3 +206,25 @@ def test_tleap_template_combines_units_with_single_braces():
     from activesite.chem import prep as prep_mod
     assert "COMPLEX = combine {PROT LIG}" in prep_mod.TLEAP_TEMPLATE
     assert "{{" not in prep_mod.TLEAP_TEMPLATE and "}}" not in prep_mod.TLEAP_TEMPLATE
+
+
+SAMPLE_EGFR = Path("data/sample/egfr_erlotinib/prep")
+
+
+@pytest.mark.skipif(not (SAMPLE_EGFR / "complex.parm7").exists() or not Path("data/reference/egfr/1m17.pdb").exists(),
+                    reason="EGFR sample prep artefacts not present")
+def test_built_pose_reports_contacts_in_crystal_numbering(tmp_path: Path):
+    """complex.parm7 has no residue numbers (parmed gives the 0-based index), so the map back to crystal numbering
+    must go through idx+1. A real EGFR run reported MET768/GLY771 instead of MET769/GLY772 before this was fixed."""
+    import json, shutil
+    from activesite.chem import prep as prep_mod
+    work = tmp_path / "egfr"
+    work.mkdir()
+    prep_mod.extract(Path("data/reference/egfr/1m17.pdb"), "A", "AQ4", work)
+    for name in ("complex.parm7", "min.rst7"):
+        shutil.copy(SAMPLE_EGFR / name, work / name)
+    renum = {int(k): int(v) for k, v in json.loads((SAMPLE_EGFR / "prep.json").read_text())["complex"]["renum"].items()}
+    pose = prep_mod.built_pose(work, work / "min.rst7", renum)
+    partners = {c["partner"] for c in pose["contacts"]}
+    assert "MET769@N" in partners, partners
+    assert pose["closest_protein_heavy_atom"]["atom"].startswith("MET769@")
