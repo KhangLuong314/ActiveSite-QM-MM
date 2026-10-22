@@ -114,6 +114,22 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-21 20:31 CDT] — Chemistry Runner & AmberTools QM/MM Execution
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/chem/runner.py`, `tests/test_runner.py`
+- **Developer Prompt:**
+  > "Implement features step-by-step according to our .cursorrules: Feature 7 - Chemistry Runner & AmberTools / GFN2-xTB Execution."
+- **Agent Action:**
+  - Implemented `ChemistryRunner` generating Amber `sander` `&qmmm` namelist configuration with automated `qmmask`, `qm_theory`, `qmcharge`, and `qmcut` parameters.
+  - Implemented container execution logic targeting `activesite-engine:at26` with clean host machine isolation.
+  - Implemented fast CPU-friendly `SAMPLE_MODE=true` offline fallback adhering to hackathon evaluation constraints (< 5 minutes, zero external API keys).
+  - Emitted Track 02 `THEORY_SELECTION` Decision Card justifying PM6 semi-empirical Hamiltonian selection for rapid active-site exploration.
+  - Implemented unit tests for namelist generation and offline execution.
+- **Verification:**
+  - `pytest tests/test_runner.py` passed with 2/2 tests green in 0.33s.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
