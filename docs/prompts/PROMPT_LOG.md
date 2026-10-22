@@ -313,6 +313,24 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-22 01:06 CDT] — P7: the ligand case (`activesite/agent/ligand.py`, `run_ligand_case`) (branch `feat/p7-ligand`, stacked on `feat/p6-loop`)
+- **Tool / Environment:** Claude Code (Fable 5.1); container stages mocked in tests, real EGFR/ABL runs need a Docker host
+- **Target Component:** `activesite/agent/ligand.py`, `activesite/agent/orchestrator.py`, `activesite/agent/legacy_pipeline.py` (deleted), `tests/test_ligand.py`, `tests/test_orchestrator.py`, `tests/test_server.py`
+- **Developer Prompt:**
+  > "Create activesite/agent/ligand.py (LigandSetup, LigandCritic, ligand_cards, run_qmmm) and add run_ligand_case to the orchestrator. Cases with kind ligand route here; metal cases to P6. LigandSetup: chain (or requested), extract, protonate, amine site, recall His memories, review_uncertain, ligand_parameters, build_complex, minimise, built_pose for both models. LigandCritic: charge sum, pocket for both models (blocking), integer complex charge, GMAX < 10; validate literature contacts and expected_absent; remember only when QM/MM succeeded, overrides exist and nothing was recalled. run_qmmm: GB single point on :LIG. Cards per spec."
+- **Agent Action:**
+  - `LigandSetup.build` runs the pure stages (chain table, extraction, crystal polar contacts, tertiary-amine site, memory recall) always, then the container stages; in SAMPLE_MODE or without the prep image it records `prep_skipped` with the reason and stops, so the report still explains the decisions that were made. Every step is traced with its numbers.
+  - `LigandCritic.precheck` marks the two pocket checks (and a missing preparation) as blocking; `run_ligand_case` refuses to run QM/MM on a blocking failure and writes a traced `blocked` error instead. `validate` recovers `literature_contacts` from the minimised model's polar contacts and confirms each `expected_absent`. `remember` writes one working-layer memory (confidence 0.7, rule `his_near_cation_neutral`) per His override only after a converged QM/MM with nothing recalled.
+  - `run_case` now routes on the case file (`kind: ligand` vs `metal_resid`); the legacy radius pipeline is deleted and `MasterOrchestrator` wraps both loops for the server, the CLI and the older tests. `run_query` maps erlotinib/imatinib prompts to their cases.
+  - Cards: chain choice with the per-chain gap table (source REMARK 465/470), PDB2PQR/PROPKA states, one low-confidence card per His override, ligand protonation site or "kept neutral", GAFF2+AM1-BCC, whole-ligand QM region, implicit-solvent trade-off, one per Critic check, binding mode "n/m published contacts present" with distances, one negative control per expected_absent, structure source from Q3 when rows exist.
+- **Verification:**
+  - `uv run pytest -q` → `100 passed, 3 skipped, 113 warnings in 20.92s`
+  - `tests/test_ligand.py` (prep.* and run_single_point mocked): routing and the full card set on EGFR; a 1.8 Å centroid shift blocks QM/MM with a traced error; on ABL nothing is remembered after a failed QM/MM, one memory after a converged one, and the third run recalls it without rewriting.
+  - `uv run python run.py --case egfr_erlotinib` here: chain A chosen, ligand kept neutral, `prep not run: SAMPLE_MODE=true`, ESCF `null`.
+  - **To run on a Docker host:** `uv run python run.py --case egfr_erlotinib --docker` (expect ligand neutral, MET769 recovered, THR766 absent, finite ESCF, under 6 minutes) and `--case abl_imatinib_a --docker` (ligand +1, a HIS361 override card).
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
