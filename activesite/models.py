@@ -115,7 +115,7 @@ class QMMMPartition(BaseModel):
     qm_charge: int = Field(default=0, description="Total formal charge of QM region (qmcharge)")
     spin_multiplicity: int = Field(default=1, description="Spin multiplicity (2S + 1)")
     total_valence_electrons: int = Field(default=0, description="Total valence electrons in QM region")
-    amber_qmmask: str = Field(default="", description="Amber format QM mask, e.g. ':371,:119,:139'")
+    amber_qmmask: str = Field(default="", description="Amber format QM mask, e.g. ':371,119,139'")
     cutoff_radius_angstrom: float = Field(default=4.0, description="Active site inclusion radius")
     decision_cards: List[DecisionCard] = Field(default_factory=list)
 

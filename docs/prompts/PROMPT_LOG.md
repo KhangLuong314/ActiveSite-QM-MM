@@ -179,6 +179,21 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-21 22:12 CDT] — Amber qmmask Sanitizer, PM6 Spin=1, and --docker CLI
+- **Tool / Environment:** Cursor Grok Agent
+- **Target Component:** `activesite/chem/partitioning.py`, `activesite/chem/runner.py`, `activesite/agent/critic.py`, `run.py`
+- **Developer Prompt:**
+  > "1. Amber Mask Syntax Fix: ensure `amber_qmmask` does not repeat colons after commas (`:371,34,137` rather than `:371,:34,:137`) and sanitize `,:` in `generate_amber_mdin()`. 2. When `qm_theory == 'PM6'`, always enforce `spin=1` (Amber PM6 RHF). 3. Add `--docker` flag in `run.py` setting `sample_mode=False`. 4. Run pytest, log, and commit."
+- **Agent Action:**
+  - Added `format_amber_qmmask()` so partition masks use a single leading colon (`:371,34,137`).
+  - Sanitized `qmmask` in `ChemistryRunner.generate_amber_mdin()` by replacing `,:` with `,`.
+  - Forced `spin=1` in the Amber `&qmmm` namelist and in `CriticAgent.inspect_and_correct()` when theory is PM6.
+  - Added CLI `--docker` to opt into containerized Amber execution (`sample_mode=False`).
+- **Verification:**
+  - `pytest` passed with 30/30 tests green in 2.96s.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name

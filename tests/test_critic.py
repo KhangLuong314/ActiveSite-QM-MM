@@ -28,7 +28,7 @@ def test_critic_inspect_closed_shell_egfr():
         spin_multiplicity=1,
     )
 
-    report = critic.inspect_and_correct(partition)
+    report = critic.inspect_and_correct(partition, qm_theory="PM6")
     assert report.is_closed_shell is True
     assert report.spin_multiplicity == 1
 
@@ -54,7 +54,7 @@ def test_critic_self_correct_ippoi_odd_electron(tmp_path: Path):
         spin_multiplicity=2,
     )
 
-    report = critic.inspect_and_correct(partition)
+    report = critic.inspect_and_correct(partition, qm_theory="PM6")
 
     # Verify that the critic detected the odd electron and self-corrected to qmcharge=+1
     assert partition.qm_charge == 1

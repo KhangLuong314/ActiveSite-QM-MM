@@ -14,14 +14,15 @@ def test_generate_amber_mdin():
             ResidueSelection(resname="MET", resid=769, role=ResidueRole.FIRST_SHELL_H_BOND, formal_charge=0),
         ],
         qm_charge=0,
-        spin_multiplicity=1,
+        spin_multiplicity=2,  # Amber PM6 RHF still requires spin=1
         amber_qmmask=":1,:769",
     )
 
     mdin = runner.generate_amber_mdin(partition, qm_theory="PM6", min_steps=300)
     assert "&cntrl" in mdin
     assert "&qmmm" in mdin
-    assert "qmmask=':1,:769'" in mdin
+    assert "qmmask=':1,769'" in mdin
+    assert ",:" not in mdin
     assert "qm_theory='PM6'" in mdin
     assert "qmcharge=0" in mdin
     assert "spin=1" in mdin

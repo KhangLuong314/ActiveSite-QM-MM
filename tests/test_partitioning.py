@@ -27,6 +27,8 @@ def test_partition_egfr_erlotinib():
     # Check net charge from residues (Lys721 +1, Glu738 -1, Asp831 -1 -> -1)
     assert partition.qm_charge == -1
     assert partition.spin_multiplicity == 1
+    assert partition.amber_qmmask.startswith(":")
+    assert ",:" not in partition.amber_qmmask
     # Check that AQ4 is in QM residues
     resnames = [r.resname for r in partition.qm_residues]
     assert "AQ4" in resnames
@@ -57,5 +59,7 @@ def test_partition_metal_active_site():
     assert len(partition.qm_residues) >= 4
     # Metal MG is included
     assert any(r.resname == "MG" for r in partition.qm_residues)
+    assert partition.amber_qmmask.startswith(":")
+    assert ",:" not in partition.amber_qmmask
     # Decision cards contain metal card
     assert any("MG" in c.target for c in partition.decision_cards)

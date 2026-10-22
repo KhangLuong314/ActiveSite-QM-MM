@@ -27,6 +27,16 @@ from activesite.models import (
 logger = logging.getLogger(__name__)
 
 
+def format_amber_qmmask(resids: List[int]) -> str:
+    """Build an Amber residue mask with a single leading colon.
+
+    Amber ``qmmask`` syntax is ``:371,34,137``, not ``:371,:34,:137``.
+    """
+    if not resids:
+        return ""
+    return ":" + ",".join(str(resid) for resid in resids)
+
+
 # Valence electron counts for neutral elements commonly in bio-molecules
 ELEMENT_VALENCE = {
     "H": 1,
@@ -295,9 +305,8 @@ class QMMMPartitioner:
         # 3. Calculate total QM charge
         total_qm_charge = sum(r.formal_charge for r in qm_residues)
 
-        # 4. Generate Amber QM mask
-        qm_mask_parts = [f":{r.resid}" for r in qm_residues]
-        amber_qmmask = ",".join(qm_mask_parts)
+        # 4. Generate Amber QM mask (:resid1,resid2,... — one leading colon)
+        amber_qmmask = format_amber_qmmask([r.resid for r in qm_residues])
 
         # Decision Card: QM Charge
         charge_card = DecisionCard(
@@ -481,7 +490,7 @@ class QMMMPartitioner:
         # 3. Calculate preliminary QM charge
         net_charge = sum(r.formal_charge for r in qm_residues)
 
-        amber_qmmask = ",".join(f":{r.resid}" for r in qm_residues)
+        amber_qmmask = format_amber_qmmask([r.resid for r in qm_residues])
 
         charge_card = DecisionCard(
             decision_id=f"DEC_METAL_ACTIVE_SITE_CHARGE_{metal_resid}",

@@ -56,7 +56,9 @@ class ChemistryRunner:
         qmcut: float = 10.0,
     ) -> str:
         """Generate a production-grade Amber sander QM/MM input file (mdin)."""
-        qmmask_str = partition.amber_qmmask or ":1"
+        qmmask_str = (partition.amber_qmmask or ":1").replace(",:", ",")
+        # Amber PM6 is restricted Hartree–Fock only; spin must be 1 (closed-shell singlet).
+        spin = 1 if str(qm_theory).upper() == "PM6" else partition.spin_multiplicity
 
         mdin_content = f"""ActiveSite Automated QM/MM Simulation ({partition.system_name})
  &cntrl
@@ -72,7 +74,7 @@ class ChemistryRunner:
     qmmask='{qmmask_str}',
     qm_theory='{qm_theory}',
     qmcharge={partition.qm_charge},
-    spin={partition.spin_multiplicity},
+    spin={spin},
     qmcut={qmcut:.1f},
     writepdb=1,
     qmmm_switch=1

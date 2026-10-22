@@ -153,7 +153,7 @@ class MasterOrchestrator:
             "Critic inspecting electron parity, spin multiplicity, and boundary cuts...",
             logs,
         )
-        report = self.critic.inspect_and_correct(partition)
+        report = self.critic.inspect_and_correct(partition, qm_theory=plan.qm_theory)
         if report.corrections_applied:
             for corr in report.corrections_applied:
                 self._notify(on_event, "critic_correction", f"Applied self-correction: {corr}", logs)

@@ -32,6 +32,12 @@ def main() -> None:
         help="Run in offline CPU evaluation mode (default: True)",
     )
     parser.add_argument(
+        "--docker",
+        action="store_true",
+        default=False,
+        help="Run real containerized Amber execution when Docker is available (sets sample_mode=False)",
+    )
+    parser.add_argument(
         "--server",
         "--web",
         action="store_true",
@@ -57,7 +63,8 @@ def main() -> None:
         uvicorn.run("activesite.server.main:app", host="0.0.0.0", port=args.port, reload=False)
         return
 
-    orch = MasterOrchestrator(sample_mode=args.sample_mode)
+    sample_mode = False if args.docker else args.sample_mode
+    orch = MasterOrchestrator(sample_mode=sample_mode)
 
     if args.benchmark:
         cases = ["egfr_erlotinib", "ippoi_site_a", "abl_imatinib_a"]
@@ -75,7 +82,7 @@ def main() -> None:
         return
 
     if args.case:
-        print(f"Executing case: {args.case} (Sample Mode: {args.sample_mode})...")
+        print(f"Executing case: {args.case} (Sample Mode: {sample_mode})...")
         out = orch.run_case(args.case)
         print(out.report_markdown)
         return

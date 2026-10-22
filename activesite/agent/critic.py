@@ -95,7 +95,11 @@ class CriticAgent:
         total_electrons = base_valence - partition.qm_charge
         return total_electrons
 
-    def inspect_and_correct(self, partition: QMMMPartition) -> VerificationReport:
+    def inspect_and_correct(
+        self,
+        partition: QMMMPartition,
+        qm_theory: str = "PM6",
+    ) -> VerificationReport:
         """Inspect the partition for physical consistency and self-correct anomalies."""
         anomalies: List[str] = []
         corrections: List[str] = []
@@ -192,7 +196,11 @@ class CriticAgent:
                 anomalies.append(f"INVALID_LINK_ATOM_COORDINATES: {la.link_id} contains NaN coordinates.")
 
         partition.total_valence_electrons = total_electrons
-        partition.spin_multiplicity = 1 if (total_electrons % 2 == 0) else 2
+        # Amber PM6 RHF only permits spin=1 (closed-shell singlet).
+        if str(qm_theory).upper() == "PM6":
+            partition.spin_multiplicity = 1
+        else:
+            partition.spin_multiplicity = 1 if (total_electrons % 2 == 0) else 2
 
         report = VerificationReport(
             is_valid=(len(anomalies) == 0 or len(corrections) > 0),
