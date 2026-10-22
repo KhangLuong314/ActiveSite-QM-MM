@@ -165,11 +165,11 @@ class MasterOrchestrator:
                 logs,
             )
 
-        # 4. Execute Simulation / Sample Mode
+        # 4. Chemistry runner (input generation; engine execution is a later module)
         self._notify(
             on_event,
             "runner",
-            f"Executing {plan.qm_theory} QM/MM simulation (AmberTools/CPU Sample Mode)...",
+            f"Preparing {plan.qm_theory} QM/MM input (engine runs only inside Docker; not implemented yet)...",
             logs,
         )
         coords_arg = plan.coords_path or structure_path
@@ -180,12 +180,17 @@ class MasterOrchestrator:
             qm_theory=plan.qm_theory,
             min_steps=plan.min_steps,
         )
-        self._notify(
-            on_event,
-            "runner",
-            f"Calculation finished: E = {sim_result.energy_kcal_mol:,.2f} kcal/mol ({sim_result.energy_hartree:.5f} Ha) in {sim_result.execution_time_seconds:.3f}s.",
-            logs,
-        )
+        if sim_result.success and sim_result.energy_kcal_mol is not None and sim_result.energy_hartree is not None:
+            runner_msg = (
+                f"Calculation finished: E = {sim_result.energy_kcal_mol:,.2f} kcal/mol "
+                f"({sim_result.energy_hartree:.5f} Ha) in {sim_result.execution_time_seconds:.3f}s."
+            )
+        else:
+            runner_msg = (
+                f"No energy computed: {sim_result.error_message or 'engine did not run'} "
+                f"(Amber input written: {sim_result.output_files.get('mdin', 'n/a')})."
+            )
+        self._notify(on_event, "runner", runner_msg, logs)
 
         # 5. Generate ChimeraX Script
         cxc_path = Path("data/runs") / partition.system_name / "visualize.cxc"

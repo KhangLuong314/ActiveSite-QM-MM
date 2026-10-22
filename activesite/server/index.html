@@ -44,7 +44,7 @@
         <i class="fa-solid fa-brain text-purple-400"></i> Meterless H-MEM
       </span>
       <span class="text-xs px-2.5 py-1 rounded-md bg-blue-950/60 text-blue-300 border border-blue-800/50 flex items-center gap-1.5">
-        <i class="fa-solid fa-database text-blue-400"></i> Zetaris MCP
+        <i class="fa-solid fa-database text-blue-400"></i> catalog-STANDIN (DuckDB)
       </span>
       <span class="text-xs px-2.5 py-1 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-800/50 flex items-center gap-1.5 font-medium">
         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Sample Mode (Offline CPU)
@@ -247,8 +247,14 @@
         }
 
         // Update metrics
-        document.getElementById("metricEnergy").innerText = `${data.energy_kcal_mol.toLocaleString()} kcal/mol`;
-        document.getElementById("metricHartree").innerText = `${data.energy_hartree.toFixed(5)} Hartree`;
+        // Never invent a number: null energy means no engine ran.
+        if (data.energy_kcal_mol === null || data.energy_kcal_mol === undefined) {
+          document.getElementById("metricEnergy").innerText = "null";
+          document.getElementById("metricHartree").innerText = data.error_message || "engine did not run";
+        } else {
+          document.getElementById("metricEnergy").innerText = `${data.energy_kcal_mol.toLocaleString()} kcal/mol`;
+          document.getElementById("metricHartree").innerText = `${data.energy_hartree.toFixed(5)} Hartree`;
+        }
         document.getElementById("metricResidues").innerText = `${data.decision_cards.length} moieties`;
         document.getElementById("metricCharge").innerText = `qmcharge: ${data.qm_charge >= 0 ? '+' : ''}${data.qm_charge}`;
         document.getElementById("metricSpin").innerText = `Singlet (M=${data.spin_multiplicity})`;
@@ -268,8 +274,13 @@
         cxcBtn.classList.remove("hidden");
         cxcBtn.classList.add("flex");
 
-        status.innerText = "Completed";
-        status.className = "text-[11px] px-2 py-0.5 rounded-full bg-emerald-900/60 text-emerald-300";
+        if (data.success) {
+          status.innerText = "Completed";
+          status.className = "text-[11px] px-2 py-0.5 rounded-full bg-emerald-900/60 text-emerald-300";
+        } else {
+          status.innerText = `No energy: ${data.error_message || "engine did not run"}`;
+          status.className = "text-[11px] px-2 py-0.5 rounded-full bg-amber-900/60 text-amber-300";
+        }
 
       } catch (err) {
         thoughtStream.innerHTML += `<div class="text-rose-400 p-2">Error: ${err.message}</div>`;
@@ -350,6 +361,10 @@
         const resp = await fetch("/api/ledger");
         const data = await resp.json();
         container.innerHTML = "";
+        if (!data.records || data.records.length === 0) {
+          container.innerHTML = `<div class="text-slate-500 text-xs italic">Ledger is empty. Records appear only after a run records a lesson; nothing is pre-seeded.</div>`;
+          return;
+        }
 
         data.records.forEach(r => {
           const card = document.createElement("div");

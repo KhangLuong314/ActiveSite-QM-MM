@@ -74,11 +74,14 @@ def main() -> None:
         for c in cases:
             print(f"\n--> Running benchmark case: {c}")
             res = orch.run_case(c)
-            print(f"    ✓ Energy: {res.result.energy_kcal_mol:,.2f} kcal/mol ({res.result.energy_hartree:.5f} Ha)")
+            if res.result.energy_kcal_mol is None:
+                print(f"    ✗ Energy: null ({res.result.error_message or 'engine did not run'})")
+            else:
+                print(f"    ✓ Energy: {res.result.energy_kcal_mol:,.2f} kcal/mol ({res.result.energy_hartree:.5f} Ha)")
             print(f"    ✓ QM Residues: {len(res.partition.qm_residues)} | qmcharge: {res.partition.qm_charge:+d}")
             print(f"    ✓ Decision Cards generated: {len(res.decision_cards)}")
             print(f"    ✓ ChimeraX script: {res.chimerax_script_path}")
-        print("\nAll benchmark cases successfully completed in Sample Mode.")
+        print("\nBenchmark setup finished. Energies are null until the Docker engine module exists.")
         return
 
     if args.case:

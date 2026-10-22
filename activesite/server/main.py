@@ -106,7 +106,7 @@ async def run_simulation(req: SimulationRequest):
         else:
             raise HTTPException(status_code=400, detail="Either 'case_id' or 'prompt' must be provided.")
 
-        q.put_nowait({"stage": "done", "message": "Simulation completed."})
+        q.put_nowait({"stage": "done", "message": "Workflow finished." if output.success else f"Workflow finished without an energy: {output.result.error_message}"})
 
         return {
             "success": output.success,
@@ -114,6 +114,7 @@ async def run_simulation(req: SimulationRequest):
             "stream_id": stream_id,
             "energy_kcal_mol": output.result.energy_kcal_mol,
             "energy_hartree": output.result.energy_hartree,
+            "error_message": output.result.error_message,
             "qm_theory": output.result.qm_theory,
             "qm_charge": output.partition.qm_charge,
             "spin_multiplicity": output.partition.spin_multiplicity,
