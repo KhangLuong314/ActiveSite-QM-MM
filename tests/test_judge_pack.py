@@ -52,4 +52,12 @@ def test_samples_have_inputs_and_outputs_are_never_handwritten():
         if report.exists():  # only make_samples.sh may create it, and it stamps the manifest
             manifest = (ROOT / "data/sample/MANIFEST.md").read_text()
             assert "commit:" in manifest and "Not generated yet" not in manifest
-            assert "cached engine output (sample mode)" in report.read_text()
+            # samples/<case>/report.md is the saved output of the REAL run make_samples.sh performed on a Docker host,
+            # so its engine label is "sander in Docker". A judge's own SAMPLE_MODE run replays that output and is
+            # labelled "cached engine output (sample mode)" (asserted in tests/test_sample_mode.py and the smoke
+            # script). Either label is honest here; "engine unavailable" or a null energy is not.
+            text = report.read_text()
+            assert "**Engine:** sander in Docker" in text or "cached engine output (sample mode)" in text
+            assert "engine unavailable" not in text and "**Result:** converged" in text
+            stats = json.loads((ROOT / "samples" / case / "stats.json").read_text())
+            assert stats["run_id"] in text and stats["qm_ok"] is True and stats["qm_escf_kcal"] is not None
