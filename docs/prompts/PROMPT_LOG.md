@@ -279,6 +279,22 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-22 00:50 CDT] — P5: `activesite/trace.py` + `activesite/memory/hmem.py`, Meterless facade (branch `feat/p5-trace-memory`, stacked on `feat/p4-prep`)
+- **Tool / Environment:** Claude Code (Fable 5.1); pure Python (sqlite3 + JSONL), nothing to run on a Docker host
+- **Target Component:** `activesite/trace.py`, `activesite/memory/hmem.py`, `activesite/memory/meterless.py`, `activesite/memory/meterless_mcp.py`, `activesite/agent/critic.py`, `activesite/server/main.py`, `tests/test_trace.py`, `tests/test_hmem.py`, `tests/test_memory.py`
+- **Developer Prompt:**
+  > "Create activesite/trace.py and activesite/memory/hmem.py, then make the existing memory module a facade over hmem. Trace(run_id, log_dir, on_event).log(...) appends JSONL + prints + calls on_event. MemoryStoreService (SQLite memories table, add with required source and clamped confidence, append-only JSONL ledger) and MemoryRetrievalService (keyword/tag/layer/recency score, threshold 0.35, top 5, touch + read ledger). Facade keeps record_episode/record_trust_entry/query_memories/recall_corrective_action/get_ledger; recall needs BOTH exact tag and error type, no fallback. Fix the MCP record id with uuid."
+- **Agent Action:**
+  - `Trace.log` writes the 12 spec keys per line to `logs/trace-<run_id>.jsonl`, truncates both summaries to 300 characters, prints one aligned line, and calls `on_event`; a listener that raises cannot break the run.
+  - `MemoryStoreService` keeps the `memories` table in SQLite (`check_same_thread=False` plus a lock so the FastAPI worker threads can read it) and appends `create`/`read`/`trust` lines to `logs/hmem_ledger.jsonl`, never rewriting it. `MemoryRetrievalService` scores with the rescaled weights documented in the module docstring, requires a shared tag whenever the query carries tags (so a memory tagged `mg-phosphodiester` is never returned for `ligand-pocket`), touches each hit and writes a `read` line with the query, score and parts.
+  - `MeterlessHMEM` is now a facade: episodes become long-term memories tagged with system, stage, outcome and error type (the full record in `extra`), trust entries become `trust` ledger lines, `get_ledger` reads them back, and `recall_corrective_action(system_class_tag, error_type)` needs an exact tag plus the error type with no fallback and audits itself with a `read` line. `/api/ledger` additionally returns the raw ledger lines. The committed `data/memory/meterless_ledger.json` is deleted; the SQLite db and the JSONL ledger are gitignored.
+  - `record_lesson` ids now come from `uuid4`.
+- **Verification:**
+  - `uv run pytest -q` → `92 passed, 3 skipped, 65 warnings in 13.37s` (skips are the three Docker tests)
+  - `echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | uv run python -m activesite.memory.meterless_mcp` answers with the three tools.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
