@@ -1,0 +1,22 @@
+{
+  "id": "egfr_erlotinib",
+  "kind": "ligand",
+  "system": "egfr_erlotinib",
+  "site": "A",
+  "chain": null,
+  "question": "Prepare EGFR kinase with erlotinib from the 1M17 crystal structure (downloaded from RCSB) and compute the PM6 QM/MM energy of erlotinib in its pocket. Explain every protonation and setup choice.",
+  "pdb": "data/reference/egfr/1m17.pdb",
+  "pdb_query": "EGFR kinase erlotinib",
+  "ligand": "AQ4",
+  "ligand_smiles": "COCCOc1cc2ncnc(Nc3cccc(c3)C#C)c2cc1OCCOC",
+  "smiles_source": "RCSB chemcomp AQ4 (data.rcsb.org/rest/v1/core/chemcomp/AQ4)",
+  "literature_contacts": {
+    "MET769": "hinge backbone NH to quinazoline N1"
+  },
+  "expected_absent": {
+    "THR766": "N3 reaches Thr766 only through a crystal water, which this setup removes"
+  },
+  "literature_source": "Stamos et al. 2002, J Biol Chem 277:46265 (PDB 1M17)",
+  "ph": 7.4,
+  "min_steps": 500
+}
