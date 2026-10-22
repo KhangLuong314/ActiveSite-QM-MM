@@ -1,220 +1,188 @@
-"""ActiveSite — Master Orchestrator.
+"""ActiveSite — orchestrator: the retry loop for metal cases, plus a compatibility wrapper.
 
-Orchestrates the 7-step autonomous QM/MM workflow:
-Scout -> Plan -> Protonate -> Partition -> Critic Self-Correction -> Run -> Explain.
+run_case: Planner -> DataScout -> Setup -> Critic.precheck -> Runner attempt 0 ->
+Critic.diagnose -> (retry once with the fix; on success Critic.remember) ->
+Critic.validate -> Explainer. Writes logs/report-<run_id>.md and
+logs/cards-<run_id>.json and returns a stats dict.
+
+``MasterOrchestrator`` keeps the old ``run_case(case_id, on_event)`` /
+``run_query`` contract for the web server and CLI: metal cases go through the
+loop, ligand cases through the legacy pipeline until P4 is wired in.
 """
 from __future__ import annotations
 
-import logging
+import json
+import os
+import secrets
+import time
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Optional
-from pydantic import BaseModel, Field
+from typing import Any, Callable, Dict, List, Optional
 
-from activesite.adapters.scout import DataScout
-from activesite.agent.critic import CriticAgent
-from activesite.agent.explainer import ExplainerAgent
-from activesite.agent.planner import ExecutionPlan, PlannerAgent
-from activesite.chem.chimerax import ChimeraXGenerator
-from activesite.chem.partitioning import QMMMPartitioner
-from activesite.chem.protonation import ProtonationAgent
-from activesite.chem.runner import ChemistryRunner
-from activesite.memory.meterless import MeterlessHMEM
-from activesite.models import DecisionCard, QMMMPartition, SimulationResult
+from activesite.adapters.scout import DataScout as CaseLoader
+from activesite.agent.core import Critic, DataScout, Explainer, NullAdapter, Planner, Runner, Setup
+from activesite.agent.legacy_pipeline import LegacyPipeline, WorkflowOutput
+from activesite.agent.planner import PlannerAgent
+from activesite.chem.runner import HARTREE_TO_KCAL_MOL
+from activesite.chem.system import MolSystem
+from activesite.memory.hmem import MemoryRetrievalService, MemoryStoreService
+from activesite.memory.meterless import DEFAULT_DB_PATH, DEFAULT_LEDGER_PATH, MeterlessHMEM
+from activesite.models import QMMMPartition, ResidueRole, ResidueSelection, SimulationResult
+from activesite.trace import Trace
 
-logger = logging.getLogger(__name__)
+__all__ = ["run_case", "new_run_id", "MasterOrchestrator", "WorkflowOutput"]
 
 
-class WorkflowOutput(BaseModel):
-    success: bool
-    system_name: str
-    plan: ExecutionPlan
-    partition: QMMMPartition
-    result: SimulationResult
-    decision_cards: List[DecisionCard] = Field(default_factory=list)
-    chimerax_script_path: Optional[str] = None
-    report_markdown: str = ""
-    logs: List[str] = Field(default_factory=list)
+def new_run_id() -> str:
+    return f"{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}-{secrets.token_hex(3)}"
+
+
+def _env_sample_mode() -> bool:
+    return os.getenv("SAMPLE_MODE", "true").lower() in ("true", "1", "yes")
+
+
+def run_case(case: Dict[str, Any] | str, adapter: Any = None, hmem_db: Path | str | None = None,
+             on_event: Optional[Callable[[Dict[str, Any]], None]] = None, *, ledger_path: Path | str | None = None,
+             store: Optional[MemoryStoreService] = None, workroot: Path | str = "data/runs",
+             log_dir: Path | str = "logs", llm: Any = None, sample_mode: Optional[bool] = None,
+             timeout_s: int = 300, echo: bool = True) -> Dict[str, Any]:
+    """Run one metal case through the retry loop and return the stats dict."""
+    t0 = time.monotonic()
+    if isinstance(case, str):
+        case = CaseLoader().load_benchmark_case(case)
+    if "metal_resid" not in case:
+        raise ValueError(f"case {case.get('id')} has no metal_resid; the loop handles metal cases only")
+    sample_mode = _env_sample_mode() if sample_mode is None else bool(sample_mode)
+    run_id = new_run_id()
+    trace = Trace(run_id, log_dir, on_event=on_event, echo=echo)
+    if store is None:
+        store = MemoryStoreService(hmem_db or DEFAULT_DB_PATH, ledger_path or DEFAULT_LEDGER_PATH)
+    retrieval = MemoryRetrievalService(store)
+
+    planner = Planner(llm, trace)
+    plan = planner.plan(case)
+    theory = plan["theory"]
+    data = DataScout(adapter or NullAdapter(), trace).gather(case)
+
+    system = MolSystem(case["parm7"], case["coords"])
+    setup_agent = Setup(retrieval, trace, run_id)
+    critic = Critic(store, trace, run_id)
+    runner = Runner(trace, Path(workroot) / run_id, sample_mode=sample_mode, timeout_s=timeout_s)
+
+    setup = setup_agent.build(system, case)
+    checks = critic.precheck(system, case, setup, data)
+
+    attempts: List[Dict[str, Any]] = []
+    result = runner.run(case, setup, 0, theory)
+    attempts.append({"attempt": 0, "setup": setup, "result": result})
+    retries = 0
+    memory_id: Optional[str] = None
+    fix = None if result.get("ok") or result.get("skipped") else critic.diagnose(system, setup, result)
+    if fix:
+        attempts[0]["fix_why"] = fix["why"]
+        setup = setup_agent.build(system, case, charge_override=fix["charge"],
+                                  override_rule="MM partial-charge sum (Critic fix after odd-electron failure)")
+        result = runner.run(case, setup, 1, theory)
+        attempts.append({"attempt": 1, "setup": setup, "result": result})
+        retries = 1
+        if result.get("ok"):
+            memory_id = critic.remember(case, attempts[0]["setup"], fix)
+
+    validation = critic.validate(system, case, setup, data)
+    explainer = Explainer(trace)
+    cards = explainer.cards(system, case, setup, checks, attempts, data, validation, theory, memory_id)
+    stats = {
+        "run_id": run_id, "case": case.get("id"), "retries": retries, "memory_used": bool(setup["from_memory"]),
+        "memory_written": memory_id, "qm_ok": bool(result.get("ok")), "qm_escf_kcal": result.get("qm_escf_kcal"),
+        "total_energy_kcal": result.get("total_energy_kcal"),
+        "engine_time_s": round(sum(float(a["result"].get("wall_time_s") or 0.0) for a in attempts), 2),
+        "wall_time_s": None, "model_calls": planner.model_calls, "model_mode": plan["mode"],
+        "trace": str(trace.path), "qmcharge": setup["charge"], "charge_rule": setup["charge_rule"],
+        "mask": setup["mask"], "engine_skipped": bool(result.get("skipped")), "errors": result.get("errors") or [],
+        "cut_level": setup["proposal"].cut_level, "link_atoms": setup["proposal"].charge.link_atoms,
+        "checks": checks, "validation": validation, "catalog": data.get("label"), "sql": data.get("sql"),
+    }
+    report = explainer.report(case, run_id, stats, cards, result, validation, trace.path, setup)
+    log_dir = Path(log_dir)
+    (log_dir / f"report-{run_id}.md").write_text(report, encoding="utf-8")
+    (log_dir / f"cards-{run_id}.json").write_text(json.dumps([c.model_dump() for c in cards], indent=2, default=str),
+                                                  encoding="utf-8")
+    stats["wall_time_s"] = round(time.monotonic() - t0, 2)
+    stats["report"] = str(log_dir / f"report-{run_id}.md")
+    stats["cards"] = str(log_dir / f"cards-{run_id}.json")
+    stats["_report_markdown"] = report
+    stats["_cards"] = cards
+    stats["_setup"] = setup
+    stats["_result"] = result
+    trace.log("Orchestrator", "done", f"{case.get('id')}", f"retries {retries}, memory_used {stats['memory_used']}, qm_ok {stats['qm_ok']}",
+              data={k: v for k, v in stats.items() if not k.startswith("_") and k not in ("checks", "validation", "sql")})
+    return stats
 
 
 class MasterOrchestrator:
-    """Master workflow orchestrator executing the end-to-end Track 02 pipeline."""
+    """Compatibility entry point used by the web server, the CLI and the older tests."""
 
-    def __init__(
-        self,
-        hmem: Optional[MeterlessHMEM] = None,
-        sample_mode: Optional[bool] = None,
-    ):
+    def __init__(self, hmem: Optional[MeterlessHMEM] = None, sample_mode: Optional[bool] = None, adapter: Any = None,
+                 log_dir: Path | str = "logs", workroot: Path | str = "data/runs", echo: bool = False):
         self.hmem = hmem or MeterlessHMEM()
-        self.scout = DataScout()
-        self.planner = PlannerAgent()
-        self.protonation_agent = ProtonationAgent()
-        self.partitioner = QMMMPartitioner(self.protonation_agent)
-        self.critic = CriticAgent(self.hmem)
-        self.runner = ChemistryRunner(sample_mode=sample_mode)
-        self.chimerax = ChimeraXGenerator()
-        self.explainer = ExplainerAgent()
+        self.sample_mode = _env_sample_mode() if sample_mode is None else bool(sample_mode)
+        self.adapter = adapter
+        self.log_dir = log_dir
+        self.workroot = workroot
+        self.echo = echo
+        self.loader = CaseLoader()
+        self.legacy = LegacyPipeline(hmem=self.hmem, sample_mode=self.sample_mode)
+        self.last_stats: Optional[Dict[str, Any]] = None
 
-    def run_case(
-        self, case_id: str, on_event: Optional[Callable[[str, str], None]] = None
-    ) -> WorkflowOutput:
-        """Execute a predefined benchmark case by ID."""
-        case_dict = self.scout.load_benchmark_case(case_id)
-        plan = self.planner.plan_from_case(case_dict)
-        return self._execute_plan(plan, on_event=on_event)
+    def run_case(self, case_id: str, on_event: Optional[Callable[[str, str], None]] = None) -> WorkflowOutput:
+        case = self.loader.load_benchmark_case(case_id)
+        if "metal_resid" in case:
+            return self._run_loop(case, on_event)
+        return self.legacy.run_case(case_id, on_event=on_event)
 
-    def run_query(
-        self, query: str, on_event: Optional[Callable[[str, str], None]] = None
-    ) -> WorkflowOutput:
-        """Execute a conversational natural language simulation request."""
-        plan = self.planner.plan_from_prompt(query)
-        return self._execute_plan(plan, on_event=on_event)
+    def run_query(self, query: str, on_event: Optional[Callable[[str, str], None]] = None) -> WorkflowOutput:
+        plan = PlannerAgent().plan_from_prompt(query)
+        if plan.metal_resid is not None and "ippoi" in plan.system_name:
+            case_id = "ippoi_site_b" if plan.metal_resid == 372 else "ippoi_site_a"
+            return self._run_loop(self.loader.load_benchmark_case(case_id), on_event)
+        return self.legacy.run_query(query, on_event=on_event)
 
-    def _notify(
-        self, on_event: Optional[Callable[[str, str], None]], stage: str, message: str, logs: List[str]
-    ) -> None:
-        log_entry = f"[{stage.upper()}] {message}"
-        logs.append(log_entry)
-        if on_event:
-            try:
-                on_event(stage, message)
-            except Exception:
-                pass
-
-    def _execute_plan(
-        self, plan: ExecutionPlan, on_event: Optional[Callable[[str, str], None]] = None
-    ) -> WorkflowOutput:
+    def _run_loop(self, case: Dict[str, Any], on_event: Optional[Callable[[str, str], None]]) -> WorkflowOutput:
         logs: List[str] = []
 
-        # 1. Scout Structure
-        self._notify(on_event, "scout", f"Scouting structure for system {plan.system_name}...", logs)
-        structure_path: Optional[Path] = None
+        def relay(entry: Dict[str, Any]) -> None:
+            logs.append(f"[{entry['agent_name'].upper()}] {entry['action']}: {entry['output_summary']}")
+            if on_event:
+                try:
+                    on_event(entry["agent_name"].lower(), f"{entry['action']}: {entry['output_summary']}")
+                except Exception:
+                    pass
 
-        if plan.parm7_path:
-            structure_path = Path(plan.parm7_path)
-        elif plan.pdb_id:
-            try:
-                meta = self.scout.resolve_pdb(plan.pdb_id)
-                structure_path = Path(meta.local_pdb_path) if meta.local_pdb_path else None
-                self._notify(on_event, "scout", f"Resolved PDB {plan.pdb_id} ({meta.title[:40]}...)", logs)
-            except Exception as exc:
-                self._notify(on_event, "scout", f"PDB lookup fallback: {exc}", logs)
-
-        if not structure_path or not structure_path.exists():
-            # Check default case references
-            if plan.system_name == "egfr_erlotinib":
-                structure_path = Path("data/reference/egfr/1m17.pdb")
-            elif plan.system_name == "abl_imatinib":
-                structure_path = Path("data/reference/abl/2hyy.pdb")
-            elif "ippoi" in plan.system_name:
-                structure_path = Path("data/reference/qmmm_dft/step3_pbcsetup.parm7")
-            else:
-                raise FileNotFoundError(f"Could not locate structure file for {plan.system_name}")
-
-        # 2. Partition Active Site & Link Atoms
-        self._notify(
-            on_event,
-            "partition",
-            f"Partitioning active site (cutoff {plan.cutoff_radius:.1f} A, pH {plan.ph:.1f})...",
-            logs,
+        stats = run_case(case, adapter=self.adapter, store=self.hmem.store, on_event=relay, workroot=self.workroot,
+                         log_dir=self.log_dir, sample_mode=self.sample_mode, echo=self.echo)
+        self.last_stats = stats
+        setup, result, cards = stats["_setup"], stats["_result"], stats["_cards"]
+        prop = setup["proposal"]
+        system_name = f"ippoi_active_site_{case['metal_resid']}" if "ippoi" in case.get("system", "") else case.get("system", case["id"])
+        residues = [ResidueSelection(resname=re_label.rstrip("0123456789"), resid=int("".join(ch for ch in re_label if ch.isdigit())),
+                                     role=ResidueRole.CATALYTIC if c.role != "metal" else ResidueRole.METAL,
+                                     formal_charge=setup["formal"]["per_residue"].get(re_label, 0))
+                    for c in prop.choices for re_label in [c.residue]]
+        partition = QMMMPartition(system_name=system_name, qm_residues=residues, qm_charge=setup["charge"],
+                                  spin_multiplicity=1, total_valence_electrons=prop.charge.electrons,
+                                  amber_qmmask=prop.mask, cutoff_radius_angstrom=8.0, decision_cards=cards)
+        total = result.get("total_energy_kcal")
+        ok = bool(result.get("ok")) and total is not None
+        sim = SimulationResult(
+            success=ok, system_name=system_name, qm_theory="PM6",
+            energy_kcal_mol=total if ok else None, energy_hartree=(total / HARTREE_TO_KCAL_MOL) if ok else None,
+            sample_mode=self.sample_mode, execution_time_seconds=float(stats["engine_time_s"]),
+            stdout_summary="; ".join(result.get("errors") or []) if not ok else f"ESCF {result.get('qm_escf_kcal')}",
+            error_message=None if ok else "; ".join(result.get("errors") or ["no energy"]),
+            decision_cards=cards, output_files={"report": stats["report"], "cards": stats["cards"], "trace": stats["trace"]},
+            engine={k: v for k, v in result.items() if k != "command"},
         )
-
-        if plan.metal_resid is not None or "ippoi" in plan.system_name:
-            metal_resid = plan.metal_resid or 371
-            coords = plan.coords_path or "data/reference/qmmm_dft/prod00.ncrst"
-            partition = self.partitioner.partition_metal_system(
-                parm7_path=structure_path,
-                coords_path=coords,
-                metal_resid=metal_resid,
-                cutoff_radius=plan.cutoff_radius,
-                ph=plan.ph,
-            )
-        else:
-            ligand_name = plan.ligand_name or "AQ4"
-            partition = self.partitioner.partition_ligand_system(
-                pdb_path=structure_path,
-                ligand_resname=ligand_name,
-                cutoff_radius=plan.cutoff_radius,
-                ph=plan.ph,
-                literature_contacts=plan.literature_contacts,
-                expected_absent=plan.expected_absent,
-            )
-
-        self._notify(
-            on_event,
-            "partition",
-            f"Selected {len(partition.qm_residues)} QM residues and placed {len(partition.link_atoms)} link atoms.",
-            logs,
-        )
-
-        # 3. Critic Verification & Self-Correction
-        self._notify(
-            on_event,
-            "critic",
-            "Critic inspecting electron parity, spin multiplicity, and boundary cuts...",
-            logs,
-        )
-        report = self.critic.inspect_and_correct(partition, qm_theory=plan.qm_theory)
-        if report.corrections_applied:
-            for corr in report.corrections_applied:
-                self._notify(on_event, "critic_correction", f"Applied self-correction: {corr}", logs)
-        else:
-            self._notify(
-                on_event,
-                "critic",
-                f"Verified: Closed-shell singlet ({report.electron_count} valence electrons, qmcharge={partition.qm_charge:+d}).",
-                logs,
-            )
-
-        # 4. Chemistry runner (input generation; engine execution is a later module)
-        self._notify(
-            on_event,
-            "runner",
-            f"Running {plan.qm_theory} QM/MM single point (sander inside the activesite-engine:at26 container)...",
-            logs,
-        )
-        coords_arg = plan.coords_path or structure_path
-        sim_result = self.runner.run_simulation(
-            partition=partition,
-            prmtop_path=structure_path,
-            inpcrd_path=coords_arg,
-            qm_theory=plan.qm_theory,
-            min_steps=plan.min_steps,
-        )
-        if sim_result.success and sim_result.energy_kcal_mol is not None and sim_result.energy_hartree is not None:
-            runner_msg = (
-                f"Calculation finished: E = {sim_result.energy_kcal_mol:,.2f} kcal/mol "
-                f"({sim_result.energy_hartree:.5f} Ha) in {sim_result.execution_time_seconds:.3f}s."
-            )
-        else:
-            runner_msg = (
-                f"No energy computed: {sim_result.error_message or 'engine did not run'} "
-                f"(Amber input written: {sim_result.output_files.get('mdin', 'n/a')})."
-            )
-        self._notify(on_event, "runner", runner_msg, logs)
-
-        # 5. Generate ChimeraX Script
-        cxc_path = Path("data/runs") / partition.system_name / "visualize.cxc"
-        self.chimerax.generate_script(partition, structure_path, output_script_path=cxc_path)
-        self._notify(on_event, "viz", f"Generated ChimeraX 3D script at {cxc_path}", logs)
-
-        # 6. Explainer Report
-        self._notify(on_event, "explainer", "Compiling Track 02 Decision Cards and explanation report...", logs)
-        all_cards = sim_result.decision_cards or partition.decision_cards
-        report_md = self.explainer.generate_report(
-            system_name=plan.system_name,
-            result=sim_result,
-            partition=partition,
-            chimerax_script_path=str(cxc_path),
-        )
-
-        return WorkflowOutput(
-            success=sim_result.success,
-            system_name=plan.system_name,
-            plan=plan,
-            partition=partition,
-            result=sim_result,
-            decision_cards=all_cards,
-            chimerax_script_path=str(cxc_path),
-            report_markdown=report_md,
-            logs=logs,
-        )
+        plan = PlannerAgent().plan_from_case(case)
+        return WorkflowOutput(success=ok, system_name=system_name, plan=plan, partition=partition, result=sim,
+                              decision_cards=cards, chimerax_script_path=None, report_markdown=stats["_report_markdown"],
+                              logs=logs)
