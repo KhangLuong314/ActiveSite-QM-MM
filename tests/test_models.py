@@ -77,14 +77,16 @@ def test_qmmm_partition_model():
     assert partition.link_atoms[0].element == "H"
 
 
-def test_simulation_result_model():
+def test_simulation_result_model_defaults_to_null_energy():
     res = SimulationResult(
-        success=True,
+        success=False,
         system_name="egfr_erlotinib",
         qm_theory="PM6",
-        energy_hartree=-152.48291,
-        energy_kcal_mol=-95683.4,
-        sample_mode=True,
+        error_message="engine not implemented yet",
     )
-    assert res.success is True
-    assert res.energy_hartree < 0
+    assert res.success is False
+    assert res.energy_hartree is None
+    assert res.energy_kcal_mol is None
+    dumped = res.model_dump()
+    assert dumped["energy_hartree"] is None
+    assert dumped["error_message"] == "engine not implemented yet"
