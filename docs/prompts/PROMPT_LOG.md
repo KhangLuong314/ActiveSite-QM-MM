@@ -194,6 +194,27 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-22 00:18 CDT] — P0: Clean Ground & Guardrails (branch `feat/p0-cleanup`)
+- **Tool / Environment:** Claude Code (Fable 5.1); no Docker in the build environment (`docker info` fails)
+- **Target Component:** `activesite/chem/runner.py`, `activesite/memory/meterless.py`, `activesite/agent/explainer.py`, `activesite/adapters/zetaris_mcp.py`, `AGENTS.md`, `.env.example`, `.gitignore`, tests
+- **Developer Prompt:**
+  > "P0 — clean ground and guardrails. Delete REFERENCE_ENERGIES, the '-0.05 Ha per residue' energy synthesis, the fake mdout writer and the -95000 default; run_simulation returns success=False with null energies and 'engine not implemented yet'. Delete _seed_foundational_memories and the error_type-only recall fallback; a fresh ledger starts empty. Remove 'cryptographically traceable'; add a Limitations section. Rename the DuckDB catalog to 'catalog-STANDIN (DuckDB)'. Add .env.example, AGENTS.md, .gitignore rules, logs/.gitkeep. Fix tests so the suite passes for the right reasons."
+- **Agent Action:**
+  - Runner: removed the reference-energy table, the per-residue energy synthesis and the mock mdout. `run_simulation` now only writes `qmmm.mdin`, emits the THEORY card and returns `success=False`, `energy_hartree=None`, `energy_kcal_mol=None`, `error_message="engine not implemented yet"`. The sander mdout parser returns `None` instead of `-95000.0` and is unit-tested against a text fixture.
+  - Memory: no seeding; a missing ledger starts empty and nothing is written until a record is stored. `recall_corrective_action` only matches the same system (or `generic`); the cross-system `error_type` fallback is gone. The committed `data/memory/meterless_ledger.json` was reset to empty. Fixed `record_lesson` ids (previously always `MEM_USER_1000` because `sys.time` does not exist).
+  - Explainer/UI/CLI/API: energy renders as `not computed (null) — engine not implemented yet` everywhere; "cryptographically traceable" removed; new "Limitations" section (PM6 single points only, implicit solvent for ligand cases, no local free-energy barriers, local catalog stand-in until Zetaris credentials exist). `/api/run` now returns `error_message`; the dashboard shows `null` and the reason.
+  - Catalog: user-facing name is now `catalog-STANDIN (DuckDB)` in the adapter docstring, MCP tool descriptions, README and dashboard badge. Class names and MCP tool names unchanged.
+  - Guardrails: `AGENTS.md` (series rules + the five `.cursorrules` principles), "See AGENTS.md" at the top of `.cursorrules`, `.env.example` with placeholders only, `.gitignore` now keeps `logs/.gitkeep` and ignores `logs/*.jsonl`.
+  - Tests: every assertion of a fabricated energy or seeded memory replaced. The I-PpoI orchestrator test now asserts closed-shell parity instead of `qmcharge == 1`, because the old value came from the seeded memory via the deleted fallback.
+- **Verification:**
+  - `uv run pytest -q` → `37 passed, 33 warnings in 5.96s`
+  - `grep -rn "REFERENCE_ENERGIES\|_seed_foundational\|cryptographically" activesite` → empty.
+  - `uv run python run.py --case egfr_erlotinib` prints `Engine Status: did not run — engine not implemented yet` and `Total QM/MM Energy: not computed (null)`.
+  - Working tree stays clean after CLI and test runs (the ledger is no longer mutated on init).
+  - To run on a Docker host: nothing yet; engine execution is the next module.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
