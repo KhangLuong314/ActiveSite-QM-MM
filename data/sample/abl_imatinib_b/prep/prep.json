@@ -1,0 +1,794 @@
+{
+ "kind": "ligand",
+ "mask": ":LIG",
+ "theory": "PM6",
+ "charge": 1,
+ "overrides": [
+  {
+   "resnum": 361,
+   "from": "HIP",
+   "to": "HIE",
+   "pka": 7.5,
+   "ph": 7.4,
+   "d_ND1_cation": 5.95,
+   "d_NE2_cation": 6.88,
+   "evidence": "HIS361: PROPKA pKa 7.50 within 1.0 of pH 7.4; ND1 5.95 \u00c5 and NE2 6.88 \u00c5 from ligand cation N51 (range 8.0 \u00c5); ND1 faces the cation and is left unprotonated -> HIE"
+  }
+ ],
+ "chain": "A",
+ "chain_source": "requested",
+ "chain_table": [
+  {
+   "chain": "A",
+   "ligand_atoms": 37,
+   "pocket_residues": 96,
+   "gaps_adjacent_to_pocket": 0,
+   "missing_residues_adjacent": [],
+   "missing_atom_residues_in_pocket": [
+    246,
+    285,
+    294,
+    357,
+    387
+   ],
+   "missing_residues": 10,
+   "score": [
+    0,
+    5,
+    10,
+    "A"
+   ]
+  },
+  {
+   "chain": "B",
+   "ligand_atoms": 37,
+   "pocket_residues": 96,
+   "gaps_adjacent_to_pocket": 0,
+   "missing_residues_adjacent": [],
+   "missing_atom_residues_in_pocket": [
+    285,
+    294
+   ],
+   "missing_residues": 8,
+   "score": [
+    0,
+    2,
+    8,
+    "B"
+   ]
+  },
+  {
+   "chain": "C",
+   "ligand_atoms": 37,
+   "pocket_residues": 94,
+   "gaps_adjacent_to_pocket": 0,
+   "missing_residues_adjacent": [],
+   "missing_atom_residues_in_pocket": [
+    285,
+    294
+   ],
+   "missing_residues": 11,
+   "score": [
+    0,
+    2,
+    11,
+    "C"
+   ]
+  },
+  {
+   "chain": "D",
+   "ligand_atoms": 37,
+   "pocket_residues": 96,
+   "gaps_adjacent_to_pocket": 0,
+   "missing_residues_adjacent": [],
+   "missing_atom_residues_in_pocket": [
+    285,
+    292,
+    294
+   ],
+   "missing_residues": 9,
+   "score": [
+    0,
+    3,
+    9,
+    "D"
+   ]
+  }
+ ],
+ "extract": {
+  "chain": "A",
+  "ligand": "STI",
+  "protein_atoms": 2073,
+  "ligand_atoms": 37,
+  "protein_pdb": "data/runs/20261022-191110-e11d38/protein.pdb",
+  "ligand_pdb": "data/runs/20261022-191110-e11d38/ligand.pdb"
+ },
+ "crystal_contacts": {
+  "contacts": [
+   {
+    "ligand_atom": "N51",
+    "partner": "ILE360@O",
+    "distance": 2.723
+   },
+   {
+    "ligand_atom": "N3",
+    "partner": "MET318@N",
+    "distance": 2.937
+   },
+   {
+    "ligand_atom": "O29",
+    "partner": "ASP381@N",
+    "distance": 2.981
+   },
+   {
+    "ligand_atom": "N13",
+    "partner": "THR315@OG1",
+    "distance": 3.014
+   },
+   {
+    "ligand_atom": "N21",
+    "partner": "GLU286@OE2",
+    "distance": 3.089
+   },
+   {
+    "ligand_atom": "N51",
+    "partner": "HIS361@O",
+    "distance": 3.12
+   },
+   {
+    "ligand_atom": "O29",
+    "partner": "ASP381@O",
+    "distance": 3.358
+   },
+   {
+    "ligand_atom": "N21",
+    "partner": "ASP381@O",
+    "distance": 3.477
+   }
+  ],
+  "cutoff": 3.5,
+  "numbering": "crystal",
+  "note": "crystal files carry no hydrogens, so the donor-H criterion is not applied here"
+ },
+ "ligand_site": {
+  "atom": "N51",
+  "contacts": [
+   {
+    "partner": "ILE360@O",
+    "distance": 2.723
+   },
+   {
+    "partner": "HIS361@O",
+    "distance": 3.12
+   }
+  ],
+  "checked": [
+   {
+    "atom": "N3",
+    "carbon_neighbours": [
+     "C4",
+     "C2"
+    ],
+    "heavy_neighbours": 2,
+    "tertiary_amine": false,
+    "contacts": []
+   },
+   {
+    "atom": "N10",
+    "carbon_neighbours": [
+     "C11",
+     "C9"
+    ],
+    "heavy_neighbours": 2,
+    "tertiary_amine": false,
+    "contacts": []
+   },
+   {
+    "atom": "N8",
+    "carbon_neighbours": [
+     "C7",
+     "C9"
+    ],
+    "heavy_neighbours": 2,
+    "tertiary_amine": false,
+    "contacts": []
+   },
+   {
+    "atom": "N13",
+    "carbon_neighbours": [
+     "C9",
+     "C14"
+    ],
+    "heavy_neighbours": 2,
+    "tertiary_amine": false,
+    "contacts": []
+   },
+   {
+    "atom": "N21",
+    "carbon_neighbours": [
+     "C16",
+     "C22"
+    ],
+    "heavy_neighbours": 2,
+    "tertiary_amine": false,
+    "contacts": []
+   },
+   {
+    "atom": "N48",
+    "carbon_neighbours": [
+     "C46",
+     "C53",
+     "C49"
+    ],
+    "heavy_neighbours": 3,
+    "tertiary_amine": true,
+    "contacts": []
+   },
+   {
+    "atom": "N51",
+    "carbon_neighbours": [
+     "C52",
+     "C54",
+     "C50"
+    ],
+    "heavy_neighbours": 3,
+    "tertiary_amine": true,
+    "contacts": [
+     {
+      "partner": "ILE360@O",
+      "distance": 2.723
+     },
+     {
+      "partner": "HIS361@O",
+      "distance": 3.12
+     }
+    ]
+   }
+  ],
+  "evidence": "N51 is a tertiary amine (C52, C54, C50) whose closest backbone carbonyl O is ILE360@O at 2.72 \u00c5 (cutoff 3.3 \u00c5); other N atoms checked: N3, N10, N8, N13, N21, N48."
+ },
+ "protonation": {
+  "ph": 7.4,
+  "pkas": {
+   "ASP241": 3.97,
+   "ASP276": 3.47,
+   "ASP325": 4.44,
+   "ASP363": 3.44,
+   "ASP381": 4.65,
+   "ASP391": 3.91,
+   "ASP421": 5.87,
+   "ASP444": 2.63,
+   "ASP455": 3.68,
+   "ASP482": 4.04,
+   "GLU236": 3.67,
+   "GLU238": 4.75,
+   "GLU255": 3.11,
+   "GLU258": 4.44,
+   "GLU279": 4.86,
+   "GLU281": 4.54,
+   "GLU282": 4.33,
+   "GLU286": 5.5,
+   "GLU292": 4.58,
+   "GLU308": 4.26,
+   "GLU316": 4.66,
+   "GLU329": 4.99,
+   "GLU334": 4.03,
+   "GLU352": 4.94,
+   "GLU355": 4.62,
+   "GLU373": 4.04,
+   "GLU409": 4.33,
+   "GLU431": 6.37,
+   "GLU450": 4.64,
+   "GLU453": 4.77,
+   "GLU459": 4.31,
+   "GLU462": 4.55,
+   "GLU466": 4.44,
+   "GLU470": 4.8,
+   "GLU488": 4.75,
+   "GLU494": 4.4,
+   "C-498": 3.33,
+   "HIS246": 6.38,
+   "HIS295": 5.14,
+   "HIS361": 7.5,
+   "HIS375": 6.48,
+   "HIS396": 6.44,
+   "HIS490": 6.24,
+   "CYS305": 11.08,
+   "CYS330": 10.27,
+   "CYS369": 12.85,
+   "CYS464": 10.93,
+   "CYS475": 12.4,
+   "TYR253": 12.08,
+   "TYR257": 11.42,
+   "TYR264": 9.99,
+   "TYR312": 11.11,
+   "TYR320": 11.08,
+   "TYR326": 11.86,
+   "TYR342": 10.61,
+   "TYR353": 9.06,
+   "TYR393": 13.43,
+   "TYR413": 10.2,
+   "TYR435": 11.01,
+   "TYR440": 12.87,
+   "TYR449": 11.32,
+   "TYR456": 10.85,
+   "TYR469": 10.17,
+   "LYS245": 10.59,
+   "LYS247": 11.54,
+   "LYS262": 10.25,
+   "LYS263": 10.89,
+   "LYS271": 11.04,
+   "LYS274": 10.24,
+   "LYS285": 10.67,
+   "LYS291": 10.26,
+   "LYS294": 10.24,
+   "LYS356": 10.61,
+   "LYS357": 11.04,
+   "LYS378": 10.3,
+   "LYS400": 10.18,
+   "LYS404": 9.27,
+   "LYS415": 10.45,
+   "LYS419": 9.67,
+   "LYS454": 10.57,
+   "LYS467": 10.51,
+   "ARG239": 12.83,
+   "ARG307": 12.73,
+   "ARG328": 12.07,
+   "ARG332": 12.48,
+   "ARG362": 11.84,
+   "ARG367": 13.89,
+   "ARG386": 12.64,
+   "ARG457": 11.05,
+   "ARG460": 12.61,
+   "ARG473": 13.18,
+   "ARG483": 11.85,
+   "N+235": 7.59
+  },
+  "states": {
+   "246": "HID",
+   "295": "HIE",
+   "361": "HIP",
+   "375": "HIE",
+   "396": "HID",
+   "490": "HID"
+  },
+  "gap_warnings": [
+   "WARNING:Gap in backbone detected between LYS A 274 and ASP A 276!"
+  ],
+  "seconds": 1.05,
+  "log": "data/runs/20261022-191110-e11d38/pdb2pqr.log"
+ },
+ "his_review": {
+  "overrides": [
+   {
+    "resnum": 361,
+    "from": "HIP",
+    "to": "HIE",
+    "pka": 7.5,
+    "ph": 7.4,
+    "d_ND1_cation": 5.95,
+    "d_NE2_cation": 6.88,
+    "evidence": "HIS361: PROPKA pKa 7.50 within 1.0 of pH 7.4; ND1 5.95 \u00c5 and NE2 6.88 \u00c5 from ligand cation N51 (range 8.0 \u00c5); ND1 faces the cation and is left unprotonated -> HIE"
+   }
+  ],
+  "uncertain_his": [
+   "HIS361 pKa 7.50",
+   "HIS375 pKa 6.48",
+   "HIS396 pKa 6.44"
+  ],
+  "cation_atom": "N51",
+  "note": "Overridden His states are chosen from geometry; the charged (HIP) state should be run as a sensitivity check because its PROPKA pKa lies within 1 unit of the pH."
+ },
+ "ligand_parameters": {
+  "heavy_atoms": 37,
+  "protonated": "N51",
+  "atoms_with_h": 69,
+  "net_charge": 1,
+  "smiles": "Cc1ccc(NC(=O)c2ccc(CN3CC[NH+](C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1",
+  "charge_sum": 1.0,
+  "charge_residual_spread": 0.003998,
+  "ligand_atoms": 69,
+  "cached": true,
+  "cache_key": "5cd66b80936df388",
+  "seconds": 0.32,
+  "mol2": "data/runs/20261022-191110-e11d38/ligand.mol2",
+  "frcmod": "data/runs/20261022-191110-e11d38/ligand.frcmod"
+ },
+ "complex": {
+  "parm7": "data/runs/20261022-191110-e11d38/complex.parm7",
+  "rst7": "data/runs/20261022-191110-e11d38/complex.rst7",
+  "total_charge": -5.999996,
+  "tleap_errors": 0,
+  "tleap_warnings": 1,
+  "renum": {
+   "235": 1,
+   "236": 2,
+   "237": 3,
+   "238": 4,
+   "239": 5,
+   "240": 6,
+   "241": 7,
+   "242": 8,
+   "243": 9,
+   "244": 10,
+   "245": 11,
+   "246": 12,
+   "247": 13,
+   "248": 14,
+   "249": 15,
+   "250": 16,
+   "251": 17,
+   "252": 18,
+   "253": 19,
+   "254": 20,
+   "255": 21,
+   "256": 22,
+   "257": 23,
+   "258": 24,
+   "259": 25,
+   "260": 26,
+   "261": 27,
+   "262": 28,
+   "263": 29,
+   "264": 30,
+   "265": 31,
+   "266": 32,
+   "267": 33,
+   "268": 34,
+   "269": 35,
+   "270": 36,
+   "271": 37,
+   "272": 38,
+   "273": 39,
+   "274": 40,
+   "276": 41,
+   "277": 42,
+   "278": 43,
+   "279": 44,
+   "280": 45,
+   "281": 46,
+   "282": 47,
+   "283": 48,
+   "284": 49,
+   "285": 50,
+   "286": 51,
+   "287": 52,
+   "288": 53,
+   "289": 54,
+   "290": 55,
+   "291": 56,
+   "292": 57,
+   "293": 58,
+   "294": 59,
+   "295": 60,
+   "296": 61,
+   "297": 62,
+   "298": 63,
+   "299": 64,
+   "300": 65,
+   "301": 66,
+   "302": 67,
+   "303": 68,
+   "304": 69,
+   "305": 70,
+   "306": 71,
+   "307": 72,
+   "308": 73,
+   "309": 74,
+   "310": 75,
+   "311": 76,
+   "312": 77,
+   "313": 78,
+   "314": 79,
+   "315": 80,
+   "316": 81,
+   "317": 82,
+   "318": 83,
+   "319": 84,
+   "320": 85,
+   "321": 86,
+   "322": 87,
+   "323": 88,
+   "324": 89,
+   "325": 90,
+   "326": 91,
+   "327": 92,
+   "328": 93,
+   "329": 94,
+   "330": 95,
+   "331": 96,
+   "332": 97,
+   "333": 98,
+   "334": 99,
+   "335": 100,
+   "336": 101,
+   "337": 102,
+   "338": 103,
+   "339": 104,
+   "340": 105,
+   "341": 106,
+   "342": 107,
+   "343": 108,
+   "344": 109,
+   "345": 110,
+   "346": 111,
+   "347": 112,
+   "348": 113,
+   "349": 114,
+   "350": 115,
+   "351": 116,
+   "352": 117,
+   "353": 118,
+   "354": 119,
+   "355": 120,
+   "356": 121,
+   "357": 122,
+   "358": 123,
+   "359": 124,
+   "360": 125,
+   "361": 126,
+   "362": 127,
+   "363": 128,
+   "364": 129,
+   "365": 130,
+   "366": 131,
+   "367": 132,
+   "368": 133,
+   "369": 134,
+   "370": 135,
+   "371": 136,
+   "372": 137,
+   "373": 138,
+   "374": 139,
+   "375": 140,
+   "376": 141,
+   "377": 142,
+   "378": 143,
+   "379": 144,
+   "380": 145,
+   "381": 146,
+   "382": 147,
+   "383": 148,
+   "384": 149,
+   "385": 150,
+   "386": 151,
+   "387": 152,
+   "388": 153,
+   "389": 154,
+   "390": 155,
+   "391": 156,
+   "392": 157,
+   "393": 158,
+   "394": 159,
+   "395": 160,
+   "396": 161,
+   "397": 162,
+   "398": 163,
+   "399": 164,
+   "400": 165,
+   "401": 166,
+   "402": 167,
+   "403": 168,
+   "404": 169,
+   "405": 170,
+   "406": 171,
+   "407": 172,
+   "408": 173,
+   "409": 174,
+   "410": 175,
+   "411": 176,
+   "412": 177,
+   "413": 178,
+   "414": 179,
+   "415": 180,
+   "416": 181,
+   "417": 182,
+   "418": 183,
+   "419": 184,
+   "420": 185,
+   "421": 186,
+   "422": 187,
+   "423": 188,
+   "424": 189,
+   "425": 190,
+   "426": 191,
+   "427": 192,
+   "428": 193,
+   "429": 194,
+   "430": 195,
+   "431": 196,
+   "432": 197,
+   "433": 198,
+   "434": 199,
+   "435": 200,
+   "436": 201,
+   "437": 202,
+   "438": 203,
+   "439": 204,
+   "440": 205,
+   "441": 206,
+   "442": 207,
+   "443": 208,
+   "444": 209,
+   "445": 210,
+   "446": 211,
+   "447": 212,
+   "448": 213,
+   "449": 214,
+   "450": 215,
+   "451": 216,
+   "452": 217,
+   "453": 218,
+   "454": 219,
+   "455": 220,
+   "456": 221,
+   "457": 222,
+   "458": 223,
+   "459": 224,
+   "460": 225,
+   "461": 226,
+   "462": 227,
+   "463": 228,
+   "464": 229,
+   "465": 230,
+   "466": 231,
+   "467": 232,
+   "468": 233,
+   "469": 234,
+   "470": 235,
+   "471": 236,
+   "472": 237,
+   "473": 238,
+   "474": 239,
+   "475": 240,
+   "476": 241,
+   "477": 242,
+   "478": 243,
+   "479": 244,
+   "480": 245,
+   "481": 246,
+   "482": 247,
+   "483": 248,
+   "484": 249,
+   "485": 250,
+   "486": 251,
+   "487": 252,
+   "488": 253,
+   "489": 254,
+   "490": 255,
+   "491": 256,
+   "492": 257,
+   "493": 258,
+   "494": 259,
+   "495": 260,
+   "496": 261,
+   "497": 262,
+   "498": 263
+  },
+  "overrides_applied": [
+   [
+    126,
+    "HIP",
+    "HIE"
+   ]
+  ],
+  "seconds": 0.94
+ },
+ "minimisation": {
+  "first": {
+   "nstep": 1,
+   "energy": 196.11,
+   "rms": 1037.0,
+   "gmax": 63624.0
+  },
+  "last": {
+   "nstep": 500,
+   "energy": -8431.1,
+   "rms": 0.053235,
+   "gmax": 1.2368
+  },
+  "steps": 500,
+  "seconds": 109.56,
+  "rst7": "data/runs/20261022-191110-e11d38/min.rst7"
+ },
+ "pose_built": {
+  "centroid_shift": 0.0,
+  "rmsd": 0.0,
+  "ligand_heavy_atoms": 37,
+  "closest_protein_heavy_atom": {
+   "atom": "ILE360@O",
+   "ligand_atom": "N7",
+   "distance": 2.723
+  },
+  "contacts": [
+   {
+    "ligand_atom": "N7",
+    "partner": "ILE360@O",
+    "distance": 2.723
+   },
+   {
+    "ligand_atom": "N1",
+    "partner": "MET318@N",
+    "distance": 2.937
+   },
+   {
+    "ligand_atom": "O1",
+    "partner": "ASP381@N",
+    "distance": 2.981
+   },
+   {
+    "ligand_atom": "N4",
+    "partner": "THR315@OG1",
+    "distance": 3.014
+   },
+   {
+    "ligand_atom": "N5",
+    "partner": "GLU286@OE2",
+    "distance": 3.089
+   },
+   {
+    "ligand_atom": "N7",
+    "partner": "HIE361@O",
+    "distance": 3.12
+   },
+   {
+    "ligand_atom": "N5",
+    "partner": "ASP381@O",
+    "distance": 3.477
+   }
+  ],
+  "cutoff": 3.5,
+  "numbering": "crystal",
+  "coords": "data/runs/20261022-191110-e11d38/complex.rst7"
+ },
+ "pose_min": {
+  "centroid_shift": 0.021,
+  "rmsd": 0.084,
+  "ligand_heavy_atoms": 37,
+  "closest_protein_heavy_atom": {
+   "atom": "ILE360@O",
+   "ligand_atom": "N7",
+   "distance": 2.723
+  },
+  "contacts": [
+   {
+    "ligand_atom": "N7",
+    "partner": "ILE360@O",
+    "distance": 2.723
+   },
+   {
+    "ligand_atom": "O1",
+    "partner": "ASP381@N",
+    "distance": 2.86
+   },
+   {
+    "ligand_atom": "N1",
+    "partner": "MET318@N",
+    "distance": 2.982
+   },
+   {
+    "ligand_atom": "N4",
+    "partner": "THR315@OG1",
+    "distance": 3.02
+   },
+   {
+    "ligand_atom": "N5",
+    "partner": "GLU286@OE2",
+    "distance": 3.253
+   },
+   {
+    "ligand_atom": "N7",
+    "partner": "HIE361@O",
+    "distance": 3.258
+   },
+   {
+    "ligand_atom": "N5",
+    "partner": "ASP381@O",
+    "distance": 3.452
+   }
+  ],
+  "cutoff": 3.5,
+  "numbering": "crystal",
+  "coords": "data/runs/20261022-191110-e11d38/min.rst7"
+ }
+}

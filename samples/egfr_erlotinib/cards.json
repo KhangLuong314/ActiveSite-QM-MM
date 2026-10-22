@@ -1,0 +1,386 @@
+[
+  {
+    "decision_id": "DEC_CHAIN_A",
+    "category": "residue_inclusion",
+    "target": "chain",
+    "choice": "chain A (REMARK 465/470 pocket completeness)",
+    "alternatives": [],
+    "rationale": "77 CA within 12 \u00c5 of the ligand; 0 gaps adjacent, 0 residues with missing atoms in the pocket, 21 missing residues in the chain",
+    "confidence": 1.0,
+    "evidence": {
+      "table": [
+        {
+          "chain": "A",
+          "ligand_atoms": 29,
+          "pocket_residues": 77,
+          "gaps_adjacent_to_pocket": 0,
+          "missing_residues_adjacent": [],
+          "missing_atom_residues_in_pocket": [],
+          "missing_residues": 21,
+          "score": [
+            0,
+            0,
+            21,
+            "A"
+          ]
+        }
+      ],
+      "source": "REMARK 465/470 of 1m17.pdb"
+    }
+  },
+  {
+    "decision_id": "DEC_PROTONATION_PDB2PQR",
+    "category": "protonation_state",
+    "target": "protein protonation",
+    "choice": "PDB2PQR + PROPKA at pH 7.4: 9 non-default states, His {'HIS749': 'HID', 'HIS781': 'HID', 'HIS811': 'HIE', 'HIS826': 'HIE', 'HIS846': 'HID', 'HIS864': 'HID', 'HIS869': 'HID', 'HIS964': 'HID'}",
+    "alternatives": [],
+    "rationale": "112 titratable groups predicted; 2 His within 1.0 pKa of the pH",
+    "confidence": 0.75,
+    "evidence": {
+      "states": {
+        "749": "HID",
+        "781": "HID",
+        "811": "HIE",
+        "826": "HIE",
+        "846": "HID",
+        "864": "HID",
+        "869": "HID",
+        "872": "ASH",
+        "964": "HID"
+      },
+      "pkas": {
+        "ASP737": 4.04,
+        "ASP746": 3.72,
+        "ASP776": 3.53,
+        "ASP783": 3.93,
+        "ASP806": 4.17,
+        "ASP813": 4.35,
+        "ASP831": 3.86,
+        "ASP872": 7.59,
+        "ASP892": 3.3,
+        "ASP918": 3.81,
+        "ASP930": 3.44,
+        "ASP932": 4.11,
+        "ASP950": 3.97,
+        "ASP960": 3.73,
+        "ASP979": 3.59,
+        "ASP982": 3.87,
+        "ASP984": 3.74,
+        "ASP985": 3.92,
+        "ASP988": 2.68,
+        "ASP990": 4.48,
+        "GLU673": 4.55,
+        "GLU685": 4.64,
+        "GLU687": 3.5,
+        "GLU710": 4.6,
+        "GLU712": 4.2,
+        "GLU722": 4.0,
+        "GLU725": 4.4,
+        "GLU734": 3.91,
+        "GLU738": 5.57,
+        "GLU780": 4.48,
+        "GLU805": 6.03,
+        "GLU841": 4.5,
+        "GLU842": 4.45,
+        "GLU844": 4.54,
+        "GLU848": 3.18,
+        "GLU860": 4.17,
+        "GLU882": 7.02,
+        "GLU898": 4.74,
+        "GLU904": 4.51,
+        "GLU907": 4.73,
+        "GLU939": 3.74,
+        "GLU943": 4.31,
+        "GLU961": 4.46,
+        "GLU980": 4.57,
+        "GLU981": 4.64,
+        "GLU991": 4.89,
+        "C-995": 3.32,
+        "HIS749": 4.88,
+        "HIS781": 6.81,
+        "HIS811": 5.31,
+        "HIS826": 5.85,
+        "HIS846": 6.34,
+        "HIS864": 7.16,
+        "HIS869": 4.48,
+        "HIS964": 6.37,
+        "CYS751": 11.36,
+        "CYS757": 10.13,
+        "CYS773": 10.31,
+        "CYS794": 12.76,
+        "CYS915": 11.93,
+        "CYS926": 12.42,
+        "TYR703": 9.55,
+        "TYR740": 9.49,
+        "TYR777": 11.13,
+        "TYR789": 10.07,
+        "TYR803": 10.26,
+        "TYR845": 11.94,
+        "TYR867": 10.76,
+        "TYR876": 16.22,
+        "TYR891": 12.31,
+        "TYR920": 11.02,
+        "TYR954": 10.34,
+        "TYR992": 10.14,
+        "LYS684": 10.66,
+        "LYS689": 10.13,
+        "LYS690": 11.04,
+        "LYS692": 10.37,
+        "LYS704": 10.08,
+        "LYS713": 10.39,
+        "LYS715": 10.34,
+        "LYS721": 11.78,
+        "LYS730": 10.49,
+        "LYS733": 10.67,
+        "LYS782": 10.15,
+        "LYS799": 10.13,
+        "LYS822": 10.24,
+        "LYS828": 9.41,
+        "LYS836": 9.1,
+        "LYS843": 10.64,
+        "LYS851": 10.92,
+        "LYS855": 9.76,
+        "LYS889": 10.89,
+        "LYS905": 10.48,
+        "LYS925": 10.4,
+        "LYS936": 10.7,
+        "LYS946": 10.97,
+        "ARG681": 12.44,
+        "ARG724": 12.62,
+        "ARG752": 12.34,
+        "ARG779": 12.48,
+        "ARG807": 12.25,
+        "ARG808": 12.51,
+        "ARG812": 12.34,
+        "ARG817": 12.94,
+        "ARG865": 12.41,
+        "ARG908": 11.27,
+        "ARG934": 12.36,
+        "ARG938": 12.47,
+        "ARG949": 12.42,
+        "ARG953": 12.98,
+        "ARG962": 12.43,
+        "N+672": 7.97
+      },
+      "gap_warnings": [
+        "WARNING:Gap in backbone detected between HIS A 964 and LEU A 977!"
+      ],
+      "source": "pdb2pqr/propka in activesite-prep:at26"
+    }
+  },
+  {
+    "decision_id": "DEC_LIGAND_NEUTRAL",
+    "category": "protonation_state",
+    "target": "ligand",
+    "choice": "kept neutral",
+    "alternatives": [],
+    "rationale": "no tertiary amine (N with three C neighbours) has a backbone O within 3.3 \u00c5",
+    "confidence": 0.8,
+    "evidence": {
+      "source": "crystal geometry",
+      "rule": "tertiary amine + backbone O < 3.3 \u00c5"
+    }
+  },
+  {
+    "decision_id": "DEC_LIGAND_PARAMETERS",
+    "category": "theory_selection",
+    "target": "ligand force field",
+    "choice": "GAFF2 + AM1-BCC, net charge +0 (cached)",
+    "alternatives": [],
+    "rationale": "charge sum +0.0000, residual spread +0.0000 e over 52 atoms",
+    "confidence": 1.0,
+    "evidence": {
+      "charge_sum": 0.0,
+      "charge_residual_spread": 2e-06,
+      "ligand_atoms": 52,
+      "cached": true,
+      "cache_key": "1e11abd86f46d63f",
+      "source": "antechamber/parmchk2"
+    }
+  },
+  {
+    "decision_id": "DEC_QM_REGION_LIGAND",
+    "category": "link_atom",
+    "target": "QM region",
+    "choice": "whole ligand (:LIG), no link atoms",
+    "alternatives": [
+      {
+        "name": "ligand + pocket side chains",
+        "rejected_reason": "covalent cuts add link atoms and PM6 cost; the question is the ligand's energy in its pocket"
+      }
+    ],
+    "rationale": "a closed-shell whole ligand needs no boundary treatment",
+    "confidence": 1.0,
+    "evidence": {
+      "mask": ":LIG",
+      "link_atoms": 0,
+      "source": "setup"
+    }
+  },
+  {
+    "decision_id": "DEC_SOLVENT_GB",
+    "category": "solvent_handling",
+    "target": "solvent",
+    "choice": "implicit solvent (igb=5, mbondi2) for the QM/MM single point",
+    "alternatives": [
+      {
+        "name": "explicit TIP3P box + PME",
+        "rejected_reason": "hours of equilibration; crystal waters (incl. the Thr766 bridge) are removed either way"
+      }
+    ],
+    "rationale": "trade-off: fast and judge-runnable, but bridging waters and bulk screening are approximated",
+    "confidence": 0.5,
+    "evidence": {
+      "igb": 5,
+      "cut": 999.0,
+      "source": "design choice"
+    }
+  },
+  {
+    "decision_id": "DEC_CHECK_LIGAND_CHARGE_SUM",
+    "category": "critic_correction",
+    "target": "ligand_charge_sum",
+    "choice": "passed: |charge sum +0.0000 - formal +0| = 0.00e+00",
+    "alternatives": [],
+    "rationale": "LigandCritic precheck",
+    "confidence": 0.5,
+    "evidence": {
+      "margin": 0.001,
+      "passed": true,
+      "blocking": false,
+      "source": "LigandCritic.precheck"
+    }
+  },
+  {
+    "decision_id": "DEC_CHECK_POCKET_BUILT",
+    "category": "critic_correction",
+    "target": "pocket_built",
+    "choice": "passed: centroid shift 0.0 \u00c5 (limit 1.0), closest protein heavy atom 2.699 \u00c5 (limit 4.0)",
+    "alternatives": [],
+    "rationale": "LigandCritic precheck (blocking)",
+    "confidence": 1.0,
+    "evidence": {
+      "margin": 1.0,
+      "passed": true,
+      "blocking": true,
+      "source": "LigandCritic.precheck"
+    }
+  },
+  {
+    "decision_id": "DEC_CHECK_POCKET_MIN",
+    "category": "critic_correction",
+    "target": "pocket_min",
+    "choice": "passed: centroid shift 0.02 \u00c5 (limit 1.0), closest protein heavy atom 2.903 \u00c5 (limit 4.0)",
+    "alternatives": [],
+    "rationale": "LigandCritic precheck (blocking)",
+    "confidence": 0.99,
+    "evidence": {
+      "margin": 0.98,
+      "passed": true,
+      "blocking": true,
+      "source": "LigandCritic.precheck"
+    }
+  },
+  {
+    "decision_id": "DEC_CHECK_COMPLEX_INTEGER_CHARGE",
+    "category": "critic_correction",
+    "target": "complex_integer_charge",
+    "choice": "passed: total charge -7.0000, fraction 2.00e-06",
+    "alternatives": [],
+    "rationale": "LigandCritic precheck",
+    "confidence": 0.5,
+    "evidence": {
+      "margin": 0.000998,
+      "passed": true,
+      "blocking": false,
+      "source": "LigandCritic.precheck"
+    }
+  },
+  {
+    "decision_id": "DEC_CHECK_MINIMISATION_RELAXED",
+    "category": "critic_correction",
+    "target": "minimisation_relaxed",
+    "choice": "passed: final GMAX 0.855 kcal/mol/\u00c5 (limit 10.0)",
+    "alternatives": [],
+    "rationale": "LigandCritic precheck",
+    "confidence": 1.0,
+    "evidence": {
+      "margin": 9.145,
+      "passed": true,
+      "blocking": false,
+      "source": "LigandCritic.precheck"
+    }
+  },
+  {
+    "decision_id": "DEC_BINDING_MODE",
+    "category": "validation",
+    "target": "binding mode",
+    "choice": "1/1 published contacts present",
+    "alternatives": [],
+    "rationale": "MET769 at 2.90 \u00c5 (hinge backbone NH to quinazoline N1)",
+    "confidence": 1.0,
+    "evidence": {
+      "recovered": {
+        "MET769": 2.903
+      },
+      "missed": [],
+      "extra": [
+        "GLY772"
+      ],
+      "source": "minimised model polar contacts, literature Stamos et al. 2002, J Biol Chem 277:46265 (PDB 1M17)"
+    }
+  },
+  {
+    "decision_id": "DEC_NEGATIVE_CONTROL_THR766",
+    "category": "validation",
+    "target": "THR766",
+    "choice": "THR766 contact absent: True",
+    "alternatives": [],
+    "rationale": "N3 reaches Thr766 only through a crystal water, which this setup removes",
+    "confidence": 1.0,
+    "evidence": {
+      "absent": true,
+      "source": "minimised model polar contacts"
+    }
+  },
+  {
+    "decision_id": "DEC_STRUCTURE_SOURCE",
+    "category": "validation",
+    "target": "structure source",
+    "choice": "9D5P at 1.5 \u00c5 (best of 6 entries)",
+    "alternatives": [],
+    "rationale": "Q3 ordered by resolution via catalog-STANDIN (DuckDB)",
+    "confidence": 0.667,
+    "evidence": {
+      "rows": [
+        {
+          "pdb_id": "9D5P",
+          "resolution": 1.5,
+          "title": "Crystal structure of the ILK/alpha-parvin core complex bound to erlotinib"
+        },
+        {
+          "pdb_id": "4I22",
+          "resolution": 1.71,
+          "title": "Structure of the monomeric (V948R)gefitinib/erlotinib resistant double mutant (L858R+T790M) EGFR kinase domain co-crystallized with gefitinib"
+        },
+        {
+          "pdb_id": "1M17",
+          "resolution": 2.6,
+          "title": "Epidermal Growth Factor Receptor tyrosine kinase domain with 4-anilinoquinazoline inhibitor erlotinib"
+        },
+        {
+          "pdb_id": "4HJO",
+          "resolution": 2.75,
+          "title": "Crystal structure of the inactive EGFR tyrosine kinase domain with erlotinib"
+        },
+        {
+          "pdb_id": "6DWN",
+          "resolution": 3.0,
+          "title": "Structure of Human Cytochrome P450 1A1 with Erlotinib"
+        }
+      ],
+      "sql": "SELECT pdb_id, resolution, title FROM rcsb_entries WHERE system = 'egfr_erlotinib' ORDER BY resolution ASC",
+      "source": "catalog-STANDIN (DuckDB)"
+    }
+  }
+]
