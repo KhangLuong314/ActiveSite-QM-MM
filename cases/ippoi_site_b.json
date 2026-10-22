@@ -1,0 +1,9 @@
+{
+  "id": "ippoi_site_b",
+  "system": "ippoi_wt",
+  "site": "B",
+  "question": "Set up a QM/MM model for DNA phosphodiester cleavage at I-PpoI active site B (Mg :372) and compute its PM6 QM/MM energy on the production frame. Explain every setup choice.",
+  "parm7": "data/reference/qmmm_dft/step3_pbcsetup.parm7",
+  "coords": "data/reference/qmmm_dft/prod00.ncrst",
+  "metal_resid": 372
+}

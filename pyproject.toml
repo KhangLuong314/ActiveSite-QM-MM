@@ -1,0 +1,26 @@
+[project]
+name = "activesite"
+version = "0.1.0"
+description = "ActiveSite: Autonomous QM/MM Assistant with Explainable Scientific Reasoning (Open Agent Hackathon 2026 - Track 02)"
+authors = [{ name = "Khang Luong", email = "90603117@nebraska.edu" }]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn>=0.32.0",
+    "httpx>=0.28.0",
+    "pydantic>=2.10.0",
+    "parmed>=4.3.0",
+    "numpy>=2.0.0",
+    "pandas>=2.2.0",
+    "duckdb>=1.1.0",
+    "psycopg2-binary>=2.9.10",
+    "python-multipart>=0.0.12",
+]
+
+[tool.uv]
+package = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

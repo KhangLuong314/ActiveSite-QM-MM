@@ -1,0 +1,23 @@
+{
+  "id": "abl_imatinib_b",
+  "kind": "ligand",
+  "system": "abl_imatinib",
+  "site": "A",
+  "chain": "A",
+  "question": "Prepare ABL kinase with imatinib from the 2HYY crystal structure (chain A) and compute the PM6 QM/MM energy of imatinib in its pocket. Explain every protonation and setup choice.",
+  "pdb": "data/reference/abl/2hyy.pdb",
+  "pdb_query": "ABL kinase imatinib",
+  "ligand": "STI",
+  "ligand_smiles": "Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1",
+  "ph": 7.4,
+  "min_steps": 500,
+  "literature_contacts": {
+    "MET318": "hinge backbone NH to pyridine N",
+    "THR315": "gatekeeper OG1 to aminopyrimidine NH",
+    "GLU286": "carboxylate to amide NH",
+    "ASP381": "DFG backbone NH to amide C=O",
+    "ILE360": "backbone C=O to piperazinium NH+",
+    "HIS361": "backbone C=O to piperazinium NH+"
+  },
+  "literature_source": "Nagar et al. 2002 (PDB 1IEP), DFG-out imatinib binding mode; general knowledge, not yet cited from the paper"
+}

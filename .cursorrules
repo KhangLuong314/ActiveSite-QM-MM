@@ -1,0 +1,26 @@
+# ActiveSite — Autonomous QM/MM Assistant
+# Open Agent Hackathon 2026 | Track 02: "The Agent That Can Explain Why"
+
+## Project Mission:
+Democratize Quantum Mechanics / Molecular Mechanics (QM/MM) simulations for biochemists and graduate students. Automate active-site identification, PROPKA protonation, QM region partitioning, and AmberTools/GFN2-xTB execution while providing complete, verifiable scientific explanations ("Decision Cards") and learning through persistent memory.
+
+## Core Architecture & Stack:
+- **Language / Runtime:** Python 3.11+ managed via `uv`
+- **Backend:** FastAPI, SSE (Server-Sent Events) for live thought streaming, WebSockets
+- **Chemistry Engine:** AmberTools 26 + GFN2-xTB running inside isolated Docker containers (`activesite-engine:at26`)
+- **Structure Prep:** PDB2PQR + PROPKA 3.5.1 + RDKit (`activesite-prep:at26`)
+- **Memory & Trust Ledger:** Meterless H-MEM SDK (hierarchical episodic memory with Markovian state transitions)
+- **Data Catalog:** Zetaris Federated MCP / RCSB PDB REST API
+- **3D Visualization:** ChimeraX script generation (`.cxc`) and Mol* / NGL web preview
+
+## Mandatory Agent Principles:
+1. **Explain Why (Track 02 Core):** Every autonomous choice (active site radius, link atom cuts, protonation states, formal charges) MUST generate a structured **Decision Card**:
+   - `decision_id`: Unique identifier
+   - `choice`: What was selected
+   - `alternatives`: What alternatives were evaluated
+   - `rationale`: Scientific justification (hydrogen bonding, pKa shift, steric penalty, orbital continuity)
+   - `confidence`: Confidence score (0.0 - 1.0)
+2. **Judge Execution Constraint:** Always maintain `SAMPLE_MODE=true` offline fallback. Benchmarks must execute on ordinary CPU in < 5 minutes without mandatory API keys.
+3. **Clean Host Machine:** Never install Amber or system chemistry binaries directly onto the host machine. All computational chemistry operations must run inside Docker containers.
+4. **Episodic Learning:** When simulation errors occur (e.g., odd-electron spin mismatch, bad contact, charge discrepancy), the Critic Agent must diagnose, self-correct, and record the lesson into Meterless H-MEM so subsequent runs succeed on the first attempt.
+5. **Prompt Audit Trail:** Log significant prompt workflows and agent iterations in `docs/prompts/PROMPT_LOG.md`.
