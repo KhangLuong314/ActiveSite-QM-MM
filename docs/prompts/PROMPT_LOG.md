@@ -51,6 +51,21 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-21 20:26 CDT] — Data Scout & Zetaris MCP Adapter
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/adapters/scout.py`, `activesite/adapters/zetaris_mcp.py`, `tests/test_adapters.py`
+- **Developer Prompt:**
+  > "Implement features step-by-step according to our .cursorrules: Feature 3 - Data Scout & Zetaris MCP Adapter."
+- **Agent Action:**
+  - Implemented `DataScout` with support for loading benchmark cases, scanning local PDB references, and fallback querying of the RCSB PDB REST API.
+  - Implemented `ZetarisCatalog` with an embedded DuckDB engine enabling federated SQL analytics across benchmark case definitions and macromolecular structures.
+  - Implemented standard JSON-RPC MCP server (`activesite.adapters.zetaris_mcp`) with `search_catalog`, `sql_query`, and `resolve_structure` tools.
+  - Implemented unit tests verifying case discovery, PDB parsing, DuckDB SQL execution, and MCP tool handling.
+- **Verification:**
+  - `pytest tests/test_adapters.py` passed with 4/4 tests green in 0.64s.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
