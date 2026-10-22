@@ -15,6 +15,9 @@ class DecisionCategory(str, Enum):
     SOLVENT_HANDLING = "solvent_handling"
     THEORY_SELECTION = "theory_selection"
     CRITIC_CORRECTION = "critic_correction"
+    CUT_LEVEL = "cut_level"
+    VALIDATION = "validation"
+    ANALOGY = "analogy"
 
 
 class AlternativeChoice(BaseModel):

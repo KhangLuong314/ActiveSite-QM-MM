@@ -42,6 +42,8 @@ charges.txt
 
 # Logs & Traces (keep the directory, ignore the JSONL traces)
 logs/*.jsonl
+logs/report-*.md
+logs/cards-*.json
 !logs/.gitkeep
 
 # Database & Storage
