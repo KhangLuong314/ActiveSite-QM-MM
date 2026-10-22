@@ -1,7 +1,9 @@
-"""ActiveSite — Zetaris Federated Data Catalog MCP Adapter.
+"""ActiveSite — Data Catalog MCP Adapter.
 
-Provides a federated query layer over research PDB structures, benchmark cases,
-and simulation parameters with fallback-resilient DuckDB execution.
+User-facing name: ``catalog-STANDIN (DuckDB)``. This is a local DuckDB stand-in
+for the Zetaris federated catalog; it becomes a real Zetaris connection only once
+``ZETARIS_REST_URL`` / ``ZETARIS_API_KEY`` are configured (a later prompt).
+Class names and MCP tool names are kept stable for that migration.
 """
 from __future__ import annotations
 
@@ -19,8 +21,13 @@ from activesite.adapters.scout import DataScout
 logger = logging.getLogger(__name__)
 
 
+CATALOG_DISPLAY_NAME = "catalog-STANDIN (DuckDB)"
+
+
 class ZetarisCatalog:
-    """Federated data catalog harness powered by Zetaris architecture and DuckDB."""
+    """Local DuckDB stand-in for the Zetaris federated catalog (``catalog-STANDIN (DuckDB)``)."""
+
+    display_name = CATALOG_DISPLAY_NAME
 
     def __init__(self, db_path: str = ":memory:"):
         self.con = duckdb.connect(db_path)
@@ -69,7 +76,7 @@ class ZetarisCatalog:
                 logger.warning("Failed to index case %s into catalog: %s", case_name, exc)
 
     def query_catalog(self, query: str) -> List[Dict[str, Any]]:
-        """Execute a SQL query against the federated catalog."""
+        """Execute a SQL query against the local stand-in catalog."""
         res = self.con.execute(query)
         columns = [desc[0] for desc in res.description]
         rows = res.fetchall()
@@ -106,7 +113,7 @@ def handle_zetaris_request(catalog: ZetarisCatalog, req: Dict[str, Any]) -> Dict
                 "tools": [
                     {
                         "name": "search_catalog",
-                        "description": "Federated search across PDB structures, ligands, and benchmark cases",
+                        "description": f"Search PDB structures, ligands, and benchmark cases in {CATALOG_DISPLAY_NAME}",
                         "inputSchema": {
                             "type": "object",
                             "required": ["keyword"],
@@ -115,7 +122,7 @@ def handle_zetaris_request(catalog: ZetarisCatalog, req: Dict[str, Any]) -> Dict
                     },
                     {
                         "name": "sql_query",
-                        "description": "Execute DuckDB SQL over the federated data catalog",
+                        "description": f"Execute DuckDB SQL over {CATALOG_DISPLAY_NAME}",
                         "inputSchema": {
                             "type": "object",
                             "required": ["query"],

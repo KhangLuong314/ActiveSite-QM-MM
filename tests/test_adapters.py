@@ -1,4 +1,4 @@
-"""Unit tests for DataScout and Zetaris MCP catalog adapter."""
+"""Unit tests for DataScout and the catalog-STANDIN (DuckDB) MCP adapter."""
 import pytest
 from pathlib import Path
 from activesite.adapters.scout import DataScout
@@ -48,6 +48,9 @@ def test_zetaris_mcp_handler():
     resp = handle_zetaris_request(catalog, req_list)
     assert "result" in resp
     assert any(t["name"] == "search_catalog" for t in resp["result"]["tools"])
+    assert catalog.display_name == "catalog-STANDIN (DuckDB)"
+    assert all("catalog-STANDIN (DuckDB)" in t["description"]
+               for t in resp["result"]["tools"] if t["name"] in ("search_catalog", "sql_query"))
 
     # Search tool call
     req_call = {

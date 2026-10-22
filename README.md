@@ -6,7 +6,7 @@
 [![Track: Explainable Agents](https://img.shields.io/badge/Track_02-The_Agent_That_Can_Explain_Why-brightgreen)](https://hackathons.genai.works)
 [![Engine: AmberTools 26 + xtb](https://img.shields.io/badge/Engine-AmberTools_26_+_GFN2--xTB-orange)](https://ambermd.org)
 [![Memory: Meterless H--MEM](https://img.shields.io/badge/Memory-Meterless_H--MEM-purple)](https://meterless.io)
-[![Catalog: Zetaris Federated MCP](https://img.shields.io/badge/Data-Zetaris_MCP-blueviolet)](https://zetaris.com)
+[![Catalog: catalog-STANDIN (DuckDB)](https://img.shields.io/badge/Data-catalog--STANDIN_(DuckDB)-blueviolet)](https://zetaris.com)
 
 ---
 
@@ -20,7 +20,9 @@ Quantum Mechanics / Molecular Mechanics (QM/MM) is the gold standard for modelin
 **ActiveSite** transforms this workflow into a single conversational request:
 > *"Set up a QM/MM simulation of EGFR kinase with erlotinib (PDB 1M17) at pH 7.4."*
 
-ActiveSite autonomously retrieves the structure from RCSB PDB, calculates protonation states via PROPKA, partitions the active site, verifies quantum charge balance, executes GFN2-xTB / Amber QM/MM in containerized engines, and generates **Decision Cards** explaining every choice.
+ActiveSite autonomously retrieves the structure from RCSB PDB, calculates protonation states via PROPKA, partitions the active site, verifies quantum charge balance, writes Amber QM/MM input, and generates **Decision Cards** explaining every choice.
+
+> **Status (P0, 2026-10-22):** the Docker chemistry engine is not implemented yet. Every report and API response carries `energy = null` with the message `engine not implemented yet`. No energy is ever synthesized.
 
 ---
 
@@ -40,7 +42,7 @@ In scientific simulations, a "black-box" agent is dangerous. ActiveSite does not
 flowchart TD
     User["User: Conversational Query / PDB ID"] --> Chat["ActiveSite Web Interface & Chatbox"]
     Chat --> Planner["1. Planner & Intent Extractor"]
-    Planner --> Scout["2. Data Scout (RCSB PDB API + Zetaris Federated Catalog)"]
+    Planner --> Scout["2. Data Scout (RCSB PDB API + catalog-STANDIN (DuckDB))"]
     Scout --> Prep["3. Structure & Protonation Agent (PDB2PQR + PROPKA 3.5.1)"]
     Prep --> Setup["4. QM/MM Partitioning Agent (Link Atoms & Charge Assignment)"]
     Setup --> Critic["5. Critic Agent (Electron Count & Spin Verification)"]
@@ -55,14 +57,14 @@ flowchart TD
 
 ## 🤝 Sponsor Integrations
 * **Meterless H-MEM:** Powers the agent's episodic memory and Trust Ledger. Remembers ligand parameter overrides, active site boundaries, and prior error resolutions to prevent repeated mistakes across simulation sessions.
-* **Zetaris:** Acts as the federated data harness, providing a unified Model Context Protocol (MCP) interface to query research PDB databases, internal ligand libraries, and historical simulation runs.
+* **Zetaris:** Target federated data harness. Today the MCP catalog tools are served by **catalog-STANDIN (DuckDB)**, a local stand-in over the benchmark cases; it is swapped for a real Zetaris connection once `ZETARIS_REST_URL` and `ZETARIS_API_KEY` are set.
 * **Cursor:** Primary IDE used to build, orchestrate, and audit agent workflows, governed by project `.cursorrules`.
 
 ---
 
 ## ⚡ Quickstart (Judge Friendly)
 
-ActiveSite is packaged with a single-command startup and a CPU-friendly `SAMPLE_MODE=true` offline fallback. No external API keys or GPU required to evaluate.
+ActiveSite is packaged with a single-command startup and a CPU-friendly `SAMPLE_MODE=true` offline mode. No external API keys or GPU required to evaluate. Copy `.env.example` to `.env` to configure optional services.
 
 ### 1. Prerequisites
 - Docker & Docker Compose (or Colima on macOS)
@@ -100,7 +102,7 @@ ActiveSite-QM-MM/
 │   └── prep.Dockerfile      # PDB2PQR, PROPKA 3.5.1, RDKit environment
 ├── activesite/
 │   ├── agent/               # Autonomous agent orchestration (Planner, Critic, Explainer)
-│   ├── adapters/            # RCSB PDB & Zetaris MCP data connectors
+│   ├── adapters/            # RCSB PDB & catalog-STANDIN (DuckDB) MCP connector
 │   ├── memory/              # Meterless H-MEM episodic memory client
 │   ├── chemistry/           # Amber/xtb execution, link atoms, QM partitioning
 │   ├── visualizer/          # ChimeraX .cxc script generator
