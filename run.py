@@ -54,6 +54,16 @@ def main() -> None:
         action="store_true",
         help="Execute all benchmark cases and print a validation summary table",
     )
+    parser.add_argument(
+        "--demo-memory",
+        action="store_true",
+        help="Run I-PpoI site A then site B through the retry loop and show retries/memory_used side by side",
+    )
+    parser.add_argument(
+        "--reset-memory",
+        action="store_true",
+        help="Delete the H-MEM sqlite db and the JSONL ledger (asks for confirmation)",
+    )
 
     args = parser.parse_args()
 
@@ -64,6 +74,39 @@ def main() -> None:
         return
 
     sample_mode = False if args.docker else args.sample_mode
+
+    if args.reset_memory:
+        from activesite.memory.meterless import DEFAULT_DB_PATH, DEFAULT_LEDGER_PATH
+        targets = [p for p in (DEFAULT_DB_PATH, DEFAULT_LEDGER_PATH) if p.exists()]
+        if not targets:
+            print("Nothing to reset: no memory db or ledger present.")
+            return
+        print("This deletes: " + ", ".join(str(p) for p in targets))
+        if input("Type 'yes' to confirm: ").strip().lower() == "yes":
+            for p in targets:
+                p.unlink()
+            print("Memory reset.")
+        else:
+            print("Aborted.")
+        return
+
+    if args.demo_memory:
+        from activesite.agent.orchestrator import run_case
+        rows = []
+        for case_id in ("ippoi_site_a", "ippoi_site_b"):
+            print(f"\n=== {case_id} ===")
+            st = run_case(case_id, sample_mode=sample_mode)
+            rows.append(st)
+        print("\ncase            retries  memory_used  qm_ok  qmcharge  ESCF(kcal/mol)      engine_s  run_id")
+        for st in rows:
+            esc = "null" if st["qm_escf_kcal"] is None else f"{st['qm_escf_kcal']:.3f}"
+            print(f"{st['case']:<15} {st['retries']:>7}  {str(st['memory_used']):<11}  {str(st['qm_ok']):<5}  "
+                  f"{st['qmcharge']:>+8d}  {esc:>14}  {st['engine_time_s']:>8}  {st['run_id']}")
+        if any(st["engine_skipped"] for st in rows):
+            print("\nEngine skipped (" + "; ".join(sorted({e for st in rows for e in st['errors']})) + "): "
+                  "retries and memory reflect only what could run.")
+        return
+
     orch = MasterOrchestrator(sample_mode=sample_mode)
 
     if args.benchmark:
