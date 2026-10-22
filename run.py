@@ -55,6 +55,11 @@ def main() -> None:
         help="Execute all benchmark cases and print a validation summary table",
     )
     parser.add_argument(
+        "--json",
+        action="store_true",
+        help="With --case/--query: print the run stats as JSON (same shape as POST /run) instead of the report",
+    )
+    parser.add_argument(
         "--demo-memory",
         action="store_true",
         help="Run I-PpoI site A then site B through the retry loop and show retries/memory_used side by side",
@@ -127,15 +132,18 @@ def main() -> None:
         print("\nBenchmark setup finished. Energies are null until the Docker engine module exists.")
         return
 
-    if args.case:
-        print(f"Executing case: {args.case} (Sample Mode: {sample_mode})...")
-        out = orch.run_case(args.case)
-        print(out.report_markdown)
-        return
-
-    if args.query:
-        print(f"Executing query: '{args.query}'...")
-        out = orch.run_query(args.query)
+    if args.case or args.query:
+        if args.json:
+            from activesite.agent.orchestrator import public_stats, resolve_case_id, run_case
+            case_id = args.case or resolve_case_id(args.query)
+            print(json.dumps(public_stats(run_case(case_id, sample_mode=sample_mode, echo=False)), indent=2, default=str))
+            return
+        if args.case:
+            print(f"Executing case: {args.case} (Sample Mode: {sample_mode})...")
+            out = orch.run_case(args.case)
+        else:
+            print(f"Executing query: '{args.query}'...")
+            out = orch.run_query(args.query)
         print(out.report_markdown)
         return
 

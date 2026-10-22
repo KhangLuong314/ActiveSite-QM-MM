@@ -35,7 +35,7 @@ from activesite.memory.meterless import DEFAULT_DB_PATH, DEFAULT_LEDGER_PATH, Me
 from activesite.models import DecisionCard, QMMMPartition, ResidueRole, ResidueSelection, SimulationResult
 from activesite.trace import Trace
 
-__all__ = ["run_case", "run_metal_case", "run_ligand_case", "new_run_id", "MasterOrchestrator", "WorkflowOutput"]
+__all__ = ["run_case", "run_metal_case", "run_ligand_case", "new_run_id", "resolve_case_id", "public_stats", "MasterOrchestrator", "WorkflowOutput"]
 
 
 class WorkflowOutput(BaseModel):
@@ -73,6 +73,36 @@ def _adapter_and_llm(adapter: Any, llm: Any, case: Dict[str, Any]):
         client = ModelClient()
         llm = client if client.available else None
     return adapter, llm
+
+
+ENGINE_DOCKER = "sander in Docker"
+ENGINE_CACHED = "cached engine output (sample mode)"
+ENGINE_UNAVAILABLE = "engine unavailable"
+
+
+def _engine_label(result: Dict[str, Any]) -> str:
+    if result.get("cached"):
+        return ENGINE_CACHED
+    if result.get("skipped"):
+        return ENGINE_UNAVAILABLE
+    return ENGINE_DOCKER
+
+
+def public_stats(stats: Dict[str, Any]) -> Dict[str, Any]:
+    """The JSON shape shared by run.py --json and POST /run."""
+    return {k: v for k, v in stats.items() if not k.startswith("_")}
+
+
+def resolve_case_id(query: str) -> str:
+    """Map a free-text request to a benchmark case id (raises when nothing matches)."""
+    plan = PlannerAgent().plan_from_prompt(query)
+    if plan.metal_resid is not None and "ippoi" in plan.system_name:
+        return "ippoi_site_b" if plan.metal_resid == 372 else "ippoi_site_a"
+    if plan.system_name == "egfr_erlotinib":
+        return "egfr_erlotinib"
+    if plan.system_name == "abl_imatinib":
+        return "abl_imatinib_a"
+    raise ValueError(f"no benchmark case matches the query (system {plan.system_name!r}); try --case")
 
 
 def _load(case: Dict[str, Any] | str) -> Dict[str, Any]:
@@ -148,6 +178,7 @@ def run_metal_case(case: Dict[str, Any] | str, adapter: Any = None, hmem_db: Pat
         "wall_time_s": None, "model_calls": planner.model_calls, "model_mode": plan["mode"],
         "trace": str(trace.path), "qmcharge": setup["charge"], "charge_rule": setup["charge_rule"],
         "mask": setup["mask"], "engine_skipped": bool(result.get("skipped")), "errors": result.get("errors") or [],
+        "engine_label": _engine_label(result),
         "cut_level": setup["proposal"].cut_level, "link_atoms": setup["proposal"].charge.link_atoms,
         "checks": checks, "validation": validation, "catalog": data.get("label"), "sql": data.get("sql"),
     }
@@ -218,6 +249,7 @@ def run_ligand_case(case: Dict[str, Any] | str, adapter: Any = None, hmem_db: Pa
         "engine_skipped": bool(result.get("skipped")), "errors": result.get("errors") or [], "blocked": blocking,
         "chain": setup.get("chain"), "overrides": setup.get("overrides"), "checks": checks, "validation": val,
         "catalog": data.get("label"), "sql": data.get("sql"), "prep_skipped": setup.get("prep_skipped"),
+        "engine_label": _engine_label(result),
     }
     report = _ligand_report(case, run_id, stats, cards, result, val, trace.path, setup)
     log_dir = Path(log_dir)
@@ -287,16 +319,7 @@ class MasterOrchestrator:
         return self._run_loop(self.loader.load_benchmark_case(case_id), on_event)
 
     def run_query(self, query: str, on_event: Optional[Callable[[str, str], None]] = None) -> WorkflowOutput:
-        plan = PlannerAgent().plan_from_prompt(query)
-        if plan.metal_resid is not None and "ippoi" in plan.system_name:
-            case_id = "ippoi_site_b" if plan.metal_resid == 372 else "ippoi_site_a"
-        elif plan.system_name == "egfr_erlotinib":
-            case_id = "egfr_erlotinib"
-        elif plan.system_name == "abl_imatinib":
-            case_id = "abl_imatinib_a"
-        else:
-            raise ValueError(f"no benchmark case matches the query (system {plan.system_name!r}); try --case")
-        return self._run_loop(self.loader.load_benchmark_case(case_id), on_event)
+        return self._run_loop(self.loader.load_benchmark_case(resolve_case_id(query)), on_event)
 
     def _run_loop(self, case: Dict[str, Any], on_event: Optional[Callable[[str, str], None]]) -> WorkflowOutput:
         logs: List[str] = []
