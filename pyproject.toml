@@ -24,3 +24,8 @@ package = true
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: needs the Docker engine image or large reference files",
+]
