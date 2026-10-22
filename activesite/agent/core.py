@@ -19,6 +19,7 @@ from activesite.chem.qmregion import FIRST_SHELL, MAX_CHARGE_FRACTION, Proposal,
 from activesite.chem.system import MolSystem
 from activesite.memory.hmem import MemoryRetrievalService, MemoryStoreService
 from activesite.models import AlternativeChoice, DecisionCard, DecisionCategory
+from activesite.sample import cached_engine_result
 from activesite.trace import Trace
 
 ALLOWED_STEPS = ["gather_data", "propose_qm_region", "precheck", "run_qmmm", "postcheck", "explain"]
@@ -197,14 +198,14 @@ class Runner:
             self.trace.log("Runner", "run_qmmm", f"attempt {attempt}: qmcharge {setup['charge']:+d}, {len(setup['atoms'])} QM atoms",
                            f"sander {theory} single point in {sander.ENGINE_IMAGE} -> {workdir}", retry_count=attempt,
                            data={"mask": setup["mask"], "charge": setup["charge"]})
-        if self.sample_mode:
-            result = {"ok": False, "skipped": True, "qm_escf_kcal": None, "total_energy_kcal": None, "odd_electrons": None,
-                      "link_atoms": None, "errors": ["engine not run: SAMPLE_MODE=true"], "wall_time_s": 0.0,
-                      "exit_code": None, "workdir": str(workdir)}
-        elif not sander.docker_available():
-            result = {"ok": False, "skipped": True, "qm_escf_kcal": None, "total_energy_kcal": None, "odd_electrons": None,
-                      "link_atoms": None, "errors": [f"engine not run: Docker or {sander.ENGINE_IMAGE} not available"],
-                      "wall_time_s": 0.0, "exit_code": None, "workdir": str(workdir)}
+        if self.sample_mode or not sander.docker_available():
+            result = cached_engine_result(case.get("id", ""), attempt, int(setup["charge"]), theory)
+            if result.get("cached") and self.trace:
+                self.trace.log("Runner", "cached_engine_output", f"attempt {attempt}: qmcharge {setup['charge']:+d}",
+                               f"replayed {result['sample_source']} (no engine ran now)", retry_count=attempt, status="cached")
+            if not self.sample_mode and result.get("skipped"):
+                result["errors"] = [e.replace("SAMPLE_MODE=true and", f"Docker or {sander.ENGINE_IMAGE} not available and")
+                                    for e in result["errors"]]
         else:
             result = sander.run_single_point(case["parm7"], case["coords"], setup["mask"], int(setup["charge"]),
                                              workdir, theory=theory, timeout_s=self.timeout_s)
@@ -478,6 +479,7 @@ class Explainer:
         line += f"{result.get('link_atoms') if result.get('link_atoms') is not None else '?'} link atoms, {result.get('wall_time_s', 0)} s engine time"
         lines = [f"# ActiveSite report — `{case.get('id')}` (run `{run_id}`)", "",
                  f"**Question:** {case.get('question', '')}", "", line, "",
+                 f"**Engine:** {stats.get('engine_label')}", "",
                  f"**qmcharge:** {setup['charge']:+d} by {setup['charge_rule']}; retries {stats.get('retries')}; "
                  f"memory used: {stats.get('memory_used')}", "", "## Expert agreement"]
         if validation.get("expert_mask_present"):

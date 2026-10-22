@@ -136,7 +136,11 @@ class SimulationResult(BaseModel):
     error_message: Optional[str] = None
     decision_cards: List[DecisionCard] = Field(default_factory=list)
     output_files: Dict[str, str] = Field(default_factory=dict)
-    engine: Dict[str, Any] = Field(
+    engine: str = Field(
+        default="engine unavailable",
+        description='How the energy was obtained: "sander in Docker", "cached engine output (sample mode)" or "engine unavailable"',
+    )
+    engine_output: Dict[str, Any] = Field(
         default_factory=dict,
-        description="Raw parsed engine output (sander.run_single_point) when the engine ran; empty otherwise",
+        description="Raw parsed engine output (sander.run_single_point / cached sp.out) when one exists; empty otherwise",
     )

@@ -16,6 +16,7 @@ from activesite.chem.prep import HBOND
 from activesite.chem.sander import run_single_point
 from activesite.memory.hmem import MemoryRetrievalService, MemoryStoreService
 from activesite.models import AlternativeChoice, DecisionCard, DecisionCategory
+from activesite.sample import cached_engine_result, cached_prep, prep_missing_reason
 from activesite.trace import Trace
 
 HIS_MEMORY_QUERY = "histidine pka uncertain near ligand cation neutral"
@@ -80,11 +81,22 @@ class LigandSetup:
                   data={"hits": setup["memory_hits"]})
 
         # container stages
-        if self.sample_mode:
-            setup["prep_skipped"] = "prep not run: SAMPLE_MODE=true"
-        elif not prep.prep_available():
-            setup["prep_skipped"] = f"prep not run: Docker or {prep.PREP_IMAGE} not available"
-        if setup["prep_skipped"]:
+        if self.sample_mode or not prep.prep_available():
+            cached = cached_prep(case.get("id", ""), self.work)
+            if cached is not None:
+                recalled, hits_seen = setup["recalled"], setup["memory_hits"]
+                setup.update(cached)
+                setup["recalled"], setup["memory_hits"] = recalled, hits_seen
+                setup["prep_skipped"] = None
+                self._log("prep", "pdb2pqr/antechamber/tleap/sander",
+                          f"loaded cached preparation from {cached['prep_cached']} (no container ran now): charge "
+                          f"{setup.get('charge'):+d}, {len(setup.get('overrides') or [])} His overrides, final GMAX "
+                          f"{(setup.get('minimisation') or {}).get('last', {}).get('gmax')}", status="cached")
+                return setup
+            reason = prep_missing_reason(case.get("id", ""))
+            if not self.sample_mode:
+                reason = reason.replace("SAMPLE_MODE=true and", f"Docker or {prep.PREP_IMAGE} not available and")
+            setup["prep_skipped"] = reason
             self._log("prep", "pdb2pqr/antechamber/tleap/sander", setup["prep_skipped"], status="skipped")
             return setup
 
@@ -228,10 +240,19 @@ class LigandCritic:
 
 
 # ------------------------------------------------------------------- run_qmmm
-def run_qmmm(trace: Optional[Trace], setup: Dict[str, Any], work: Path | str) -> Dict[str, Any]:
+def run_qmmm(trace: Optional[Trace], setup: Dict[str, Any], work: Path | str, case_id: str = "",
+             sample_mode: bool = False) -> Dict[str, Any]:
     work = Path(work)
     parm7 = Path(setup["complex"]["parm7"])
     coords = Path(setup["minimisation"]["rst7"])
+    if sample_mode or not sander.docker_available():
+        result = cached_engine_result(case_id, 0, int(setup["charge"]), "PM6")
+        if trace:
+            trace.log("Runner", "cached_engine_output" if result.get("cached") else "run_qmmm",
+                      f"qmcharge {setup['charge']:+d}, mask :LIG",
+                      f"replayed {result['sample_source']} (no engine ran now)" if result.get("cached") else "; ".join(result["errors"]),
+                      target_agent="LigandCritic", status="cached" if result.get("cached") else "skipped")
+        return result
     if trace:
         trace.log("Runner", "run_qmmm", f"qmcharge {setup['charge']:+d}, mask :LIG (whole ligand), GB implicit solvent",
                   f"sander PM6 single point in {sander.ENGINE_IMAGE} -> {work / 'qmmm0'}")

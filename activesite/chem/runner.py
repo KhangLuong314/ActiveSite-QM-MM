@@ -165,5 +165,5 @@ class ChemistryRunner:
             energy_hartree=(total / HARTREE_TO_KCAL_MOL) if ok else None,
             sample_mode=False, execution_time_seconds=exec_time,
             stdout_summary=summary, error_message=error, decision_cards=cards,
-            output_files=outputs, engine=engine,
+            output_files=outputs, engine="sander in Docker", engine_output=engine,
         )

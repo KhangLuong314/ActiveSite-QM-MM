@@ -71,3 +71,9 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Judge pack: cached engine outputs and sample runs are tracked on purpose (see data/sample/MANIFEST.md)
+!data/sample/
+!data/sample/**
+!samples/
+!samples/**

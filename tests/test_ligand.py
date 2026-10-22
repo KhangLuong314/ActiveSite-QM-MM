@@ -27,6 +27,7 @@ def fake_prep(monkeypatch):
     state = {"overrides": [], "pose_min": _pose(), "pose_built": _pose(shift=0.1), "qm": {"ok": True}, "qm_calls": 0,
              "net_charge": 0}
     monkeypatch.setattr(prep, "prep_available", lambda image=prep.PREP_IMAGE: True)
+    monkeypatch.setattr(L.sander, "docker_available", lambda image=None: True)
     monkeypatch.setattr(prep, "protonate", lambda work, ph: {
         "ph": ph, "pkas": {"HIS361": 6.9}, "pka_table": {("HIS", 361): 6.9}, "states": {361: "HID", 246: "HIE"},
         "gap_warnings": [], "seconds": 1.0, "log": "x"})

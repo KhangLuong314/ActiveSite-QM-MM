@@ -90,4 +90,4 @@ def test_simulation_result_model_defaults_to_null_energy():
     dumped = res.model_dump()
     assert dumped["energy_hartree"] is None
     assert dumped["error_message"] == "engine not run: SAMPLE_MODE=true"
-    assert dumped["engine"] == {}
+    assert dumped["engine"] == "engine unavailable" and dumped["engine_output"] == {}

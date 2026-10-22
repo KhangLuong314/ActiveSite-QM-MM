@@ -33,6 +33,7 @@ from activesite.chem.system import MolSystem
 from activesite.memory.hmem import MemoryRetrievalService, MemoryStoreService
 from activesite.memory.meterless import DEFAULT_DB_PATH, DEFAULT_LEDGER_PATH, MeterlessHMEM
 from activesite.models import DecisionCard, QMMMPartition, ResidueRole, ResidueSelection, SimulationResult
+from activesite.sample import CACHED_LABEL, serialisable_setup
 from activesite.trace import Trace
 
 __all__ = ["run_case", "run_metal_case", "run_ligand_case", "new_run_id", "resolve_case_id", "public_stats", "MasterOrchestrator", "WorkflowOutput"]
@@ -76,7 +77,7 @@ def _adapter_and_llm(adapter: Any, llm: Any, case: Dict[str, Any]):
 
 
 ENGINE_DOCKER = "sander in Docker"
-ENGINE_CACHED = "cached engine output (sample mode)"
+ENGINE_CACHED = CACHED_LABEL
 ENGINE_UNAVAILABLE = "engine unavailable"
 
 
@@ -222,6 +223,8 @@ def run_ligand_case(case: Dict[str, Any] | str, adapter: Any = None, hmem_db: Pa
     plan = planner.plan(case)
     data = DataScout(adapter, trace).gather(case)
     setup = LigandSetup(retrieval, trace, run_id, work, sample_mode=sample_mode).build(case)
+    if not setup.get("prep_skipped") and not setup.get("prep_cached"):
+        (work / "prep.json").write_text(json.dumps(serialisable_setup(setup), indent=1), encoding="utf-8")
     critic = LigandCritic(store, trace, run_id)
     checks = critic.precheck(setup, data.get("expert"))
     blocking = critic.blocking(checks)
@@ -233,7 +236,7 @@ def run_ligand_case(case: Dict[str, Any] | str, adapter: Any = None, hmem_db: Pa
         result = {"ok": False, "skipped": True, "qm_escf_kcal": None, "total_energy_kcal": None, "link_atoms": None,
                   "errors": [f"blocked by {', '.join(blocking)}: {reason}"], "wall_time_s": 0.0, "exit_code": None}
     else:
-        result = run_qmmm(trace, setup, work)
+        result = run_qmmm(trace, setup, work, case_id=case.get('id', ''), sample_mode=sample_mode)
     val = critic.validate(setup, case)
     memory_ids = critic.remember(case, setup, bool(result.get("ok")))
     cards = ligand_cards(case, setup, checks, result, val, data)
@@ -275,6 +278,7 @@ def _ligand_report(case, run_id, stats, cards, result, val, trace_path, setup) -
     else:
         line = f"**Result:** FAILED — ESCF `null`, total `null` ({'; '.join(result.get('errors') or ['no energy'])})"
     lines = [f"# ActiveSite report — `{case.get('id')}` (run `{run_id}`)", "", f"**Question:** {case.get('question', '')}", "", line, "",
+             f"**Engine:** {stats.get('engine_label')}", "",
              f"**Ligand charge:** {'null' if setup.get('charge') is None else f"{setup['charge']:+d}"}; chain {setup.get('chain')} ({setup.get('chain_source')}); "
              f"His overrides {len(setup.get('overrides') or [])}; memory used: {stats['memory_used']}", "", "## Binding mode"]
     if val.get("available"):
@@ -360,7 +364,7 @@ class MasterOrchestrator:
             stdout_summary="; ".join(result.get("errors") or []) if not ok else f"ESCF {result.get('qm_escf_kcal')}",
             error_message=None if ok else "; ".join(result.get("errors") or ["no energy"]),
             decision_cards=cards, output_files={"report": stats["report"], "cards": stats["cards"], "trace": stats["trace"]},
-            engine={k: v for k, v in result.items() if k != "command"},
+            engine=stats["engine_label"], engine_output={k: v for k, v in result.items() if k != "command"},
         )
         plan = PlannerAgent().plan_from_case(case)
         return WorkflowOutput(success=ok, system_name=system_name, plan=plan, partition=partition, result=sim,

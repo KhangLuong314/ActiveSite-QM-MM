@@ -54,7 +54,7 @@ def test_run_simulation_sample_mode_is_honest(tmp_path: Path):
     assert result.success is False
     assert result.energy_hartree is None and result.energy_kcal_mol is None
     assert result.error_message == ENGINE_SKIPPED_SAMPLE_MODE
-    assert result.engine == {}
+    assert result.engine == "engine unavailable" and result.engine_output == {}
     assert not (tmp_path / "runs").exists()
     assert any("THEORY" in c.decision_id for c in result.decision_cards)
 
@@ -97,10 +97,10 @@ def test_run_simulation_maps_engine_output(tmp_path: Path, monkeypatch):
     assert result.success is True
     assert result.energy_kcal_mol == pytest.approx(-2.3471e5)
     assert result.energy_hartree == pytest.approx(-2.3471e5 / 627.509)
-    assert result.engine["qm_escf_kcal"] == pytest.approx(-1442.3127)
-    assert result.engine["link_atoms"] == 4
+    assert result.engine_output["qm_escf_kcal"] == pytest.approx(-1442.3127)
+    assert result.engine_output["link_atoms"] == 4
     assert result.error_message is None
-    assert "mdout" in result.output_files
+    assert "mdout" in result.output_files and result.engine == "sander in Docker"
 
 
 def test_run_simulation_reports_engine_failure(tmp_path: Path, monkeypatch):
@@ -118,7 +118,7 @@ def test_run_simulation_reports_engine_failure(tmp_path: Path, monkeypatch):
     assert result.success is False
     assert result.energy_kcal_mol is None and result.energy_hartree is None
     assert "odd number of electrons" in result.error_message
-    assert result.engine["odd_electrons"] == 203
+    assert result.engine_output["odd_electrons"] == 203
 
 
 def test_runner_has_no_placeholder_energy_path():
