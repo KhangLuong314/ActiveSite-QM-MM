@@ -40,8 +40,9 @@ xtbtopo.mol
 charges.txt
 .xtboptok
 
-# Logs & Traces
-logs/
+# Logs & Traces (keep the directory, ignore the JSONL traces)
+logs/*.jsonl
+!logs/.gitkeep
 
 # Database & Storage
 data/cache/
