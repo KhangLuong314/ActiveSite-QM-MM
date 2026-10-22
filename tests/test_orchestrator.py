@@ -1,11 +1,11 @@
 """Unit and integration tests for MasterOrchestrator and Explainer.
 
-The Docker engine does not exist yet, so every workflow must finish with a null
-energy and say so. Each test uses its own empty ledger so nothing leaks between runs.
+These run in SAMPLE_MODE (no Docker in CI), so every workflow must finish with a null
+energy and say why. Each test uses its own empty ledger so nothing leaks between runs.
 """
 import pytest
 from activesite.agent.orchestrator import MasterOrchestrator
-from activesite.chem.runner import ENGINE_NOT_IMPLEMENTED
+from activesite.chem.runner import ENGINE_SKIPPED_SAMPLE_MODE
 from activesite.memory.meterless import MeterlessHMEM
 
 
@@ -26,14 +26,14 @@ def test_orchestrator_run_egfr_case(orchestrator):
     assert output.system_name == "egfr_erlotinib"
     assert output.result.energy_kcal_mol is None
     assert output.result.energy_hartree is None
-    assert output.result.error_message == ENGINE_NOT_IMPLEMENTED
+    assert output.result.error_message == ENGINE_SKIPPED_SAMPLE_MODE
     assert len(output.decision_cards) >= 4
     assert len(events) >= 5
-    assert any(ENGINE_NOT_IMPLEMENTED in msg for stage, msg in events if stage == "runner")
+    assert any(ENGINE_SKIPPED_SAMPLE_MODE in msg for stage, msg in events if stage == "runner")
     assert "# 🔬 ActiveSite Explanation Report" in output.report_markdown
     assert "Decision Cards" in output.report_markdown
     assert "not computed (`null`)" in output.report_markdown
-    assert ENGINE_NOT_IMPLEMENTED in output.report_markdown
+    assert ENGINE_SKIPPED_SAMPLE_MODE in output.report_markdown
     assert "## ⚠️ Limitations" in output.report_markdown
     assert "cryptographically" not in output.report_markdown
 

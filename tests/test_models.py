@@ -82,11 +82,12 @@ def test_simulation_result_model_defaults_to_null_energy():
         success=False,
         system_name="egfr_erlotinib",
         qm_theory="PM6",
-        error_message="engine not implemented yet",
+        error_message="engine not run: SAMPLE_MODE=true",
     )
     assert res.success is False
     assert res.energy_hartree is None
     assert res.energy_kcal_mol is None
     dumped = res.model_dump()
     assert dumped["energy_hartree"] is None
-    assert dumped["error_message"] == "engine not implemented yet"
+    assert dumped["error_message"] == "engine not run: SAMPLE_MODE=true"
+    assert dumped["engine"] == {}

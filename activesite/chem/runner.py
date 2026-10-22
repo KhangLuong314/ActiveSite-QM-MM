@@ -1,10 +1,10 @@
-"""ActiveSite — Chemistry Runner (Amber QM/MM input generation).
+"""ActiveSite — Chemistry Runner.
 
-Generates Amber ``sander`` ``&qmmm`` input files and the THEORY_SELECTION
-Decision Card. Execution of chemistry binaries belongs to a separate engine
-module that runs only inside Docker (see AGENTS.md rule 3). That module does
-not exist yet, so ``run_simulation`` returns an honest failure with null
-energies rather than a synthesized number.
+Turns a ``QMMMPartition`` into one sander QM/MM single point executed inside
+the engine container (``activesite.chem.sander``) and maps the parsed output
+onto ``SimulationResult``. There is no placeholder energy path: when the
+engine does not run, ``success`` is False, both energies are ``None`` and
+``error_message`` says why.
 """
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ import time
 from pathlib import Path
 from typing import Optional
 
+from activesite.chem import sander
 from activesite.models import (
     AlternativeChoice,
     DecisionCard,
@@ -24,60 +25,49 @@ from activesite.models import (
 
 logger = logging.getLogger(__name__)
 
-ENGINE_NOT_IMPLEMENTED = "engine not implemented yet"
-
 # Unit conversion: 1 Hartree = 627.509 kcal/mol (CODATA, rounded).
 HARTREE_TO_KCAL_MOL = 627.509
 
+ENGINE_SKIPPED_SAMPLE_MODE = "engine not run: SAMPLE_MODE=true (set SAMPLE_MODE=false or pass --docker on a Docker host)"
+ENGINE_SKIPPED_NO_DOCKER = f"engine not run: Docker or the {sander.ENGINE_IMAGE} image is not available"
+ENGINE_SKIPPED_NO_TOPOLOGY = "engine not run: no Amber topology (.parm7/.prmtop) for this system yet"
+
+AMBER_TOPOLOGY_SUFFIXES = (".parm7", ".prmtop", ".top")
+
 
 class ChemistryRunner:
-    """Manages Amber QM/MM input generation and (future) simulation execution."""
+    """Runs one PM6 (or other allow-listed theory) single point through the engine container."""
 
     def __init__(
         self,
-        docker_image: str = "activesite-engine:at26",
+        docker_image: str = sander.ENGINE_IMAGE,
         sample_mode: Optional[bool] = None,
+        timeout_s: int = 300,
     ):
         self.docker_image = docker_image
+        self.timeout_s = timeout_s
         if sample_mode is not None:
             self.sample_mode = sample_mode
         else:
             env_sample = os.getenv("SAMPLE_MODE", "true").lower()
             self.sample_mode = env_sample in ("true", "1", "yes")
 
-    def generate_amber_mdin(
-        self,
-        partition: QMMMPartition,
-        qm_theory: str = "PM6",
-        min_steps: int = 500,
-        qmcut: float = 10.0,
-    ) -> str:
-        """Generate an Amber sander QM/MM input file (mdin)."""
-        qmmask_str = (partition.amber_qmmask or ":1").replace(",:", ",")
-        # Amber PM6 is restricted Hartree–Fock only; spin must be 1 (closed-shell singlet).
-        spin = 1 if str(qm_theory).upper() == "PM6" else partition.spin_multiplicity
+    @staticmethod
+    def sanitize_mask(mask: str) -> str:
+        """Collapse ',:' into ',' (``:1,:769`` -> ``:1,769``); the engine allow-list does the rest."""
+        return (mask or ":1").replace(",:", ",")
 
-        mdin_content = f"""ActiveSite Automated QM/MM Simulation ({partition.system_name})
- &cntrl
-    imin=1,               ! Minimization
-    maxcyc={min_steps},   ! Maximum minimization cycles
-    ncyc=100,             ! Steepest descent then conjugate gradient
-    cut=10.0,             ! Classical nonbonded cutoff (Angstroms)
-    ntpr=50,              ! Print energy every 50 steps
-    ntb=0,                ! Non-periodic calculation
-    ifqnt=1               ! Turn on QM/MM coupling
- /
- &qmmm
-    qmmask='{qmmask_str}',
-    qm_theory='{qm_theory}',
-    qmcharge={partition.qm_charge},
-    spin={spin},
-    qmcut={qmcut:.1f},
-    writepdb=1,
-    qmmm_switch=1
- /
-"""
-        return mdin_content
+    @staticmethod
+    def solvent_for(parm7: Path) -> str:
+        """PME when the topology carries box dimensions, otherwise GB."""
+        try:
+            with open(parm7, "r", encoding="utf-8", errors="ignore") as f:
+                for line in f:
+                    if line.startswith("%FLAG BOX_DIMENSIONS"):
+                        return "pme"
+        except OSError:
+            pass
+        return "gb"
 
     def build_theory_card(self, partition: QMMMPartition, qm_theory: str) -> DecisionCard:
         """Track 02 Decision Card justifying the QM Hamiltonian choice."""
@@ -115,69 +105,65 @@ class ChemistryRunner:
         inpcrd_path: str | Path,
         output_dir: Optional[str | Path] = None,
         qm_theory: str = "PM6",
-        min_steps: int = 500,
+        min_steps: int = 1,
     ) -> SimulationResult:
-        """Write the Amber input and report that no engine ran.
+        """Run one single point in the engine container, or say honestly why it did not run.
 
-        The Docker engine module is a later deliverable. Until it exists this
-        method never produces an energy: ``success`` is False and both energy
-        fields are ``None`` so every downstream renderer says so explicitly.
+        ``min_steps`` is accepted for API compatibility; only single points are implemented.
         """
-        start_time = time.time()
+        start = time.time()
         out_dir = Path(output_dir or "data/runs") / partition.system_name
-        out_dir.mkdir(parents=True, exist_ok=True)
+        cards = list(partition.decision_cards) + [self.build_theory_card(partition, qm_theory)]
+        prmtop = Path(prmtop_path)
+        coords = Path(inpcrd_path)
 
-        mdin_path = out_dir / "qmmm.mdin"
-        mdin_str = self.generate_amber_mdin(
-            partition, qm_theory=qm_theory, min_steps=min_steps
-        )
-        with open(mdin_path, "w", encoding="utf-8") as f:
-            f.write(mdin_str)
+        def skipped(reason: str) -> SimulationResult:
+            logger.info("%s (%s)", reason, partition.system_name)
+            return SimulationResult(
+                success=False, system_name=partition.system_name, qm_theory=qm_theory,
+                energy_hartree=None, energy_kcal_mol=None, sample_mode=self.sample_mode,
+                execution_time_seconds=round(time.time() - start, 3),
+                stdout_summary=reason, error_message=reason, decision_cards=cards,
+            )
 
-        all_decision_cards = list(partition.decision_cards)
-        all_decision_cards.append(self.build_theory_card(partition, qm_theory))
+        if self.sample_mode:
+            return skipped(ENGINE_SKIPPED_SAMPLE_MODE)
+        if prmtop.suffix.lower() not in AMBER_TOPOLOGY_SUFFIXES:
+            return skipped(ENGINE_SKIPPED_NO_TOPOLOGY)
+        if not sander.docker_available(self.docker_image):
+            return skipped(ENGINE_SKIPPED_NO_DOCKER)
 
-        exec_time = time.time() - start_time
-        logger.info(
-            "Wrote %s for %s; no engine available (%s).",
-            mdin_path, partition.system_name, ENGINE_NOT_IMPLEMENTED,
-        )
+        try:
+            engine = sander.run_single_point(
+                parm7=prmtop, coords=coords, mask=self.sanitize_mask(partition.amber_qmmask),
+                charge=int(partition.qm_charge), workdir=out_dir, theory=qm_theory,
+                timeout_s=self.timeout_s, solvent=self.solvent_for(prmtop), image=self.docker_image,
+            )
+        except (ValueError, FileNotFoundError) as exc:
+            return skipped(f"engine not run: {exc}")
+
+        exec_time = round(time.time() - start, 3)
+        total = engine.get("total_energy_kcal")
+        ok = bool(engine.get("ok")) and total is not None
+        outputs = {"mdin": str(out_dir / "sp.mdin")}
+        if engine.get("mdout"):
+            outputs["mdout"] = engine["mdout"]
+        if ok:
+            summary = (
+                f"sander {qm_theory} single point finished in {engine.get('wall_time_s')}s: "
+                f"E(QM/MM) = {total:.4f} kcal/mol, {qm_theory}ESCF = {engine['qm_escf_kcal']:.4f} kcal/mol, "
+                f"{engine.get('link_atoms')} link atoms."
+            )
+            error = None
+        else:
+            errors = engine.get("errors") or ["sander produced no QM energy"]
+            summary = "sander did not produce a QM energy: " + " | ".join(errors)
+            error = summary
         return SimulationResult(
-            success=False,
-            system_name=partition.system_name,
-            qm_theory=qm_theory,
-            energy_hartree=None,
-            energy_kcal_mol=None,
-            sample_mode=self.sample_mode,
-            execution_time_seconds=round(exec_time, 3),
-            stdout_summary=(
-                f"Amber input written to {mdin_path}; no QM/MM energy computed "
-                f"({ENGINE_NOT_IMPLEMENTED})."
-            ),
-            error_message=ENGINE_NOT_IMPLEMENTED,
-            decision_cards=all_decision_cards,
-            output_files={"mdin": str(mdin_path)},
+            success=ok, system_name=partition.system_name, qm_theory=qm_theory,
+            energy_kcal_mol=total if ok else None,
+            energy_hartree=(total / HARTREE_TO_KCAL_MOL) if ok else None,
+            sample_mode=False, execution_time_seconds=exec_time,
+            stdout_summary=summary, error_message=error, decision_cards=cards,
+            output_files=outputs, engine=engine,
         )
-
-    @staticmethod
-    def parse_sander_energy_text(mdout_text: str) -> Optional[float]:
-        """Parse the final total potential energy (kcal/mol) from sander mdout text.
-
-        Returns ``None`` when no energy line is found. Never substitutes a default.
-        """
-        energy: Optional[float] = None
-        for line in mdout_text.splitlines():
-            if "EPOT" in line or "Etot" in line:
-                parts = line.split()
-                for idx, part in enumerate(parts):
-                    if part in ("EPOT", "Etot") and idx + 2 < len(parts) and parts[idx + 1] == "=":
-                        try:
-                            energy = float(parts[idx + 2])
-                        except ValueError:
-                            pass
-        return energy
-
-    def _parse_sander_energy(self, mdout_path: Path) -> Optional[float]:
-        """Parse total QM/MM potential energy from a sander mdout file, or ``None``."""
-        with open(mdout_path, "r", encoding="utf-8", errors="ignore") as f:
-            return self.parse_sander_energy_text(f.read())

@@ -35,8 +35,8 @@ def test_api_run_simulation_case():
     assert len(data["decision_cards"]) >= 4
     assert data["energy_kcal_mol"] is None
     assert data["energy_hartree"] is None
-    assert data["error_message"] == "engine not implemented yet"
-    assert "engine not implemented yet" in data["report_markdown"]
+    assert data["error_message"].startswith("engine not run: SAMPLE_MODE=true")
+    assert "engine not run: SAMPLE_MODE=true" in data["report_markdown"]
 
 
 def test_api_get_ledger():

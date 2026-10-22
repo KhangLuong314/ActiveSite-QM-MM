@@ -22,7 +22,7 @@ Quantum Mechanics / Molecular Mechanics (QM/MM) is the gold standard for modelin
 
 ActiveSite autonomously retrieves the structure from RCSB PDB, calculates protonation states via PROPKA, partitions the active site, verifies quantum charge balance, writes Amber QM/MM input, and generates **Decision Cards** explaining every choice.
 
-> **Status (P0, 2026-10-22):** the Docker chemistry engine is not implemented yet. Every report and API response carries `energy = null` with the message `engine not implemented yet`. No energy is ever synthesized.
+> **Status (P3, 2026-10-22):** the engine is one `sander` PM6 single point run inside the `activesite-engine:at26` container (`activesite/chem/sander.py`). In `SAMPLE_MODE=true`, without Docker, or for systems that have no Amber topology yet, every report and API response carries `energy = null` with the reason. No energy is ever synthesized.
 
 ---
 

@@ -133,3 +133,7 @@ class SimulationResult(BaseModel):
     error_message: Optional[str] = None
     decision_cards: List[DecisionCard] = Field(default_factory=list)
     output_files: Dict[str, str] = Field(default_factory=dict)
+    engine: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Raw parsed engine output (sander.run_single_point) when the engine ran; empty otherwise",
+    )

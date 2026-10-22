@@ -169,7 +169,7 @@ class MasterOrchestrator:
         self._notify(
             on_event,
             "runner",
-            f"Preparing {plan.qm_theory} QM/MM input (engine runs only inside Docker; not implemented yet)...",
+            f"Running {plan.qm_theory} QM/MM single point (sander inside the activesite-engine:at26 container)...",
             logs,
         )
         coords_arg = plan.coords_path or structure_path
