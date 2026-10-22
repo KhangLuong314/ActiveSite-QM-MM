@@ -48,6 +48,7 @@ logs/*.jsonl
 data/cache/
 data/runs/
 data/*.sqlite
+data/memory/*.sqlite
 data/*.sqlite3
 *.sqlite3
 *.db
