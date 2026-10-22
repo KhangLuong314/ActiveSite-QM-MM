@@ -86,7 +86,10 @@ def test_cold_then_warm_run(tmp_path, fake_docker):
     assert [f for _, f in fake_docker.runs][-1] == "sander_ok.out" and len(fake_docker.runs) == 3
 
 
-def test_sample_mode_loop_is_honest(tmp_path):
+def test_sample_mode_loop_is_honest(tmp_path, monkeypatch):
+    # This test is about the EMPTY-cache state; point sample mode at a dir with no cached outputs so it does not
+    # depend on whether data/sample/ has been generated in this checkout.
+    monkeypatch.setenv("ACTIVESITE_SAMPLE_DIR", str(tmp_path / "no-sample"))
     st = orchestrator.run_case("ippoi_site_a", hmem_db=tmp_path / "h.sqlite", ledger_path=tmp_path / "l.jsonl",
                                workroot=tmp_path / "runs", log_dir=tmp_path / "logs", sample_mode=True, echo=False)
     assert st["qm_ok"] is False and st["engine_skipped"] is True and st["retries"] == 0

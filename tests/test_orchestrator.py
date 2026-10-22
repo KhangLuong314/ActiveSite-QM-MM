@@ -9,7 +9,9 @@ from activesite.memory.meterless import MeterlessHMEM
 
 
 @pytest.fixture
-def orchestrator(tmp_path):
+def orchestrator(tmp_path, monkeypatch):
+    # These tests describe sample mode with NO cached engine output, so isolate them from a generated data/sample/.
+    monkeypatch.setenv("ACTIVESITE_SAMPLE_DIR", str(tmp_path / "no-sample"))
     return MasterOrchestrator(hmem=MeterlessHMEM(storage_path=tmp_path / "ledger.json"), sample_mode=True)
 
 

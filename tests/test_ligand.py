@@ -127,7 +127,9 @@ def test_memory_write_conditions_abl(tmp_path, fake_prep):
     assert [e["action"] for e in store.read_ledger()] == ["create", "read"]
 
 
-def test_requested_chain_and_sample_mode(tmp_path, fake_prep):
+def test_requested_chain_and_sample_mode(tmp_path, fake_prep, monkeypatch):
+    # The sample-mode half asserts the EMPTY-cache behaviour; isolate it from any generated data/sample/.
+    monkeypatch.setenv("ACTIVESITE_SAMPLE_DIR", str(tmp_path / "no-sample"))
     case = json.loads(Path("cases/abl_imatinib_a.json").read_text())
     case["chain"] = "C"
     st = orchestrator.run_case(case, hmem_db=tmp_path / "h.sqlite", ledger_path=tmp_path / "l.jsonl",
