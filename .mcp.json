@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "zetaris-data-catalog": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "activesite.adapters.zetaris_mcp"],
+      "env": {
+        "ZETARIS_REST_URL": "${ZETARIS_REST_URL:-}",
+        "ZETARIS_ORG_ID": "${ZETARIS_ORG_ID:-1}",
+        "ZETARIS_API_KEY": "${ZETARIS_API_KEY:-}"
+      }
+    },
+    "meterless-memory": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "activesite.memory.meterless_mcp"],
+      "env": {
+        "METERLESS_API_KEY": "${METERLESS_API_KEY:-}",
+        "METERLESS_ENDPOINT": "${METERLESS_ENDPOINT:-http://localhost:59100}"
+      }
+    }
+  }
+}
