@@ -16,6 +16,9 @@ dependencies = [
     "duckdb>=1.1.0",
     "psycopg2-binary>=2.9.10",
     "python-multipart>=0.0.12",
+    "openai>=3.37.0",
+    "requests>=2.34.2",
+    "python-dotenv>=1.2.4",
 ]
 
 [dependency-groups]
