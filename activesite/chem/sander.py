@@ -125,7 +125,7 @@ def parse_sander_output(text: str, theory: str = "PM6") -> Dict[str, Any]:
             result["odd_electrons"] = int(m.group(1))
 
     # Block after FINAL RESULTS
-    final_idx = next((i for i, l in enumerate(lines) if "FINAL RESULTS" in l), None)
+    final_idx = next((i for i, line in enumerate(lines) if "FINAL RESULTS" in line), None)
     if final_idx is not None:
         block = lines[final_idx + 1:]
         escf_re = re.compile(re.escape(theory) + r"ESCF\s*=\s*" + _FLOAT, re.IGNORECASE)

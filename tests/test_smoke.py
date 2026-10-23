@@ -1,5 +1,4 @@
 """Unit tests for the official 3-layer smoke test."""
-import pytest
 from unittest.mock import MagicMock, patch
 from smoke_test import check_power_model, check_zetaris_rest, check_zetaris_web, main
 

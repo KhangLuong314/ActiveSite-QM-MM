@@ -6,7 +6,7 @@ target systems, PDB IDs, ligands, metal centers, target pH, and simulation param
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 from pydantic import BaseModel, Field
 
 

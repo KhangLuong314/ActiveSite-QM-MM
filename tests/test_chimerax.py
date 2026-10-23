@@ -1,5 +1,4 @@
 """Unit tests for ChimeraXGenerator (.cxc)."""
-import pytest
 from pathlib import Path
 from activesite.chem.chimerax import ChimeraXGenerator
 from activesite.models import LinkAtom, QMMMPartition, ResidueRole, ResidueSelection

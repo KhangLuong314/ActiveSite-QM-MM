@@ -1,6 +1,4 @@
 """Unit tests for DataScout (case loading and PDB resolution)."""
-import pytest
-from pathlib import Path
 from activesite.adapters.scout import DataScout
 
 

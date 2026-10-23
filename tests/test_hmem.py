@@ -1,6 +1,5 @@
 """Tests for activesite.memory.hmem: store, ledger and scored retrieval."""
 import json
-import time
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -20,7 +19,7 @@ def store(tmp_path):
 
 
 def _ledger(store):
-    return [json.loads(l) for l in store.ledger_path.read_text().splitlines() if l.strip()]
+    return [json.loads(line) for line in store.ledger_path.read_text().splitlines() if line.strip()]
 
 
 def test_tokens():

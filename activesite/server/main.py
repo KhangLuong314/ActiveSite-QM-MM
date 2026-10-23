@@ -16,13 +16,12 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 
 from activesite.adapters.scout import DataScout as CaseLoader
-from activesite.agent import orchestrator as orch
 from activesite.agent.orchestrator import public_stats, resolve_case_id, run_case
 from activesite.memory.meterless import MeterlessHMEM
 

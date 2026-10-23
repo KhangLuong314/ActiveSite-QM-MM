@@ -3,7 +3,6 @@ import json
 import uuid
 
 import httpx
-import pytest
 
 from activesite.adapters import zetaris as zmod
 from activesite.adapters.catalog_standin import LABEL, CatalogStandin

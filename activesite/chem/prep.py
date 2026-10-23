@@ -11,7 +11,6 @@ Writes go only to the given ``work`` directory and to ``CACHE``.
 from __future__ import annotations
 
 import hashlib
-import math
 import re
 import shutil
 import subprocess
@@ -222,7 +221,7 @@ def protonate(work: Path | str, ph: float) -> Dict[str, Any]:
         text += "\n" + extra.read_text(encoding="utf-8", errors="replace")
     pkas = parse_propka_summary(text)
     states = residue_states(work / "protein_h.pdb") if (work / "protein_h.pdb").exists() else {}
-    gaps = [l.strip() for l in out.splitlines() if "gap" in l.lower() and ("WARN" in l.upper() or "missing" in l.lower())]
+    gaps = [line.strip() for line in out.splitlines() if "gap" in line.lower() and ("WARN" in line.upper() or "missing" in line.lower())]
     if code != 0 or not (work / "protein_h.pdb").exists():
         raise RuntimeError(f"pdb2pqr failed (exit {code}); see {work / 'pdb2pqr.log'}")
     return {"ph": ph, "pkas": {f"{r}{n}": v for (r, n), v in pkas.items()}, "pka_table": pkas,
@@ -406,7 +405,7 @@ def ligand_parameters(work: Path | str, smiles: str, protonate_atom: Optional[st
     (work / "ligand_rdkit.log").write_text(out, encoding="utf-8")
     if code != 0:
         raise RuntimeError(f"ligand_rdkit.py failed (exit {code}): {out[-500:]}")
-    info = json.loads([l for l in out.splitlines() if l.startswith("{")][-1])
+    info = json.loads([line for line in out.splitlines() if line.startswith("{")][-1])
     net_charge = int(info["net_charge"])
 
     key = hashlib.sha256(f"{smiles}|{net_charge}|gaff2|bcc".encode()).hexdigest()[:16]

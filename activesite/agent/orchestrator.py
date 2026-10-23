@@ -25,7 +25,7 @@ from activesite.adapters.zetaris import get_adapter
 from activesite.llm import ModelClient
 from pydantic import BaseModel, Field
 
-from activesite.agent.core import Critic, DataScout, Explainer, NullAdapter, Planner, Runner, Setup
+from activesite.agent.core import Critic, DataScout, Explainer, Planner, Runner, Setup
 from activesite.agent.ligand import LigandCritic, LigandSetup, ligand_cards, run_qmmm
 from activesite.agent.planner import ExecutionPlan, PlannerAgent
 from activesite.chem.runner import HARTREE_TO_KCAL_MOL
