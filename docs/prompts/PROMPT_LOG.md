@@ -458,6 +458,21 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-23 18:10 CDT] — P14: lint cleanup, blocking ruff in CI, no-commit-to-main hook
+- **Tool / Environment:** Claude Code (Opus 5.5)
+- **Target Component:** `activesite/`, `tests/`, `run.py`, `pyproject.toml` (`[tool.ruff]`), `.github/workflows/ci.yml`, `.pre-commit-config.yaml`
+- **Developer Prompt:**
+  > "Do the rest in order from our side: what can be done now, and what can be done after Khang's CLI finishes."
+- **Agent Action:**
+  - 52 automatic ruff fixes plus 9 manual `l` -> `line` renames; no behaviour change. `data/reference` excluded with `force-exclude` so the team's original scripts are never rewritten.
+  - CI ruff step made blocking and pinned to `ruff==0.8.4`, matching the pre-commit hook.
+  - Branch protection returned 403 (needs GitHub Pro for a private repo); added `no-commit-to-branch` for `main` as a client-side stand-in.
+  - Resolved the second `.env.example` conflict (main 6f36cf2) in PR #4 so PR #1 could merge.
+- **Verification:**
+  - `ruff check .` clean; `uv run pytest -q -m "not slow"` 127 passed; `-m slow` 3 passed; PR #5 CI green.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
