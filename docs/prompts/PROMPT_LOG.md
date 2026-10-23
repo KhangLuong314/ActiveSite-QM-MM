@@ -439,6 +439,25 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-23 17:38 CDT] — P13: land P0–P12 stack on main, repo settings & branch cleanup
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `docs/prompts/PROMPT_LOG.md`, repo settings (`delete_branch_on_merge`), remote branch cleanup
+- **Developer Prompt:**
+  > "Goal: land the P0–P12 stack on main, then lock in git practices. Follow AGENTS.md. Never force-push, never rewrite history, never use --no-verify. If any check below fails, STOP and report; do not improvise. 1. Preflight ... 2. Merge PR #3 into feat/p10-judge-pack ... 3. Merge PR #1 into main ... 4. Repo settings ... 5. Delete merged remote branches ... 6. Local copy ... 7. Audit trail (AGENTS.md rule 5): on a new branch chore/p13-repo-settings, append a PROMPT_LOG entry for this prompt (branch protection + merges + cleanup), commit, push, open a PR to main, wait for green CI, merge it. In the step-7 PROMPT_LOG entry, record: protection deferred (403, needs Pro); stand-in is the no-commit-to-branch pre-commit hook arriving in PR chore/p14-lint-cleanup."
+- **Agent Action:**
+  - Preflight checks verified `gh` authentication as KhangLuong314 with admin permissions.
+  - Merged PR #3 (`chore/p12-claude-code`) into `feat/p10-judge-pack`, automatically closing PR #2.
+  - Merged PR #4 (`chore/p12b-sync-main`) into `feat/p10-judge-pack` resolving `.env.example` sync conflict with verified Nemotron model.
+  - Configured repository setting `delete_branch_on_merge=true`.
+  - Branch protection API returned HTTP 403 (expected on private repository under GitHub Free plan); protection deferred until GitHub Pro. The stand-in is the `no-commit-to-branch` pre-commit hook arriving in PR `chore/p14-lint-cleanup`.
+  - Merged PR #1 (`feat/p10-judge-pack`) into `main` after verifying mergeable status and green CI checks (`ci/test`, `ci/gitleaks`).
+  - Deleted merged remote branches with verified ancestry against `origin/main`: `feat/p0-cleanup`, `feat/p1-system`, `feat/p2-qmregion`, `feat/p3-sander`, `feat/p4-prep`, `feat/p5-trace-memory`, `feat/p6-loop`, `feat/p7-ligand`, `feat/p8-adapters`, `feat/p9-ui`, `fix/tleap-combine-braces`, `chore/p12-claude-code`, `chore/p12b-sync-main`. Preserved `chore/p14-lint-cleanup` for active work.
+  - Re-synced local copy on `main`, installed pre-commit hooks (`uvx pre-commit@4.0.1 install`), and ran test suite.
+- **Verification:**
+  - `uv run pytest -q -m "not slow"` passed with 127 passed, 3 deselected, 166 warnings in 24.12s.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
