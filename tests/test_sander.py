@@ -23,9 +23,9 @@ REF = Path("data/reference/qmmm_dft")
 def test_parse_ok_fixture():
     r = parse_sander_output((FIXTURES / "sander_ok.out").read_text(), "PM6")
     assert r["ok"] is True
-    assert r["qm_escf_kcal"] == pytest.approx(-1442.3127)
-    assert r["total_energy_kcal"] == pytest.approx(-2.3471e5)
-    assert r["qm_resp_charge_sum"] == pytest.approx(1.032)
+    assert r["qm_escf_kcal"] == pytest.approx(-456.5628)
+    assert r["total_energy_kcal"] == pytest.approx(-3.0206e5)
+    assert r["qm_resp_charge_sum"] == pytest.approx(1.144)
     assert r["link_atoms"] == 4
     assert r["odd_electrons"] is None
     assert r["errors"] == []
@@ -38,7 +38,7 @@ def test_parse_odd_fixture():
     assert r["total_energy_kcal"] is None
     assert r["odd_electrons"] == 203
     assert r["link_atoms"] == 4
-    assert r["qm_resp_charge_sum"] == pytest.approx(1.032)
+    assert r["qm_resp_charge_sum"] == pytest.approx(1.144)
     assert any("odd number of electrons" in e for e in r["errors"])
     assert any("incorrectly" in e for e in r["errors"])
     assert all(e.startswith("QMMM:") for e in r["errors"])
@@ -48,9 +48,9 @@ def test_parse_only_reads_final_results_block():
     text = (FIXTURES / "sander_ok.out").read_text()
     # Change the pre-final ESCF; the parsed value must still come from the FINAL RESULTS block.
     head, _, tail = text.partition("FINAL RESULTS")
-    head = head.replace("PM6ESCF =    -1442.3127", "PM6ESCF =    -9999.0000")
+    head = head.replace("PM6ESCF =     -456.5628", "PM6ESCF =    -9999.0000")
     r = parse_sander_output(head + "FINAL RESULTS" + tail, "PM6")
-    assert r["qm_escf_kcal"] == pytest.approx(-1442.3127)
+    assert r["qm_escf_kcal"] == pytest.approx(-456.5628)
     # Without a FINAL RESULTS block there is no energy at all.
     assert parse_sander_output(head, "PM6")["qm_escf_kcal"] is None
 
@@ -58,7 +58,7 @@ def test_parse_only_reads_final_results_block():
 def test_parse_non_finite_escf():
     text = (FIXTURES / "sander_ok.out").read_text()
     for bad in ("NaN", "Infinity", "************"):
-        t = text.replace("PM6ESCF =    -1442.3127", f"PM6ESCF = {bad}")
+        t = text.replace("PM6ESCF =     -456.5628", f"PM6ESCF = {bad}")
         r = parse_sander_output(t, "PM6")
         assert r["ok"] is False
         assert r["qm_escf_kcal"] is None
@@ -141,7 +141,7 @@ def test_run_single_point_invokes_docker_and_parses(tmp_path, monkeypatch):
     assert cmd[9] == ENGINE_IMAGE
     assert cmd[10:] == ["sander", "-O", "-i", "sp.mdin", "-o", "sp.out", "-r", "sp.rst7",
                         "-p", "/ref/sys.parm7", "-c", "/ref/sys.ncrst"]
-    assert r["ok"] is True and r["qm_escf_kcal"] == pytest.approx(-1442.3127)
+    assert r["ok"] is True and r["qm_escf_kcal"] == pytest.approx(-456.5628)
     assert r["exit_code"] == 0 and r["wall_time_s"] >= 0
     assert r["theory"] == "PM6" and r["charge"] == 1 and r["workdir"] == str(work.resolve())
     assert (work / "sp.mdin").read_text().startswith("ActiveSite PM6 single point, qmcharge=+1, PME")

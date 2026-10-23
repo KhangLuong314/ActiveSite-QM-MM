@@ -48,7 +48,7 @@ def test_cold_then_warm_run(tmp_path, fake_docker):
                                  workroot=runs, log_dir=logs, sample_mode=False, echo=False)
     assert cold["retries"] == 1 and cold["memory_used"] is False and cold["qm_ok"] is True
     assert cold["qmcharge"] == 1 and cold["memory_written"] is not None
-    assert cold["qm_escf_kcal"] == pytest.approx(-1442.3127) and cold["model_mode"] == "fallback"
+    assert cold["qm_escf_kcal"] == pytest.approx(-456.5628) and cold["model_mode"] == "fallback"
     assert [f for _, f in fake_docker.runs] == ["sander_odd.out", "sander_ok.out"]
     assert fake_docker.runs[0][0].name == "attempt0" and fake_docker.runs[1][0].name == "attempt1"
 
@@ -58,7 +58,7 @@ def test_cold_then_warm_run(tmp_path, fake_docker):
     assert set(mems[0]["tags"]) == {"qm-charge", "nucleotide-cut", "mg-phosphodiester"}
     assert mems[0]["source"] == f"critic:sander-retry run={cold['run_id']}"
 
-    trace_lines = [json.loads(l) for l in Path(cold["trace"]).read_text().splitlines()]
+    trace_lines = [json.loads(line) for line in Path(cold["trace"]).read_text().splitlines()]
     agents = {e["agent_name"] for e in trace_lines}
     assert {"Planner", "DataScout", "Setup", "Critic", "Runner", "Explainer"} <= agents
     assert len(events) == len(trace_lines)
