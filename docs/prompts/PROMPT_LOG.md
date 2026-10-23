@@ -422,6 +422,23 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-23 17:30 CDT] — P12: green CI, real test fixtures, Claude Code setup, merge main
+- **Tool / Environment:** Claude Code (Opus 5.5)
+- **Target Component:** `tests/fixtures/`, `.gitignore`, `pyproject.toml`, `uv.lock`, `CLAUDE.md`, `.mcp.json`, merge of `origin/main`
+- **Developer Prompt:**
+  > "We don't have to work with Cursor anymore, let's work here and set the stuff. Resolve the merge pull request, clear the branches we won't use, pull main and run the app; use and set up best git practices; give me an overview of the project."
+- **Agent Action:**
+  - CI root cause: `uv run pytest` failed with "Failed to spawn: pytest" (pytest was never a dependency). Added `[dependency-groups] dev = ["pytest>=8,<9"]`.
+  - 12 failing tests: `tests/fixtures/sander_*.out` were never committed because `.gitignore` ignores `*.out`. Replaced the hand-written fixtures with the verbatim in-window engine outputs from `data/sample/ippoi_site_a/attempt1` and `attempt0`; expected values updated (-456.5628 kcal/mol, 1.144, 203 electrons). `tests/fixtures/` un-ignored.
+  - 2 Docker prep tests failed on Colima only (PermissionError in /var/folders, which Colima does not mount). `addopts = "--basetemp=.pytest_tmp"` keeps temp dirs under the repo.
+  - Installed the repo's pre-commit hooks locally (gitleaks, ruff). Lint fixes only in files this change touches; a repo-wide ruff run (63 auto-fixes, 11 manual) is left for a separate PR.
+  - `CLAUDE.md` imports `AGENTS.md`; `.mcp.json` mirrors `.cursor/mcp.json`. Both MCP servers answer `initialize` and list their tools.
+  - Merged `origin/main` (d1ad332, official smoke test): `.env.example` union, every PROMPT_LOG entry kept, `uv.lock` regenerated.
+- **Verification:**
+  - `uv run pytest -q -m "not slow"` → 127 passed; `-m slow` (Docker engine + prep) → 3 passed in 8 min 33 s on a Colima host.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
