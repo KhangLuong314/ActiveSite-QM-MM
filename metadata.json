@@ -1,0 +1,29 @@
+{
+  "project": "ActiveSite — Autonomous QM/MM Assistant",
+  "hackathon": "Open Agent Hackathon 2026",
+  "track": "Track 02: The Agent That Can Explain Why",
+  "team": [{"name": "Khang Luong", "github": "KhangLuong314", "affiliation": "University of Nebraska–Lincoln"}],
+  "repository": "https://github.com/KhangLuong314/ActiveSite-QM-MM",
+  "sponsor_technologies": {
+    "Zetaris": "activesite/adapters/zetaris.py (REST adapter: bearer, org id, request id per call) and activesite/adapters/zetaris_mcp.py (MCP tools list_sources, read-only query); catalog-STANDIN (DuckDB) in activesite/adapters/catalog_standin.py until credentials are set",
+    "Meterless H-MEM": "activesite/memory/hmem.py implements MemoryStoreService (SQLite store, provenance, append-only ledger) and MemoryRetrievalService (keyword/tag/layer/recency scoring); NOT implemented: semantic, domain and entity scoring terms, remote Meterless endpoint (METERLESS_ENDPOINT is read but unused)",
+    "Cursor": "docs/prompts/PROMPT_LOG.md (prompt audit trail), .cursorrules, .cursor/mcp.json",
+    "NVIDIA": "activesite/llm.py ModelClient against integrate.api.nvidia.com (OpenAI-compatible chat completions); used only when MODEL_API_KEY is set, output allow-listed by the Planner"
+  },
+  "models": {
+    "llm": "nvidia/llama-3.3-nemotron-super-49b-v1 via MODEL_BASE_URL (optional; runs without it in fallback mode)",
+    "chemistry": "PM6 semi-empirical QM/MM single points in AmberTools 26 sander (activesite-engine:at26); GAFF2 + AM1-BCC ligand parameters; ff14SB protein; PDB2PQR + PROPKA 3.5.1 protonation"
+  },
+  "frameworks": ["FastAPI", "uvicorn", "pydantic", "parmed", "numpy", "pandas", "duckdb", "httpx", "psycopg2", "RDKit (in container)", "AmberTools 26 (in container)"],
+  "entry_points": {
+    "cli": "uv run python run.py --case <id> [--docker] [--json] | --demo-memory | --server | --reset-memory",
+    "http": "POST /run {\"case_id\": ...} returns the same JSON as run.py --json; POST /api/run + GET /run/stream for the live UI",
+    "mcp": "python -m activesite.adapters.zetaris_mcp; python -m activesite.memory.meterless_mcp"
+  },
+  "sample_mode": {
+    "flag": "SAMPLE_MODE=true (default) or Docker unavailable",
+    "behaviour": "replays data/sample/<case>/ engine outputs and prep artefacts through the real parser and all agents; results are labelled 'cached engine output (sample mode)'; a missing cache is reported as 'engine unavailable', never synthesised",
+    "generated_by": "scripts/make_samples.sh on a Docker host (see data/sample/MANIFEST.md)"
+  },
+  "pre_existing_components": "docs/PRE_EXISTING.md"
+}

@@ -40,13 +40,17 @@ xtbtopo.mol
 charges.txt
 .xtboptok
 
-# Logs & Traces
-logs/
+# Logs & Traces (keep the directory, ignore the JSONL traces)
+logs/*.jsonl
+logs/report-*.md
+logs/cards-*.json
+!logs/.gitkeep
 
 # Database & Storage
 data/cache/
 data/runs/
 data/*.sqlite
+data/memory/*.sqlite
 data/*.sqlite3
 *.sqlite3
 *.db
@@ -67,3 +71,16 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Judge pack: cached engine outputs and sample runs are tracked on purpose (see data/sample/MANIFEST.md)
+!data/sample/
+!data/sample/**
+!samples/
+!samples/**
+
+# Test fixtures are verbatim sander mdouts (*.out); keep them tracked despite the *.out rule above
+!tests/fixtures/
+!tests/fixtures/**
+
+# pytest temp dir inside the repo: Colima only mounts $HOME into containers, so /var/folders tmp paths fail
+.pytest_tmp/

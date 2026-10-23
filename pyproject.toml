@@ -21,9 +21,19 @@ dependencies = [
     "python-dotenv>=1.2.4",
 ]
 
+[dependency-groups]
+dev = ["pytest>=8,<9"]
+
 [tool.uv]
 package = true
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+# temp dirs under the repo so Docker tests can mount them on Colima (it only shares $HOME)
+addopts = "--basetemp=.pytest_tmp"
+markers = [
+    "slow: needs the Docker engine image or large reference files",
+]

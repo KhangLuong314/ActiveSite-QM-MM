@@ -1,116 +1,104 @@
 # ActiveSite 🔬🤖
-### Autonomous QM/MM Simulations with Explainable Scientific Reasoning
+### Autonomous QM/MM setup that explains every choice
 **Open Agent Hackathon 2026 | Track 02: "The Agent That Can Explain Why"**
 
 [![Hackathon: Open Agent 2026](https://img.shields.io/badge/Hackathon-Open_Agent_2026-blue)](https://hackathons.genai.works)
 [![Track: Explainable Agents](https://img.shields.io/badge/Track_02-The_Agent_That_Can_Explain_Why-brightgreen)](https://hackathons.genai.works)
-[![Engine: AmberTools 26 + xtb](https://img.shields.io/badge/Engine-AmberTools_26_+_GFN2--xTB-orange)](https://ambermd.org)
+[![Engine: AmberTools 26](https://img.shields.io/badge/Engine-AmberTools_26_sander_PM6-orange)](https://ambermd.org)
 [![Memory: Meterless H--MEM](https://img.shields.io/badge/Memory-Meterless_H--MEM-purple)](https://meterless.io)
-[![Catalog: Zetaris Federated MCP](https://img.shields.io/badge/Data-Zetaris_MCP-blueviolet)](https://zetaris.com)
+[![Catalog: catalog-STANDIN (DuckDB)](https://img.shields.io/badge/Data-catalog--STANDIN_(DuckDB)-blueviolet)](https://zetaris.com)
 
----
+## What it does
+1. Takes a benchmark case (a Mg-dependent phosphodiester site or a protein-ligand complex) and proposes a QM region from geometry, with the distance, angle and rejected alternative behind every residue.
+2. Runs one PM6 QM/MM single point in `sander` inside a Docker container, never on the host.
+3. Lets a Critic diagnose an odd-electron failure, retry once with the MM partial-charge integer, and store that rule in Meterless H-MEM so the next site starts warm.
+4. Explains the run as numbered Decision Cards with evidence, source and a confidence computed from a measured margin, streamed live to a dashboard.
+5. Never shows a number an engine did not produce: a missing energy is `null` with the reason, and sample mode replays real cached outputs labelled as such.
 
-## 🌟 Overview
-Quantum Mechanics / Molecular Mechanics (QM/MM) is the gold standard for modeling enzyme catalysis, scissile bond cleavages, and covalent drug binding. However, setting up a QM/MM calculation traditionally requires days of manual labor:
-1. Identifying catalytic residues and setting cutoff radii.
-2. Determining correct protonation states ($pK_a$) and formal charges.
-3. Placing covalent link atoms along peptide bonds without orbital distortion.
-4. Diagnosing mysterious SCF convergence or odd-electron spin failures.
-
-**ActiveSite** transforms this workflow into a single conversational request:
-> *"Set up a QM/MM simulation of EGFR kinase with erlotinib (PDB 1M17) at pH 7.4."*
-
-ActiveSite autonomously retrieves the structure from RCSB PDB, calculates protonation states via PROPKA, partitions the active site, verifies quantum charge balance, executes GFN2-xTB / Amber QM/MM in containerized engines, and generates **Decision Cards** explaining every choice.
-
----
-
-## 🧠 Why Track 02: "The Agent That Can Explain Why"
-In scientific simulations, a "black-box" agent is dangerous. ActiveSite does not simply execute commands; it explains its scientific justification at every decision point:
-
-* **Why did the agent choose Met769 and Thr766 in the QM region?**
-  * *Explanation:* Hydrogen-bonding distances to the quinazoline nitrogen (2.8 Å) require explicit electronic polarization; peripheral hydrophobic residues outside 4.0 Å are safely relegated to the classical MM force field.
-* **Why did the agent change `qmcharge` from 0 to +1 in I-PpoI endonuclease?**
-  * *Explanation:* Diagnosed an odd-electron open-shell failure. His98 coordination to the catalytic $Mg^{2+}$ ion shifts its charge balance, resolved via Meterless H-MEM episodic memory.
-
----
-
-## 🏗️ Architecture
-
-```mermaid
-flowchart TD
-    User["User: Conversational Query / PDB ID"] --> Chat["ActiveSite Web Interface & Chatbox"]
-    Chat --> Planner["1. Planner & Intent Extractor"]
-    Planner --> Scout["2. Data Scout (RCSB PDB API + Zetaris Federated Catalog)"]
-    Scout --> Prep["3. Structure & Protonation Agent (PDB2PQR + PROPKA 3.5.1)"]
-    Prep --> Setup["4. QM/MM Partitioning Agent (Link Atoms & Charge Assignment)"]
-    Setup --> Critic["5. Critic Agent (Electron Count & Spin Verification)"]
-    Critic --> Memory["Meterless H-MEM (Episodic Memory & Trust Ledger)"]
-    Memory --> Critic
-    Critic --> Runner["6. Chemistry Runner (AmberTools 26 + GFN2-xTB Container)"]
-    Runner --> Explainer["7. Explainer Agent (Decision Cards Generator)"]
-    Explainer --> UI["Chat Output + Decision Cards + ChimeraX Sync (.cxc)"]
-```
-
----
-
-## 🤝 Sponsor Integrations
-* **Meterless H-MEM:** Powers the agent's episodic memory and Trust Ledger. Remembers ligand parameter overrides, active site boundaries, and prior error resolutions to prevent repeated mistakes across simulation sessions.
-* **Zetaris:** Acts as the federated data harness, providing a unified Model Context Protocol (MCP) interface to query research PDB databases, internal ligand libraries, and historical simulation runs.
-* **Cursor:** Primary IDE used to build, orchestrate, and audit agent workflows, governed by project `.cursorrules`.
-
----
-
-## ⚡ Quickstart (Judge Friendly)
-
-ActiveSite is packaged with a single-command startup and a CPU-friendly `SAMPLE_MODE=true` offline fallback. No external API keys or GPU required to evaluate.
-
-### 1. Prerequisites
-- Docker & Docker Compose (or Colima on macOS)
-- Python 3.11+ (with `uv` recommended)
-- [Optional] UCSF ChimeraX for 3D visual inspections
-
-### 2. Launch Services
+## Quickstart (judges)
 ```bash
-# Clone the repository
-git clone https://github.com/KhangLuong314/ActiveSite-QM-MM.git
-cd ActiveSite-QM-MM
-
-# Start database and local services
-docker compose up -d
-
-# Install Python dependencies
+docker compose up -d                       # Postgres + MinIO for the DuckDB catalog stand-in (optional)
 uv sync
-
-# Launch the ActiveSite interactive server
-uv run python -m activesite.server.main
+SAMPLE_MODE=true uv run python run.py --case ippoi_site_a      # replays cached engine output, all agents run for real
+uv run python run.py --server              # dashboard at http://localhost:8088
 ```
-Open **`http://localhost:8088`** in your browser.
+No API keys, GPU or network are needed in sample mode. Copy `.env.example` to `.env` for optional services.
+`scripts/smoke_clean_clone.sh` runs the judged path from a fresh clone and asserts the cached-engine label.
 
----
+With Docker and the engine images (`docker build -f docker/engine.Dockerfile -t activesite-engine:at26 .` then
+`docker build -f docker/prep.Dockerfile -t activesite-prep:at26 .`):
+```bash
+SAMPLE_MODE=false uv run python run.py --demo-memory --docker   # site A cold (retries 1), site B warm (retries 0)
+uv run python run.py --case egfr_erlotinib --docker --json      # same JSON as POST /run
+```
 
-## 📂 Project Structure
+## The three sample cases
+| case | what it shows | expected output (sample mode) |
+|---|---|---|
+| `ippoi_site_a` | cold run: textbook charge 0 fails with an odd electron count, Critic retries at +1, rule stored | `retries 1`, `memory_used False`, a memory written, ESCF from the cached sp.out, engine label `cached engine output (sample mode)` |
+| `ippoi_site_b` | warm run: the stored rule is recalled, no retry | `retries 0`, `memory_used True`, 64-67 QM atoms, same label |
+| `egfr_erlotinib` | ligand case: chain A, erlotinib kept neutral, GB single point of the whole ligand, MET769 hinge contact recovered, THR766 absent | `qm_ok True` with the cached preparation, label as above |
+
+Saved inputs live in `samples/<case>/input.json`; the saved outputs (`report.md`, `cards.json`, `trace.jsonl`,
+`stats.json`) are produced by `scripts/make_samples.sh` on a Docker host and stamped in `data/sample/MANIFEST.md`.
+Those saved reports say `Engine: sander in Docker` because they are the real runs; your own `SAMPLE_MODE=true` run
+replays the same engine output and is labelled `cached engine output (sample mode)`.
+Until that script has run, sample mode reports `engine unavailable` and shows no energy.
+
+## Architecture
+```mermaid
+flowchart LR
+  Case["case JSON"] --> Planner --> DataScout --> Setup
+  DataScout -. "Q1 expert, Q2 analogy, Q3 PDB" .-> Catalog["catalog-STANDIN (DuckDB) or Zetaris"]
+  Setup --> Critic1["Critic.precheck"] --> Runner["Runner: sander PM6 in Docker"] --> Critic2["Critic.diagnose"]
+  Critic2 -- "odd electrons: retry once" --> Runner
+  Critic2 -- "retry converged" --> HMEM["Meterless H-MEM store + ledger"]
+  HMEM -. "recall" .-> Setup
+  Critic2 --> Validate["Critic.validate vs expert mask"] --> Explainer --> Report["report.md, cards.json, trace.jsonl, SSE"]
+```
+- **Agents** (`activesite/agent/core.py`, `ligand.py`): Planner (allow-listed steps), DataScout (validated ids, three SQL queries), Setup / LigandSetup, Runner, Critic / LigandCritic, Explainer. Every action is one line in `logs/trace-<run_id>.jsonl` (`activesite/trace.py`).
+- **Loop** (`activesite/agent/orchestrator.py`): `run_case` routes on the case file; the metal loop retries once on an odd-electron failure and remembers only after the retry converged; the ligand loop blocks QM/MM when the ligand left its pocket.
+- **Chemistry** (`activesite/chem/`): `system.py` (parmed geometry and charge), `qmregion.py` (evidence-bearing region proposal), `sander.py` (containerised single point, pure mdout parser), `prep.py` + `ligand_rdkit.py` (PDB2PQR/PROPKA, GAFF2/AM1-BCC, tleap, minimisation, pose checks).
+- **Memory** (`activesite/memory/hmem.py`): SQLite memories with provenance, append-only JSONL ledger, scored retrieval with a hard domain-tag gate; `meterless.py` is the facade, `meterless_mcp.py` the MCP server.
+- **Data layer** (`activesite/adapters/`): `zetaris.py` (REST), `catalog_standin.py` (DuckDB over Postgres + MinIO Parquet + cached RCSB), `zetaris_mcp.py` (`list_sources`, read-only `query`); `seed/seed.py` fills the stand-in.
+- **Server/UI** (`activesite/server/`): `POST /api/run` + SSE `GET /run/stream`, `POST /run` for judges, memory and SQL panels.
+
+## Sponsor technologies
+* **Zetaris:** `activesite/adapters/zetaris.py` posts SQL to the Zetaris REST endpoint when `ZETARIS_REST_URL` and `ZETARIS_API_KEY` are set. Otherwise **catalog-STANDIN (DuckDB)** (`activesite/adapters/catalog_standin.py`) federates Postgres (`lab_runs`), MinIO Parquet (`eda_synthetic`, a clearly synthetic placeholder) and a cached RCSB entries table in one DuckDB connection. Seed with `docker compose up -d && uv run python seed/seed.py`. Every DataScout trace line and card source names which adapter ran. MCP: `python -m activesite.adapters.zetaris_mcp`.
+* **Meterless H-MEM:** `activesite/memory/hmem.py` implements the store service (memories with provenance and confidence, append-only ledger) and the retrieval service (keyword, tag, layer, recency; the semantic, domain and entity terms are not computed). The remote Meterless endpoint is not used.
+* **NVIDIA:** `activesite/llm.py` talks to `integrate.api.nvidia.com` (OpenAI-compatible) only when `MODEL_API_KEY` is set; the Planner allow-lists everything the model returns.
+* **Cursor:** `docs/prompts/PROMPT_LOG.md` is the prompt audit trail; `.cursorrules` and `.cursor/mcp.json` configure the IDE.
+
+## Models and frameworks
+PM6 (AmberTools 26 `sander`, `activesite-engine:at26`); ff14SB + GAFF2/AM1-BCC; PDB2PQR + PROPKA 3.5.1; RDKit (in `activesite-prep:at26`).
+Optional LLM: `nvidia/llama-3.3-nemotron-super-49b-v1`. Python: FastAPI, pydantic, parmed, numpy, pandas, duckdb, httpx, psycopg2. See `metadata.json`.
+
+## Limitations
+- PM6 single points only; no geometry optimisation at the QM level, no dynamics, no higher-level theory.
+- Implicit solvent (igb=5) for ligand cases; crystal waters, including the Thr766 bridge in 1M17, are removed.
+- No free-energy barriers are computed locally; the lab's QMHub/B3LYP protocol is cited, not reproduced.
+- The data catalog is a local stand-in (`catalog-STANDIN (DuckDB)`) until Zetaris credentials are configured; the EDA table it serves is synthetic.
+- His states near a ligand cation are geometric calls within a 1 pKa window; the charged state should be run as a sensitivity check.
+- The Critic's electron count on the metal case comes from the MM partial-charge sum of the cut region, validated by sander's own parity check, not from an independent electronic-structure count.
+- Sample mode replays outputs recorded on a Docker host; without that cache it reports `engine unavailable`.
+
+## Pre-existing components and data
+Declared in full in [`docs/PRE_EXISTING.md`](docs/PRE_EXISTING.md). In short:
+- **Lab reference files under `data/reference/`** (existed before the build window): `qmmm_dft/step3_pbcsetup.parm7` and `prod00.ncrst` (solvated I-PpoI/DNA topology and production frame), `qmhub.ini` and its legacy copy, the `step5.00/step6.00` mdin templates, the `gen_inputs.sh` / `gen_qmmask.py` / `gen_cvs.py` / `gen_cv.sh` / `cv.rst` setup scripts, `abl/2hyy.pdb` and `egfr/1m17.pdb` (RCSB entries), `abl/abl_ligand.yaml` + `abl_ligand_model_0.cif`, `eda/barrier_res_table.pkl` (never loaded), `fmatch/energy.npy`, `mm_charge.npy`, `list.dft_forces`, `list.model`, `wtp/theories.csv`.
+- **Chemistry spike benchmark:** none of its files are included.
+- **Docker base images:** `mambaorg/micromamba:1.5.10` with conda-forge `ambertools=26.0`, `xtb=6.7.1`, `rdkit=2026.03.1`, `pdb2pqr=3.6.1`, `propka=3.5.1`; `postgres:16-alpine`; `bitnamilegacy/minio:2025.4.22`.
+- **Pre-window scaffold (2026-10-21):** first-pass modules whose fabricated energies, seeded memories and radius pipeline were removed during the window (see `PROMPT_LOG.md` P0 and P7).
+The large reference files (`*.parm7`, `*.ncrst`, `fmatch/*.npy`, `eda/*.pkl`, about 21 MB) ship in the repo as ordinary git objects: no Git LFS, no download step. `data/reference/LARGE_FILES.sha256` lists their hashes and `scripts/fetch_reference.sh` is an optional path for refreshing them from a mirror; a clean clone never needs it.
+
+## Project structure
 ```text
-ActiveSite-QM-MM/
-├── .cursor/                 # Cursor IDE rules & MCP configurations
-├── docs/
-│   └── prompts/
-│       └── PROMPT_LOG.md    # Transparent audit trail of prompt engineering
-├── docker/
-│   ├── engine.Dockerfile    # AmberTools 26 + GFN2-xTB runtime
-│   └── prep.Dockerfile      # PDB2PQR, PROPKA 3.5.1, RDKit environment
-├── activesite/
-│   ├── agent/               # Autonomous agent orchestration (Planner, Critic, Explainer)
-│   ├── adapters/            # RCSB PDB & Zetaris MCP data connectors
-│   ├── memory/              # Meterless H-MEM episodic memory client
-│   ├── chemistry/           # Amber/xtb execution, link atoms, QM partitioning
-│   ├── visualizer/          # ChimeraX .cxc script generator
-│   └── server/              # FastAPI application with SSE chat streaming
-├── ui/                      # Browser UI (Chatbox + Decision Cards + 3D View)
-├── docker-compose.yml       # Local Postgres & MinIO infrastructure
-└── pyproject.toml           # Project dependencies & package metadata
+activesite/        agent/ (core, ligand, orchestrator)  chem/ (system, qmregion, sander, prep)  memory/ (hmem, meterless)  adapters/  server/  llm.py  trace.py  sample.py
+cases/             benchmark case definitions
+data/reference/    lab reference files (declared above)      data/sample/   cached engine outputs (make_samples.sh)
+samples/           judged inputs and saved outputs            seed/          catalog seed script
+scripts/           make_samples.sh, smoke_clean_clone.sh, fetch_reference.sh
+docs/              PROMPT_LOG.md, PRE_EXISTING.md             tests/         pytest suite (Docker tests skip themselves)
 ```
 
----
-
-## 👥 Authors & Team
+## Authors
 - **Khang Luong** ([@KhangLuong314](https://github.com/KhangLuong314)) — University of Nebraska–Lincoln

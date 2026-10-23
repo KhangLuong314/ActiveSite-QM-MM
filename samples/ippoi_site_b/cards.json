@@ -1,0 +1,492 @@
+[
+  {
+    "decision_id": "DEC_REGION_01_METAL_MG372",
+    "category": "residue_inclusion",
+    "target": "MG372",
+    "choice": "MG372 in QM as metal",
+    "alternatives": [],
+    "rationale": "named in the request",
+    "confidence": 1.0,
+    "evidence": {
+      "resid": 372,
+      "atomic_number": 12,
+      "mm_charge": 2.0,
+      "source": "geometry of prod00.ncrst (rule 1)"
+    }
+  },
+  {
+    "decision_id": "DEC_REGION_02_FIRST_SHELL_DG35",
+    "category": "residue_inclusion",
+    "target": "DG35",
+    "choice": "DG35 in QM as first shell",
+    "alternatives": [
+      {
+        "name": "Leave it in MM",
+        "rejected_reason": "a ligand inside the first shell polarises the metal; point charges cannot describe it"
+      }
+    ],
+    "rationale": "coordinating nucleic-acid atoms; atoms assigned by the scissile-phosphate cut level",
+    "confidence": 0.855,
+    "evidence": {
+      "OP1_dist": 2.035,
+      "cutoff": 2.8,
+      "source": "geometry of prod00.ncrst (rule 2)"
+    }
+  },
+  {
+    "decision_id": "DEC_REGION_03_FIRST_SHELL_WAT404",
+    "category": "residue_inclusion",
+    "target": "WAT404",
+    "choice": "WAT404 in QM as first shell",
+    "alternatives": [
+      {
+        "name": "Leave it in MM",
+        "rejected_reason": "a ligand inside the first shell polarises the metal; point charges cannot describe it"
+      }
+    ],
+    "rationale": "whole water within FIRST_SHELL of the metal",
+    "confidence": 0.851,
+    "evidence": {
+      "O_dist": 2.08,
+      "cutoff": 2.8,
+      "source": "geometry of prod00.ncrst (rule 2)"
+    }
+  },
+  {
+    "decision_id": "DEC_REGION_04_FIRST_SHELL_WAT18332",
+    "category": "residue_inclusion",
+    "target": "WAT18332",
+    "choice": "WAT18332 in QM as first shell",
+    "alternatives": [
+      {
+        "name": "Leave it in MM",
+        "rejected_reason": "a ligand inside the first shell polarises the metal; point charges cannot describe it"
+      }
+    ],
+    "rationale": "whole water within FIRST_SHELL of the metal",
+    "confidence": 0.846,
+    "evidence": {
+      "O_dist": 2.15,
+      "cutoff": 2.8,
+      "source": "geometry of prod00.ncrst (rule 2)"
+    }
+  },
+  {
+    "decision_id": "DEC_REGION_05_FIRST_SHELL_ASN160",
+    "category": "residue_inclusion",
+    "target": "ASN160",
+    "choice": "ASN160 in QM as first shell",
+    "alternatives": [
+      {
+        "name": "Leave it in MM",
+        "rejected_reason": "a ligand inside the first shell polarises the metal; point charges cannot describe it"
+      }
+    ],
+    "rationale": "side chain of a protein residue coordinating the metal (cut CA-CB)",
+    "confidence": 0.846,
+    "evidence": {
+      "OD1_dist": 2.152,
+      "cutoff": 2.8,
+      "source": "geometry of prod00.ncrst (rule 2)"
+    }
+  },
+  {
+    "decision_id": "DEC_REGION_06_FIRST_SHELL_WAT403",
+    "category": "residue_inclusion",
+    "target": "WAT403",
+    "choice": "WAT403 in QM as first shell",
+    "alternatives": [
+      {
+        "name": "Leave it in MM",
+        "rejected_reason": "a ligand inside the first shell polarises the metal; point charges cannot describe it"
+      }
+    ],
+    "rationale": "whole water within FIRST_SHELL of the metal",
+    "confidence": 0.846,
+    "evidence": {
+      "O_dist": 2.159,
+      "cutoff": 2.8,
+      "source": "geometry of prod00.ncrst (rule 2)"
+    }
+  },
+  {
+    "decision_id": "DEC_REGION_07_FIRST_SHELL_WAT402",
+    "category": "residue_inclusion",
+    "target": "WAT402",
+    "choice": "WAT402 in QM as first shell",
+    "alternatives": [
+      {
+        "name": "Leave it in MM",
+        "rejected_reason": "a ligand inside the first shell polarises the metal; point charges cannot describe it"
+      }
+    ],
+    "rationale": "whole water within FIRST_SHELL of the metal",
+    "confidence": 0.845,
+    "evidence": {
+      "O_dist": 2.172,
+      "cutoff": 2.8,
+      "source": "geometry of prod00.ncrst (rule 2)"
+    }
+  },
+  {
+    "decision_id": "DEC_REGION_08_SCISSILE_PHOSPHATE_DG35",
+    "category": "residue_inclusion",
+    "target": "DG35",
+    "choice": "DG35 in QM as scissile phosphate",
+    "alternatives": [
+      {
+        "name": "Another phosphate",
+        "rejected_reason": "farther from the metal"
+      }
+    ],
+    "rationale": "P nearest the metal",
+    "confidence": 1.0,
+    "evidence": {
+      "metal_P_dist": 3.405,
+      "P_O3prime_dist": 1.56,
+      "other_P_within_8A": [
+        [
+          "DA36@P",
+          7.451
+        ]
+      ],
+      "source": "geometry of prod00.ncrst (rule 3)"
+    }
+  },
+  {
+    "decision_id": "DEC_REGION_09_LEAVING_GROUP_DA34",
+    "category": "residue_inclusion",
+    "target": "DA34",
+    "choice": "DA34 in QM as leaving group",
+    "alternatives": [],
+    "rationale": "residue donating the O3' bonded to the scissile P",
+    "confidence": 0.995,
+    "evidence": {
+      "metal_O3prime_dist": 4.107,
+      "P_O3prime_dist": 1.56,
+      "source": "geometry of prod00.ncrst (rule 3)"
+    }
+  },
+  {
+    "decision_id": "DEC_REGION_10_NUCLEOPHILE_WAT17553",
+    "category": "residue_inclusion",
+    "target": "WAT17553",
+    "choice": "WAT17553 in QM as nucleophile",
+    "alternatives": [
+      {
+        "name": "Another water near P",
+        "rejected_reason": "smaller O(w)-P-O3' angle, not in line for attack"
+      }
+    ],
+    "rationale": "water O within 4.0 \u00c5 of P with the largest O(w)-P-O3' angle (in-line attack)",
+    "confidence": 0.76,
+    "evidence": {
+      "Ow_P_O3prime_angle": 175.1,
+      "Ow_P_dist": 3.93,
+      "search_radius": 4.0,
+      "rejected": [
+        [
+          "WAT17462@O",
+          97.2,
+          3.518
+        ],
+        [
+          "WAT403@O",
+          73.9,
+          3.829
+        ]
+      ],
+      "source": "geometry of prod00.ncrst (rule 4)"
+    }
+  },
+  {
+    "decision_id": "DEC_REGION_11_GENERAL_BASE_HIE139",
+    "category": "residue_inclusion",
+    "target": "HIE139",
+    "choice": "HIE139 in QM as general base",
+    "alternatives": [
+      {
+        "name": "No general base",
+        "rejected_reason": "the nucleophile needs a proton acceptor within hydrogen-bond range"
+      }
+    ],
+    "rationale": "His ring N nearest the nucleophile O within 6.0 \u00c5 (side chain, cut CA-CB)",
+    "confidence": 0.599,
+    "evidence": {
+      "N_Ow_dist": 4.012,
+      "atom": "ND1",
+      "search_radius": 6.0,
+      "rejected": [
+        [
+          "HIE139@NE2",
+          4.526
+        ],
+        [
+          "HIE119@ND1",
+          4.964
+        ]
+      ],
+      "source": "geometry of prod00.ncrst (rule 5)"
+    }
+  },
+  {
+    "decision_id": "DEC_CUT_LEVEL",
+    "category": "cut_level",
+    "target": "QM/MM boundary",
+    "choice": "cut level 'sugar' (4 link atoms)",
+    "alternatives": [
+      {
+        "name": "minimal",
+        "rejected_reason": "ring bonds cut: DA34@C3'-C2', DA34@C3'-C4'"
+      }
+    ],
+    "rationale": "minimal rejected: ring bonds cut: DA34@C3'-C2', DA34@C3'-C4'; sugar accepted: charge fraction 0.032 <= 0.10, no ring bonds cut, 4 link atoms",
+    "confidence": 0.841,
+    "evidence": {
+      "mask": "@1052-1083,2811-2821,3142-3149,6230,6270-6278,57723-57725,60060-60062",
+      "mm_sum": 1.0318,
+      "fraction": 0.0318,
+      "link_atoms": 4,
+      "notes": [
+        "minimal rejected: ring bonds cut: DA34@C3'-C2', DA34@C3'-C4'",
+        "sugar accepted: charge fraction 0.032 <= 0.10, no ring bonds cut, 4 link atoms"
+      ],
+      "source": "geometry of prod00.ncrst"
+    }
+  },
+  {
+    "decision_id": "DEC_QMCHARGE",
+    "category": "charge_and_spin",
+    "target": "qmcharge",
+    "choice": "qmcharge +1 (spin 1)",
+    "alternatives": [
+      {
+        "name": "qmcharge +0 by formal charges of the residues touched (textbook default)",
+        "rejected_reason": "attempt 0: QMMM: System specified with odd number of electrons (  211); QMMM: but odd spin (  1). You most likely have the charge of; QMMM: QM region (qmcharge) set incorrectly. Correct error and re-run calculation."
+      }
+    ],
+    "rationale": "MM partial-charge sum (Critic fix after odd-electron failure). First attempt rejected: sander reported an odd electron count (211) at qmcharge +0. The mask cuts nucleotides at the phosphate (sugar level), so whole-residue formal charges (+0) do not apply; the MM partial-charge sum over the QM atoms is +1.032 e, nearest integer +1 (fraction 0.032).",
+    "confidence": 0.682,
+    "evidence": {
+      "mm_partial_sum": 1.0318,
+      "nearest_int": 1,
+      "formal_sum": 0,
+      "per_residue_formal": {
+        "DA34": -1,
+        "DG35": -1,
+        "HIE139": 0,
+        "ASN160": 0,
+        "MG372": 2,
+        "WAT402": 0,
+        "WAT403": 0,
+        "WAT404": 0,
+        "WAT17553": 0,
+        "WAT18332": 0
+      },
+      "attempts": [
+        {
+          "attempt": 0,
+          "charge": 0,
+          "ok": false,
+          "odd_electrons": 211
+        },
+        {
+          "attempt": 1,
+          "charge": 1,
+          "ok": true,
+          "odd_electrons": null
+        }
+      ],
+      "memory_id": "mem_71b1c050fd",
+      "source": "sander validation + H-MEM"
+    }
+  },
+  {
+    "decision_id": "DEC_THEORY_PM6",
+    "category": "theory_selection",
+    "target": "level of theory",
+    "choice": "PM6 semi-empirical single point (PME, spin 1)",
+    "alternatives": [
+      {
+        "name": "DFT (B3LYP/6-31G*) via QMHub",
+        "rejected_reason": "hours per point; outside the judge CPU budget"
+      },
+      {
+        "name": "Pure MM",
+        "rejected_reason": "fixed charges cannot describe the in-line attack"
+      }
+    ],
+    "rationale": "100% of QM atoms have PM6 parameters; the expert protocol uses PM6 as its low-level method",
+    "confidence": 1.0,
+    "evidence": {
+      "qm_atoms": 67,
+      "parameterised_fraction": 1.0,
+      "source": "qmhub.ini low level"
+    }
+  },
+  {
+    "decision_id": "DEC_CHECK_QM_RESIDUES_NEAR_METAL",
+    "category": "critic_correction",
+    "target": "qm_residues_near_metal",
+    "choice": "passed: farthest QM residue nearest-atom distance 4.36 \u00c5 (limit 8.0)",
+    "alternatives": [],
+    "rationale": "Critic precheck on the proposed region",
+    "confidence": 0.727,
+    "evidence": {
+      "margin": 3.638,
+      "passed": true,
+      "source": "Critic.precheck"
+    }
+  },
+  {
+    "decision_id": "DEC_CHECK_FIRST_SHELL_IN_QM",
+    "category": "critic_correction",
+    "target": "first_shell_in_qm",
+    "choice": "passed: 6 heavy atoms within 2.8 \u00c5 of the metal, 6 in QM",
+    "alternatives": [],
+    "rationale": "Critic precheck on the proposed region",
+    "confidence": 1.0,
+    "evidence": {
+      "margin": 1.0,
+      "passed": true,
+      "source": "Critic.precheck"
+    }
+  },
+  {
+    "decision_id": "DEC_CHECK_BOUNDARY_FRACTION",
+    "category": "critic_correction",
+    "target": "boundary_fraction",
+    "choice": "passed: |MM sum - nearest integer| = 0.032 e (limit 0.1)",
+    "alternatives": [],
+    "rationale": "Critic precheck on the proposed region",
+    "confidence": 0.534,
+    "evidence": {
+      "margin": 0.0682,
+      "passed": true,
+      "source": "Critic.precheck"
+    }
+  },
+  {
+    "decision_id": "DEC_CHECK_EXPERT_MASK_PROVENANCE",
+    "category": "critic_correction",
+    "target": "expert_mask_provenance",
+    "choice": "flagged: expert residue list checked against this topology; flagged ['HIE119: 8.4 \u00c5 from the metal', '139: expert says GLN, topology has HIE', 'WAT496: 58.0 \u00c5 from the metal', 'WAT473: 56.5 \u00c5 from the metal', 'WAT491: 36.7 \u00c5 from the metal', 'WAT441: 74.4 \u00c5 from the metal']",
+    "alternatives": [],
+    "rationale": "Critic precheck on the proposed region",
+    "confidence": 0.0,
+    "evidence": {
+      "margin": 0.4,
+      "passed": false,
+      "source": "Critic.precheck"
+    }
+  },
+  {
+    "decision_id": "DEC_VALIDATION_EXPERT",
+    "category": "validation",
+    "target": "expert agreement",
+    "choice": "atom Jaccard 0.36879432624113473",
+    "alternatives": [],
+    "rationale": "comparison with the laboratory record for this site",
+    "confidence": 0.369,
+    "evidence": {
+      "expert_mask_present": true,
+      "expert_qmcharge": null,
+      "jaccard": 0.36879432624113473,
+      "only_ours": [
+        "WAT17553@H1",
+        "WAT17553@H2",
+        "WAT17553@O",
+        "WAT18332@H1",
+        "WAT18332@H2",
+        "WAT18332@O",
+        "WAT402@H1",
+        "WAT402@H2",
+        "WAT402@O",
+        "WAT403@H1",
+        "WAT403@H2",
+        "WAT403@O",
+        "WAT404@H1",
+        "WAT404@H2",
+        "WAT404@O"
+      ],
+      "only_expert": [
+        "ASN160@C",
+        "ASN160@CA",
+        "ASN160@H",
+        "ASN160@HA",
+        "ASN160@N",
+        "ASN160@O",
+        "DA34@C5'",
+        "DA34@H5'",
+        "DA34@H5''",
+        "DA34@O5'",
+        "DA34@OP1",
+        "DA34@OP2",
+        "DA34@P",
+        "DG35@C1'",
+        "DG35@C2",
+        "DG35@C2'",
+        "DG35@C3'",
+        "DG35@C4",
+        "DG35@C4'",
+        "DG35@C5",
+        "DG35@C6",
+        "DG35@C8",
+        "DG35@H1",
+        "DG35@H1'",
+        "DG35@H2'",
+        "DG35@H2''",
+        "DG35@H21",
+        "DG35@H22",
+        "DG35@H3'",
+        "DG35@H4'",
+        "DG35@H8",
+        "DG35@N1",
+        "DG35@N2",
+        "DG35@N3",
+        "DG35@N7",
+        "DG35@N9",
+        "DG35@O3'",
+        "DG35@O4'",
+        "DG35@O6",
+        "HIE119@C",
+        "HIE119@CA",
+        "HIE119@CB",
+        "HIE119@CD2",
+        "HIE119@CE1",
+        "HIE119@CG",
+        "HIE119@H",
+        "HIE119@HA",
+        "HIE119@HB2",
+        "HIE119@HB3",
+        "HIE119@HD2",
+        "HIE119@HE1",
+        "HIE119@HE2",
+        "HIE119@N",
+        "HIE119@ND1",
+        "HIE119@NE2",
+        "HIE119@O",
+        "HIE139@C",
+        "HIE139@CA",
+        "HIE139@H",
+        "HIE139@HA",
+        "HIE139@N",
+        "HIE139@O",
+        "WAT441@H1",
+        "WAT441@H2",
+        "WAT441@O",
+        "WAT473@H1",
+        "WAT473@H2",
+        "WAT473@O",
+        "WAT491@H1",
+        "WAT491@H2",
+        "WAT491@O",
+        "WAT496@H1",
+        "WAT496@H2",
+        "WAT496@O"
+      ],
+      "expert_atoms": 126,
+      "source": "catalog-STANDIN (DuckDB)"
+    }
+  }
+]
