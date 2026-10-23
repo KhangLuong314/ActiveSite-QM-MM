@@ -1,0 +1,61 @@
+{
+ "run_id": "20261022-190635-dae15a",
+ "case": "ippoi_site_a",
+ "kind": "metal",
+ "retries": 1,
+ "memory_used": false,
+ "memory_written": "mem_3acc0f3315",
+ "qm_ok": true,
+ "qm_escf_kcal": -456.5628,
+ "total_energy_kcal": -302060.0,
+ "engine_time_s": 3.85,
+ "wall_time_s": 7.64,
+ "model_calls": 0,
+ "model_mode": "fallback",
+ "trace": "logs/trace-20261022-190635-dae15a.jsonl",
+ "qmcharge": 1,
+ "charge_rule": "MM partial-charge sum (Critic fix after odd-electron failure)",
+ "mask": "@385-416,5256-5266,5587-5594,6229,6255-6266",
+ "engine_skipped": false,
+ "errors": [],
+ "engine_label": "sander in Docker",
+ "cut_level": "sugar",
+ "link_atoms": 4,
+ "checks": [
+  {
+   "name": "qm_residues_near_metal",
+   "passed": true,
+   "detail": "farthest QM residue nearest-atom distance 5.04 \u00c5 (limit 8.0)",
+   "margin": 2.958
+  },
+  {
+   "name": "first_shell_in_qm",
+   "passed": true,
+   "detail": "7 heavy atoms within 2.8 \u00c5 of the metal, 7 in QM",
+   "margin": 1.0
+  },
+  {
+   "name": "boundary_fraction",
+   "passed": true,
+   "detail": "|MM sum - nearest integer| = 0.032 e (limit 0.1)",
+   "margin": 0.0682
+  }
+ ],
+ "validation": {
+  "expert_mask_present": true,
+  "expert_qmcharge": 1,
+  "jaccard": 1.0,
+  "only_ours": [],
+  "only_expert": [],
+  "expert_atoms": 64,
+  "charge_match": true
+ },
+ "catalog": "catalog-STANDIN (DuckDB)",
+ "sql": {
+  "q1_expert": "SELECT * FROM pg.public.lab_runs WHERE system = 'ippoi_wt' AND site = 'A' LIMIT 1",
+  "q2_analogy": "SELECT residue, total FROM eda_synthetic WHERE family = 'ippoi_wt' ORDER BY abs(total) DESC LIMIT 6",
+  "q3_pdb": "SELECT pdb_id, resolution, title FROM rcsb_entries WHERE system = 'ippoi_wt' ORDER BY resolution ASC"
+ },
+ "report": "logs/report-20261022-190635-dae15a.md",
+ "cards": "logs/cards-20261022-190635-dae15a.json"
+}

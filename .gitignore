@@ -77,3 +77,10 @@ Thumbs.db
 !data/sample/**
 !samples/
 !samples/**
+
+# Test fixtures are verbatim sander mdouts (*.out); keep them tracked despite the *.out rule above
+!tests/fixtures/
+!tests/fixtures/**
+
+# pytest temp dir inside the repo: Colima only mounts $HOME into containers, so /var/folders tmp paths fail
+.pytest_tmp/

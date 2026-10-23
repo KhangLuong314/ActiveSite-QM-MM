@@ -22,10 +22,10 @@ def fake_run_case(case_id, store=None, on_event=None, sample_mode=None, echo=Fal
     card = DecisionCard(decision_id="DEC_QMCHARGE", category=DecisionCategory.CHARGE_AND_SPIN, target="qmcharge",
                         choice="+1", rationale="mm sum", confidence=0.9, evidence={"source": "test"})
     return {"run_id": "r-test", "case": case_id, "kind": "metal", "retries": 1, "memory_used": False, "qm_ok": True,
-            "qm_escf_kcal": -1442.3127, "engine_time_s": 36.9, "engine_label": "sander in Docker", "model_mode": "fallback",
+            "qm_escf_kcal": -456.5628, "engine_time_s": 36.9, "engine_label": "sander in Docker", "model_mode": "fallback",
             "model_calls": 0, "qmcharge": 1, "errors": [], "catalog": "no-catalog", "trace": "logs/trace-r-test.jsonl",
             "sql": {"q1_expert": "SELECT 1"}, "checks": [], "validation": {}, "_cards": [card],
-            "_result": {"ok": True, "qm_escf_kcal": -1442.3127, "total_energy_kcal": -234710.0, "command": ["docker"]},
+            "_result": {"ok": True, "qm_escf_kcal": -456.5628, "total_energy_kcal": -302060.0, "command": ["docker"]},
             "_report_markdown": "# report", "_setup": {}}
 
 
@@ -80,7 +80,7 @@ def test_run_returns_stream_then_steps_then_result(client):
     assert [s["agent_name"] for s in steps] == ["Planner", "Runner", "Explainer"]
     assert steps[0]["target_agent"] == "DataScout" and steps[0]["ts"].startswith("2026-")
     result = events[-1][1]
-    assert result["stats"]["qm_escf_kcal"] == pytest.approx(-1442.3127) and result["stats"]["engine_label"] == "sander in Docker"
+    assert result["stats"]["qm_escf_kcal"] == pytest.approx(-456.5628) and result["stats"]["engine_label"] == "sander in Docker"
     assert result["cards"][0]["decision_id"] == "DEC_QMCHARGE" and "command" not in result["result"]
     assert result["sql"] == {"q1_expert": "SELECT 1"} and not any(k.startswith("_") for k in result["stats"])
     # the alias used by the UI replays the same events

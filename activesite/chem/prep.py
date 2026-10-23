@@ -456,7 +456,7 @@ set default PBRadii mbondi2
 loadamberparams ligand.frcmod
 LIG = loadmol2 ligand.mol2
 PROT = loadpdb protein_final.pdb
-COMPLEX = combine {{PROT LIG}}
+COMPLEX = combine {PROT LIG}
 charge COMPLEX
 saveamberparm COMPLEX complex.parm7 complex.rst7
 quit
@@ -578,8 +578,14 @@ def built_pose(work: Path | str, coords: Path | str, renum: Dict[int, int]) -> D
     pi, li = np.unravel_index(int(d.argmin()), d.shape)
     closest = prot_heavy[pi]
 
+    def crystal_num(res) -> int:
+        # complex.parm7 carries no residue numbers: parmed's residue.number is just the 0-based index. tleap keeps
+        # pdb4amber's order, whose numbering is 1..N, so the "new" number is idx + 1; map it back through renum.
+        new = res.idx + 1
+        return inv.get(new, new)
+
     def rec(a, element):
-        return {"name": a.name, "resname": a.residue.name, "resnum": inv.get(a.residue.number, a.residue.number),
+        return {"name": a.name, "resname": a.residue.name, "resnum": crystal_num(a.residue),
                 "element": element, "x": xyz[a.idx, 0], "y": xyz[a.idx, 1], "z": xyz[a.idx, 2],
                 "has_h": any(p.atomic_number == 1 for p in a.bond_partners)}
 
@@ -588,7 +594,7 @@ def built_pose(work: Path | str, coords: Path | str, renum: Dict[int, int]) -> D
     prot_rec = [rec(a, sym.get(a.atomic_number, "X")) for a in prot_atoms if a.atomic_number in (7, 8)]
     contacts = _polar_pairs(lig_rec, prot_rec, lambda a: a["has_h"])
     return {"centroid_shift": round(shift, 3), "rmsd": round(rmsd, 3), "ligand_heavy_atoms": len(lig_heavy),
-            "closest_protein_heavy_atom": {"atom": f"{closest.residue.name}{inv.get(closest.residue.number, closest.residue.number)}@{closest.name}",
+            "closest_protein_heavy_atom": {"atom": f"{closest.residue.name}{crystal_num(closest.residue)}@{closest.name}",
                                            "ligand_atom": lig_heavy[li].name, "distance": round(float(d[pi, li]), 3)},
             "contacts": contacts, "cutoff": HBOND + 0.2, "numbering": "crystal", "coords": str(coords)}
 

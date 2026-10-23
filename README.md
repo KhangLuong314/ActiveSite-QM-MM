@@ -41,6 +41,8 @@ uv run python run.py --case egfr_erlotinib --docker --json      # same JSON as P
 
 Saved inputs live in `samples/<case>/input.json`; the saved outputs (`report.md`, `cards.json`, `trace.jsonl`,
 `stats.json`) are produced by `scripts/make_samples.sh` on a Docker host and stamped in `data/sample/MANIFEST.md`.
+Those saved reports say `Engine: sander in Docker` because they are the real runs; your own `SAMPLE_MODE=true` run
+replays the same engine output and is labelled `cached engine output (sample mode)`.
 Until that script has run, sample mode reports `engine unavailable` and shows no energy.
 
 ## Architecture

@@ -1,6 +1,5 @@
 """Sample mode replays cached engine output and cached preparation; a missing cache is reported, never faked."""
 import json
-import shutil
 from pathlib import Path
 
 import pytest
@@ -46,8 +45,8 @@ def test_metal_sample_mode_cold_then_warm(tmp_path, monkeypatch):
               sample_mode=True, echo=False)
     cold = orchestrator.run_case("ippoi_site_a", **kw)
     assert cold["engine_label"] == CACHED_LABEL and cold["qm_ok"] is True and cold["retries"] == 1
-    assert cold["qmcharge"] == 1 and cold["memory_written"] and cold["qm_escf_kcal"] == pytest.approx(-1442.3127)
-    rows = [json.loads(l) for l in Path(cold["trace"]).read_text().splitlines()]
+    assert cold["qmcharge"] == 1 and cold["memory_written"] and cold["qm_escf_kcal"] == pytest.approx(-456.5628)
+    rows = [json.loads(line) for line in Path(cold["trace"]).read_text().splitlines()]
     assert sum(1 for r in rows if r["action"] == "cached_engine_output") == 2
     report = Path(cold["report"]).read_text()
     assert "converged" in report

@@ -47,6 +47,7 @@ if st.get("kind") == "ligand" and (runs / "prep.json").exists():
 if case in ("ippoi_site_a", "ippoi_site_b", "egfr_erlotinib"):
     out = Path("samples") / case
     out.mkdir(parents=True, exist_ok=True)
+    shutil.copy(Path("cases") / f"{case}.json", out / "input.json")
     shutil.copy(st["report"], out / "report.md")
     shutil.copy(st["cards"], out / "cards.json")
     shutil.copy(st["trace"], out / "trace.jsonl")

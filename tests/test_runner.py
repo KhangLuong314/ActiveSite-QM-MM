@@ -95,9 +95,9 @@ def test_run_simulation_maps_engine_output(tmp_path: Path, monkeypatch):
     assert seen["mask"] == ":1,769" and seen["charge"] == 0 and seen["solvent"] == "pme"
     assert seen["workdir"] == tmp_path / "runs" / "egfr_erlotinib"
     assert result.success is True
-    assert result.energy_kcal_mol == pytest.approx(-2.3471e5)
-    assert result.energy_hartree == pytest.approx(-2.3471e5 / 627.509)
-    assert result.engine_output["qm_escf_kcal"] == pytest.approx(-1442.3127)
+    assert result.energy_kcal_mol == pytest.approx(-3.0206e5)
+    assert result.energy_hartree == pytest.approx(-3.0206e5 / 627.509)
+    assert result.engine_output["qm_escf_kcal"] == pytest.approx(-456.5628)
     assert result.engine_output["link_atoms"] == 4
     assert result.error_message is None
     assert "mdout" in result.output_files and result.engine == "sander in Docker"
