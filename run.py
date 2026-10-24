@@ -3,8 +3,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
-from pathlib import Path
 
 from activesite.agent.orchestrator import MasterOrchestrator
 
@@ -36,6 +34,12 @@ def main() -> None:
         action="store_true",
         default=False,
         help="Run real containerized Amber execution when Docker is available (sets sample_mode=False)",
+    )
+    parser.add_argument(
+        "--md",
+        action="store_true",
+        default=False,
+        help="Run short 1,000-step (1 ps) QM/MM Molecular Dynamics demonstration",
     )
     parser.add_argument(
         "--server",
@@ -112,7 +116,7 @@ def main() -> None:
                   "retries and memory reflect only what could run.")
         return
 
-    orch = MasterOrchestrator(sample_mode=sample_mode)
+    orch = MasterOrchestrator(sample_mode=sample_mode, md=args.md)
 
     if args.benchmark:
         cases = ["egfr_erlotinib", "ippoi_site_a", "abl_imatinib_a"]
@@ -136,10 +140,10 @@ def main() -> None:
         if args.json:
             from activesite.agent.orchestrator import public_stats, resolve_case_id, run_case
             case_id = args.case or resolve_case_id(args.query)
-            print(json.dumps(public_stats(run_case(case_id, sample_mode=sample_mode, echo=False)), indent=2, default=str))
+            print(json.dumps(public_stats(run_case(case_id, sample_mode=sample_mode, echo=False, md=args.md)), indent=2, default=str))
             return
         if args.case:
-            print(f"Executing case: {args.case} (Sample Mode: {sample_mode})...")
+            print(f"Executing case: {args.case} (Sample Mode: {sample_mode}, MD: {args.md})...")
             out = orch.run_case(args.case)
         else:
             print(f"Executing query: '{args.query}'...")

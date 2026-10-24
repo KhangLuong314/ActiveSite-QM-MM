@@ -53,6 +53,53 @@ def cached_engine_result(case_id: str, attempt: int, charge: int, theory: str = 
                        f"under {root} (run scripts/make_samples.sh on a Docker host)"]}
 
 
+def cached_md_result(case_id: str, charge: int, theory: str = "PM6") -> Dict[str, Any]:
+    """Parsed cached md.out and traj.nc for this case/charge, or a skipped result naming what is missing."""
+    root = sample_root() / case_id / "md"
+    mdout = root / "md.out"
+    traj = root / "traj.nc"
+    if mdout.exists():
+        text = mdout.read_text(encoding="utf-8", errors="replace")
+        echoed = _echoed_charge(text)
+        if echoed is None or echoed == charge:
+            from activesite.chem.sander import parse_sander_md_output
+            parsed = parse_sander_md_output(text, theory)
+            return {
+                **parsed,
+                "cached": True,
+                "skipped": False,
+                "exit_code": 0 if parsed["ok"] else 1,
+                "wall_time_s": 0.0,
+                "mdout": str(mdout),
+                "traj": str(traj) if traj.exists() else None,
+                "workdir": str(root),
+                "sample_source": str(mdout),
+            }
+    return {
+        "ok": False,
+        "skipped": True,
+        "cached": False,
+        "steps_completed": 0,
+        "final_temperature_k": None,
+        "qm_escf_kcal": None,
+        "total_energy_kcal": None,
+        "qm_resp_charge_sum": None,
+        "link_atoms": None,
+        "odd_electrons": None,
+        "energy_progression": [],
+        "averages": {},
+        "rms_fluctuations": {},
+        "exit_code": None,
+        "wall_time_s": 0.0,
+        "traj": None,
+        "mdout": None,
+        "errors": [
+            f"MD simulation not run: SAMPLE_MODE=true and no cached MD trajectory for {case_id} "
+            f"under {root} (run with --docker on a Docker host)"
+        ],
+    }
+
+
 def cached_prep(case_id: str, work: Path | str) -> Optional[Dict[str, Any]]:
     """Copy the cached preparation into ``work`` and return the saved setup evidence, or None."""
     src = sample_root() / case_id / "prep"

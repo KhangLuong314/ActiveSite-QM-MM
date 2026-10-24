@@ -25,7 +25,7 @@ from activesite.adapters.zetaris import get_adapter
 from activesite.llm import ModelClient
 from pydantic import BaseModel, Field
 
-from activesite.agent.core import Critic, DataScout, Explainer, NullAdapter, Planner, Runner, Setup
+from activesite.agent.core import Critic, DataScout, Explainer, Planner, Runner, Setup
 from activesite.agent.ligand import LigandCritic, LigandSetup, ligand_cards, run_qmmm
 from activesite.agent.planner import ExecutionPlan, PlannerAgent
 from activesite.chem.runner import HARTREE_TO_KCAL_MOL
@@ -117,6 +117,7 @@ def run_case(case: Dict[str, Any] | str, adapter: Any = None, hmem_db: Path | st
     if case.get("kind") == "ligand":
         return run_ligand_case(case, adapter, hmem_db, on_event, **kw)
     if "metal_resid" in case:
+        kw.pop("md", None)
         return run_metal_case(case, adapter, hmem_db, on_event, **kw)
     raise ValueError(f"case {case.get('id')} is neither a ligand case (kind) nor a metal case (metal_resid)")
 
@@ -125,7 +126,7 @@ def run_metal_case(case: Dict[str, Any] | str, adapter: Any = None, hmem_db: Pat
                    on_event: Optional[Callable[[Dict[str, Any]], None]] = None, *, ledger_path: Path | str | None = None,
                    store: Optional[MemoryStoreService] = None, workroot: Path | str = "data/runs",
                    log_dir: Path | str = "logs", llm: Any = None, sample_mode: Optional[bool] = None,
-                   timeout_s: int = 300, echo: bool = True) -> Dict[str, Any]:
+                   timeout_s: int = 300, echo: bool = True, **_kw: Any) -> Dict[str, Any]:
     """Run one metal case through the retry loop and return the stats dict."""
     t0 = time.monotonic()
     case = _load(case)
@@ -204,7 +205,7 @@ def run_ligand_case(case: Dict[str, Any] | str, adapter: Any = None, hmem_db: Pa
                     on_event: Optional[Callable[[Dict[str, Any]], None]] = None, *, ledger_path: Path | str | None = None,
                     store: Optional[MemoryStoreService] = None, workroot: Path | str = "data/runs",
                     log_dir: Path | str = "logs", llm: Any = None, sample_mode: Optional[bool] = None,
-                    timeout_s: int = 300, echo: bool = True) -> Dict[str, Any]:
+                    timeout_s: int = 300, echo: bool = True, md: bool = False) -> Dict[str, Any]:
     """Prepare a protein-ligand complex, check it, run one GB single point, validate the binding mode."""
     t0 = time.monotonic()
     case = _load(case)
@@ -240,6 +241,26 @@ def run_ligand_case(case: Dict[str, Any] | str, adapter: Any = None, hmem_db: Pa
     val = critic.validate(setup, case)
     memory_ids = critic.remember(case, setup, bool(result.get("ok")))
     cards = ligand_cards(case, setup, checks, result, val, data)
+
+    md_result = None
+    md_stability = None
+    chimerax_script = None
+    if md and not blocking:
+        from activesite.agent.ligand import run_qmmm_md_workflow
+        from activesite.chem.chimerax import ChimeraXGenerator
+        md_result, md_stability, md_card = run_qmmm_md_workflow(
+            trace, setup, work, case_id=case.get("id", ""), sample_mode=sample_mode
+        )
+        cards.append(md_card)
+        if setup.get("complex", {}).get("parm7"):
+            parm7_path = setup["complex"]["parm7"]
+            traj_target = (md_result or {}).get("traj") or (work / "md" / "traj.nc")
+            cxc_file = work / "md" / "trajectory.cxc"
+            ChimeraXGenerator().generate_trajectory_script(
+                parm7_path, traj_target, ligand_resname=case.get("ligand", "AQ4"), output_script_path=cxc_file
+            )
+            chimerax_script = str(cxc_file)
+
     trace.log("Explainer", "cards", f"{len(checks)} checks, {len(setup.get('overrides') or [])} overrides", f"{len(cards)} decision cards",
               data={"ids": [c.decision_id for c in cards]})
 
@@ -253,6 +274,7 @@ def run_ligand_case(case: Dict[str, Any] | str, adapter: Any = None, hmem_db: Pa
         "chain": setup.get("chain"), "overrides": setup.get("overrides"), "checks": checks, "validation": val,
         "catalog": data.get("label"), "sql": data.get("sql"), "prep_skipped": setup.get("prep_skipped"),
         "engine_label": _engine_label(result),
+        "md": bool(md), "md_result": md_result, "md_stability": md_stability, "chimerax_script": chimerax_script,
     }
     report = _ligand_report(case, run_id, stats, cards, result, val, trace.path, setup)
     log_dir = Path(log_dir)
@@ -302,6 +324,18 @@ def _ligand_report(case, run_id, stats, cards, result, val, trace_path, setup) -
               "- PM6 single point of the whole ligand in implicit solvent (igb=5); crystal waters removed; no free-energy barrier.",
               "- His states near the ligand cation are geometric calls; the charged state should be run as a sensitivity check.",
               "- Catalog is a local stand-in unless an adapter with real tables was supplied."]
+    if stats.get("md"):
+        md_r = stats.get("md_result") or {}
+        stab = stats.get("md_stability") or {}
+        lines += [
+            "",
+            "## Molecular dynamics (QM/MM 1 ps)",
+            f"- **Status:** {'converged' if md_r.get('ok') else 'skipped' + (f' ({'; '.join(md_r.get('errors') or [])})' if md_r.get('errors') else '')}",
+            "- **Settings:** 1,000 steps, dt=0.001 ps (1.0 ps total), 300 K Langevin thermostat (gamma_ln=2.0 ps^-1), GB implicit solvent",
+            f"- **Final temperature:** {f'{md_r.get('final_temperature_k'):.1f} K' if md_r.get('final_temperature_k') is not None else 'null'}",
+            f"- **Ligand retention:** {str(stab.get('ligand_retained'))} (mean contact distance {f'{stab.get('mean_distance'):.2f} Å' if stab.get('mean_distance') is not None else 'null'})",
+            f"- **ChimeraX trajectory script:** `{stats.get('chimerax_script') or 'not generated'}`",
+        ]
     return "\n".join(lines) + "\n"
 
 
@@ -309,23 +343,24 @@ class MasterOrchestrator:
     """Compatibility entry point used by the web server, the CLI and the older tests."""
 
     def __init__(self, hmem: Optional[MeterlessHMEM] = None, sample_mode: Optional[bool] = None, adapter: Any = None,
-                 log_dir: Path | str = "logs", workroot: Path | str = "data/runs", echo: bool = False):
+                 log_dir: Path | str = "logs", workroot: Path | str = "data/runs", echo: bool = False, md: bool = False):
         self.hmem = hmem or MeterlessHMEM()
         self.sample_mode = _env_sample_mode() if sample_mode is None else bool(sample_mode)
         self.adapter = adapter
         self.log_dir = log_dir
         self.workroot = workroot
         self.echo = echo
+        self.md = md
         self.loader = CaseLoader()
         self.last_stats: Optional[Dict[str, Any]] = None
 
-    def run_case(self, case_id: str, on_event: Optional[Callable[[str, str], None]] = None) -> WorkflowOutput:
-        return self._run_loop(self.loader.load_benchmark_case(case_id), on_event)
+    def run_case(self, case_id: str, on_event: Optional[Callable[[str, str], None]] = None, md: Optional[bool] = None) -> WorkflowOutput:
+        return self._run_loop(self.loader.load_benchmark_case(case_id), on_event, md=md)
 
-    def run_query(self, query: str, on_event: Optional[Callable[[str, str], None]] = None) -> WorkflowOutput:
-        return self._run_loop(self.loader.load_benchmark_case(resolve_case_id(query)), on_event)
+    def run_query(self, query: str, on_event: Optional[Callable[[str, str], None]] = None, md: Optional[bool] = None) -> WorkflowOutput:
+        return self._run_loop(self.loader.load_benchmark_case(resolve_case_id(query)), on_event, md=md)
 
-    def _run_loop(self, case: Dict[str, Any], on_event: Optional[Callable[[str, str], None]]) -> WorkflowOutput:
+    def _run_loop(self, case: Dict[str, Any], on_event: Optional[Callable[[str, str], None]], md: Optional[bool] = None) -> WorkflowOutput:
         logs: List[str] = []
 
         def relay(entry: Dict[str, Any]) -> None:
@@ -336,8 +371,9 @@ class MasterOrchestrator:
                 except Exception:
                     pass
 
+        use_md = self.md if md is None else md
         stats = run_case(case, adapter=self.adapter, store=self.hmem.store, on_event=relay, workroot=self.workroot,
-                         log_dir=self.log_dir, sample_mode=self.sample_mode, echo=self.echo)
+                         log_dir=self.log_dir, sample_mode=self.sample_mode, echo=self.echo, md=use_md)
         self.last_stats = stats
         setup, result, cards = stats["_setup"], stats["_result"], stats["_cards"]
         if stats["kind"] == "metal":
@@ -368,5 +404,5 @@ class MasterOrchestrator:
         )
         plan = PlannerAgent().plan_from_case(case)
         return WorkflowOutput(success=ok, system_name=system_name, plan=plan, partition=partition, result=sim,
-                              decision_cards=cards, chimerax_script_path=None, report_markdown=stats["_report_markdown"],
+                              decision_cards=cards, chimerax_script_path=stats.get("chimerax_script"), report_markdown=stats["_report_markdown"],
                               logs=logs, stats={k: v for k, v in stats.items() if not k.startswith("_")})
