@@ -13,6 +13,12 @@ from typing import Any, Dict, Optional
 
 import httpx
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 DEFAULT_BASE_URL = "https://integrate.api.nvidia.com/v1"
 DEFAULT_MODEL = "nvidia/llama-3.3-nemotron-super-49b-v1"
 PLANNER_SYSTEM = (
@@ -27,7 +33,7 @@ class ModelClient:
                  timeout: float = 60.0):
         self.base_url = (base_url or os.getenv("MODEL_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
         self.model = model or os.getenv("MODEL_NAME") or DEFAULT_MODEL
-        self.api_key = api_key if api_key is not None else os.getenv("MODEL_API_KEY", "")
+        self.api_key = api_key if api_key is not None else (os.getenv("MODEL_API_KEY") or os.getenv("NVIDIA_API_KEY") or "")
         self.timeout = timeout
         self.calls = 0
         self.last_error: Optional[str] = None

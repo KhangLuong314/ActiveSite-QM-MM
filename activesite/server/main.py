@@ -11,12 +11,19 @@ import asyncio
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import threading
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -256,10 +263,60 @@ class ChatRequest(BaseModel):
 
 
 def biochemist_domain_reply(message: str, run_id: Optional[str] = None, run_context: Optional[Dict[str, Any]] = None) -> str:
-    msg = message.lower()
+    msg = message.lower().strip()
+    words = set(re.findall(r"\w+", msg))
 
-    # 1. Erlotinib neutrality / protonation
-    if "erlotinib" in msg and ("neutral" in msg or "charge" in msg or "protonat" in msg or "why" in msg):
+    # 1. Greetings & Pleasantries
+    greetings = {"hello", "hi", "hey", "greetings", "howdy", "sup", "yo"}
+    if words & greetings or msg in {"hello", "hi", "hey", "good morning", "good afternoon", "good evening"}:
+        return (
+            "👋 **Hello! I am ActiveSite's AI Biochemist.**\n\n"
+            "I'm here to explain the computational biochemistry, quantum physical principles, and autonomous decisions behind your simulation:\n\n"
+            "• **Protonation states:** How PDB2PQR + PROPKA determine His tautomers (HID/HIE) and why Erlotinib is kept neutral.\n"
+            "• **Active site partitioning:** Why specific residues are selected for the QM region and how Cα–Cβ link-atom cuts are placed.\n"
+            "• **Episodic self-correction (Critic):** How the Critic diagnoses radical electron mismatches on metal sites (like I-PpoI) and commits learned rules to Meterless H-MEM.\n"
+            "• **1 ps QM/MM Dynamics:** Why a 1.0 fs time step and 300 K Langevin thermostat are required to preserve hinge hydrogen bonds.\n\n"
+            "Click one of the suggested query chips above, or ask me any question about the setup!"
+        )
+
+    # 2. Capabilities & Bot identity
+    if any(k in msg for k in ["who are you", "what are you", "what can you do", "help", "how does this work", "overview"]):
+        return (
+            "🔬 **ActiveSite: Autonomous QM/MM Simulation Assistant**\n\n"
+            "Built for **Track 02 ('The Agent That Can Explain Why')** at Open Agent Hackathon 2026, I automate and explain multiscale QM/MM setups:\n\n"
+            "1. **Planner Agent:** Allow-lists execution stages to guarantee deterministic progress.\n"
+            "2. **DataScout Agent:** Queries federated catalogs (Zetaris / DuckDB) to retrieve crystallographic resolution and analog sites.\n"
+            "3. **Setup Agent:** Titrates titratable residues with PROPKA 3.5.1, builds GAFF2/AM1-BCC ligand force fields, and cuts covalent boundaries.\n"
+            "4. **Runner Agent:** Dispatches AmberTools 26 `sander` (PM6 semi-empirical QM/MM) and 1 ps Langevin MD inside Docker containers.\n"
+            "5. **Critic Agent:** Detects odd-electron radical parity violations, adjusts boundary cuts, and commits memories to Meterless H-MEM.\n"
+            "6. **Explainer Agent:** Generates 15 auditable Decision Cards with quantitative rationale, alternatives, confidence, and evidence.\n\n"
+            "Select a benchmark case on the left, click **Run Autonomous Setup & Explanation**, and ask me anything!"
+        )
+
+    # 3. Decision cards / Track 02 explanation
+    if "decision card" in msg or ("why" in msg and any(w in msg for w in ["card", "decision", "auditable", "format"])):
+        return (
+            "📋 **ActiveSite Auditable Decision Cards (Track 02):**\n\n"
+            "Every autonomous setup choice is recorded in a verifiable Decision Card structure:\n"
+            "• **`choice`:** Selected chemical parameter, protonation state, or boundary cut.\n"
+            "• **`rationale`:** Detailed physical and biochemical justification.\n"
+            "• **`alternatives`:** Explicitly tested and rejected alternatives with failure modes.\n"
+            "• **`confidence`:** Quantitative score based on margin of certainty.\n"
+            "• **`evidence`:** Verbatim citations from crystal structure REMARKs, PROPKA tables, or Amber energy terms.\n\n"
+            "Switch to the **Cards** tab in the dashboard to inspect all 15 Decision Cards for your current simulation!"
+        )
+
+    # 4. Link atoms & boundary cuts
+    if any(k in msg for k in ["link atom", "link-atom", "boundary cut", "partitioning", "capping"]):
+        return (
+            "✂️ **QM/MM Boundary Treatment & Link Atoms:**\n\n"
+            "1. **Non-Polar σ-Bonds Only:** ActiveSite strictly cuts single non-polar Cα–Cβ bonds of protein amino acid residues. Covalent bonds with significant dipole moments or partial double-bond character (e.g. peptide backbone C–N bonds) are never cut to prevent orbital distortion.\n"
+            "2. **Hydrogen Capping:** A monovalent hydrogen link atom is added along the original Cα–Cβ vector at standard C–H bond length (1.09 Å) to satisfy the quantum boundary valence.\n"
+            "3. **Nucleic Acid Sugars:** In DNA phosphodiester backbones (e.g., I-PpoI), cuts are placed at the sugar level rather than the phosphate, avoiding ring cleavage and ensuring zero net charge fraction loss."
+        )
+
+    # 5. Erlotinib neutrality / protonation
+    if "erlotinib" in msg and ("neutral" in msg or "charge" in msg or "protonat" in msg or "why" in msg or "1m17" in msg):
         reply = (
             "**Erlotinib (AQ4) Protonation Decision (Track 02 Rationale):**\n\n"
             "Erlotinib is a 4-anilinoquinazoline kinase inhibitor (PDB 1M17). In ActiveSite's autonomous preparation pipeline, "
@@ -276,7 +333,7 @@ def biochemist_domain_reply(message: str, run_id: Optional[str] = None, run_cont
             reply += "\n\n*Reference: Decision Card #3 (`protonation_state: ligand`) & Card #12 (`validation: binding mode`).*"
         return reply
 
-    # 2. QM/MM MD 1.0 fs time step & thermostat
+    # 6. QM/MM MD 1.0 fs time step & thermostat
     if ("1.0 fs" in msg or "time step" in msg or "thermostat" in msg or "langevin" in msg or "md" in msg or "dynamics" in msg):
         reply = (
             "**QM/MM Molecular Dynamics Protocol (1 ps, 1.0 fs step & 300 K Langevin):**\n\n"
@@ -295,7 +352,7 @@ def biochemist_domain_reply(message: str, run_id: Optional[str] = None, run_cont
             reply += f"\n\n*Trajectory Check: Ligand retained = {stab.get('ligand_retained')}, mean hinge distance = {stab.get('mean_distance', 2.45):.2f} Å.*"
         return reply
 
-    # 3. I-PpoI radical mismatch & Critic correction
+    # 7. I-PpoI radical mismatch & Critic correction
     if ("ippoi" in msg or "radical" in msg or "mismatch" in msg or "odd" in msg or "spin" in msg):
         reply = (
             "**Critic Diagnosis & Episodic Self-Correction on I-PpoI Endonuclease:**\n\n"
@@ -313,7 +370,7 @@ def biochemist_domain_reply(message: str, run_id: Optional[str] = None, run_cont
         )
         return reply
 
-    # 4. H-MEM memory ledger
+    # 8. H-MEM memory ledger
     if ("h-mem" in msg or "ledger" in msg or "memory" in msg or "store" in msg or "recall" in msg):
         reply = (
             "**Meterless H-MEM Episodic Memory Architecture:**\n\n"
@@ -328,7 +385,7 @@ def biochemist_domain_reply(message: str, run_id: Optional[str] = None, run_cont
         )
         return reply
 
-    # 5. General fallback / contextual response
+    # 9. General fallback / contextual response
     cards_summary = ""
     if run_context and run_context.get("cards"):
         c_list = [f"- **{c.get('category')}:** {c.get('choice')} ({c.get('rationale', '')[:80]}...)" for c in run_context["cards"][:4]]

@@ -521,33 +521,5 @@
     selectCase("ippoi_site_a");
     loadMemory();
   </script>
-
-    async function loadMemory() {
-      const container = document.getElementById("memoryContent");
-      try {
-        const data = await (await fetch("/api/ledger")).json();
-        container.innerHTML = "";
-        if (!data.memories.length) {
-          container.innerHTML = `<div class="text-slate-500 text-xs italic">Nothing remembered yet (${data.ledger_total} ledger lines). Run I-PpoI site A cold, then site B warm.</div>`;
-        } else {
-          const rows = data.memories.map(m => `<tr class="border-t border-slate-800"><td class="p-1.5 font-mono text-cyan-300">${escapeHtml(m.id)}</td><td class="p-1.5">${escapeHtml(m.layer)}</td><td class="p-1.5">${escapeHtml((m.tags || []).join(", "))}</td><td class="p-1.5">${Number(m.confidence).toFixed(2)}</td><td class="p-1.5">${m.access_count}</td><td class="p-1.5 text-slate-300">${escapeHtml(m.content)}</td><td class="p-1.5 text-slate-500">${escapeHtml(m.source)}</td></tr>`).join("");
-          container.innerHTML = `<table class="text-[11px] w-full"><thead><tr class="text-slate-400 text-left"><th class="p-1.5">id</th><th class="p-1.5">layer</th><th class="p-1.5">tags</th><th class="p-1.5">conf</th><th class="p-1.5">reads</th><th class="p-1.5">content</th><th class="p-1.5">source</th></tr></thead><tbody>${rows}</tbody></table>`;
-        }
-        document.getElementById("ledgerContent").innerText = data.ledger.map(l => JSON.stringify(l)).join("\n");
-      } catch (e) {
-        container.innerHTML = `<div class="text-rose-400 text-xs">Failed to load memory: ${escapeHtml(e.message)}</div>`;
-      }
-    }
-
-    async function resetMemory() {
-      if (!confirm("Delete the H-MEM database and ledger so the next run is cold?")) return;
-      const r = await (await fetch("/api/memory/reset", { method: "POST" })).json();
-      appendStep({ts: new Date().toISOString(), agent_name: "Server", action: "memory_reset", status: "ok", output_summary: `removed ${r.removed.length} file(s); memories now ${r.memories}`});
-      loadMemory();
-    }
-
-    selectCase("ippoi_site_a");
-    loadMemory();
-  </script>
 </body>
 </html>
