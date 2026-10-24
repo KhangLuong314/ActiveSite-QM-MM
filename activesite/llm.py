@@ -58,6 +58,30 @@ class ModelClient:
             self.last_error = f"{type(exc).__name__}: {exc}"[:300]
             return None
 
+    def chat(self, messages: list[dict[str, Any]] | list[Any], max_tokens: int = 500, model: Optional[str] = None) -> Optional[str]:
+        """Multi-turn conversation with Nemotron / OpenAI-compatible endpoint."""
+        if not self.available:
+            return None
+        self.calls += 1
+        model_name = model or os.getenv("NEMOTRON_MODEL") or self.model or "nvidia/nemotron-3.5-lightning-30b-a3b"
+        payload = {
+            "model": model_name,
+            "messages": messages,
+            "temperature": 0.2,
+            "max_tokens": int(max_tokens),
+        }
+        try:
+            r = httpx.post(f"{self.base_url}/chat/completions", json=payload,
+                           headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                           timeout=self.timeout)
+            r.raise_for_status()
+            data = r.json()
+            content = data["choices"][0]["message"]["content"]
+            return content if isinstance(content, str) else None
+        except Exception as exc:
+            self.last_error = f"{type(exc).__name__}: {exc}"[:300]
+            return None
+
     def plan_json(self, case: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Ask for a plan and parse the first JSON object defensively. The Planner allow-lists the result."""
         prompt = f"Case id: {case.get('id')}. Question: {case.get('question', '')[:500]}"

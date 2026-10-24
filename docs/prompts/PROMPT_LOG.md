@@ -498,6 +498,24 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-24 14:45 CDT] — Interactive Web Dashboard, AI Biochemist Chat, ChimeraX Launcher & Visual README
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/server/index.html`, `activesite/server/main.py`, `activesite/llm.py`, `tests/test_server.py`, `README.md`, `docs/assets/`
+- **Developer Prompt:**
+  > "Branch from main to a new branch: feat/ui-chat-chimerax-and-readme. Follow these detailed requirements: Part 1: Interactive Web Dashboard & AI Biochemist (interactive controls: MD toggle, Sample Mode toggle, ChimeraX launch button, AI Biochemist Chat tab with streaming states, model badge nvidia/nemotron-3.5-lightning-30b-a3b, quick-query pills; backend endpoints: SimulationRequest.md, POST /api/chimerax/launch, POST /api/chat; LLM client: ModelClient.chat; server tests). Part 2: README.md Visual & Content Upgrade (clean shield badges, MD demo GIF embed, Track 02 'Why' highlights with 15 Decision Cards, cold vs warm runs table, updated limitations, dual authors Khang Luong & Mohanendra Siddha)."
+- **Agent Action:**
+  - In `activesite/llm.py`: Added `ModelClient.chat(messages, max_tokens=500)` defaulting to `nvidia/nemotron-3.5-lightning-30b-a3b` (or `NEMOTRON_MODEL` env var).
+  - In `activesite/server/main.py`: Updated `SimulationRequest` with `md: Optional[bool] = False` and forwarded `md` to `run_case`; added `POST /api/chimerax/launch` verifying file existence and executing local launcher binaries via `subprocess.Popen`; added `POST /api/chat` providing Nemotron querying with domain fallback explaining erlotinib neutrality, 1.0 fs Langevin MD, I-PpoI parity self-correction, and H-MEM ledger architecture.
+  - In `activesite/server/index.html`: Added "Run 1 ps QM/MM MD" and "Offline Sample Mode" interactive checkboxes; added "🚀 Launch ChimeraX (3D)" button; added "AI Biochemist Chat" tab with quick query pills, animated reasoning states, and conversation bubbles.
+  - In `tests/test_server.py`: Added comprehensive unit tests for `POST /api/chat` (empty rejection, biochemical domain explanations), `POST /api/chimerax/launch` (404 on missing, mock launch), and `md` request parameter handling.
+  - Converted `docs/assets/egfr_erlotinib_md.mp4` to high-resolution optimized GIF `docs/assets/egfr_erlotinib_md.gif` (589 KB) for embedded documentation.
+  - Upgraded `README.md` with header badges (Track 02, AmberTools 26 sander PM6, NVIDIA Nemotron 3.5, Meterless H-MEM, Zetaris, 1 ps QM/MM MD), centered MD trajectory animation showcase, 15 Auditable Decision Cards breakdown, Cold vs. Warm run benchmark table, updated limitations reflecting MD support, and dual-author acknowledgment (Khang Luong & Mohanendra Siddha).
+- **Verification:**
+  - `uv run pytest -m "not slow" -q` passed with 138 passed, 3 deselected, 184 warnings in 48.70s.
+  - Pre-commit hooks (`gitleaks`, `ruff`) passed cleanly on all staged files.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name

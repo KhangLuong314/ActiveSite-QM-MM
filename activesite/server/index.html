@@ -84,6 +84,16 @@
           <label class="text-xs font-medium text-slate-300">Conversational Setup Request</label>
           <textarea id="promptInput" rows="3" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition resize-none placeholder-slate-500" placeholder="e.g. Set up a QM/MM model for I-PpoI active site A (Mg :371) and explain every setup choice."></textarea>
         </div>
+        <div class="flex items-center justify-between gap-4 py-1 flex-wrap text-xs text-slate-300">
+          <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" id="sampleModeToggle" checked class="w-4 h-4 rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-cyan-500">
+            <span class="font-medium">Offline Sample Mode</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" id="mdToggle" class="w-4 h-4 rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-cyan-500">
+            <span class="font-medium text-cyan-300"><i class="fa-solid fa-play-circle"></i> Run 1 ps QM/MM MD</span>
+          </label>
+        </div>
         <div class="flex items-center gap-3">
           <button id="runBtn" onclick="runSimulation()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold text-sm shadow-lg shadow-cyan-500/25 transition flex items-center justify-center gap-2">
             <i class="fa-solid fa-play"></i> Run Autonomous Setup & Explanation
@@ -149,8 +159,12 @@
       <div class="flex items-center gap-2 border-b border-slate-800 pb-2 flex-wrap">
         <button onclick="switchTab('cards')" id="tabBtnCards" class="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-cyan-400 border border-slate-700 flex items-center gap-2"><i class="fa-solid fa-address-card"></i> Decision Cards (<span id="cardsCount">0</span>)</button>
         <button onclick="switchTab('report')" id="tabBtnReport" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2"><i class="fa-solid fa-file-lines"></i> Report</button>
+        <button onclick="switchTab('chat')" id="tabBtnChat" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2"><i class="fa-solid fa-comments text-cyan-400"></i> AI Biochemist Chat</button>
         <button onclick="switchTab('memory')" id="tabBtnMemory" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2"><i class="fa-solid fa-brain"></i> What the system remembers</button>
         <button onclick="switchTab('sql')" id="tabBtnSql" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2"><i class="fa-solid fa-database"></i> SQL sent through the data layer</button>
+        <button id="launchChimeraXBtn" onclick="launchChimeraX()" class="hidden px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold text-xs shadow-md shadow-purple-500/20 transition flex items-center gap-1.5 ml-auto">
+          🚀 Launch ChimeraX (3D)
+        </button>
       </div>
 
       <div id="tabCards" class="flex flex-col gap-4">
@@ -159,6 +173,63 @@
         </div>
       </div>
       <div id="tabReport" class="hidden glass-card p-6 rounded-2xl"><pre id="reportContent" class="text-xs text-slate-300 whitespace-pre-wrap font-mono"></pre></div>
+      <div id="tabChat" class="hidden glass-card p-5 rounded-2xl flex flex-col gap-4 min-h-[500px]">
+        <!-- Chat Header & Badges -->
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800/80 flex-wrap gap-2">
+          <div class="flex items-center gap-2.5">
+            <span class="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white text-sm shadow">🔬</span>
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                AI Biochemist
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-800/50">Online / Explainable</span>
+              </h3>
+              <p class="text-[11px] text-slate-400">Computational chemistry reasoning & Decision Card auditor</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs px-2.5 py-1 rounded-md bg-slate-900 border border-slate-700 text-slate-300 font-mono flex items-center gap-1.5">
+              <i class="fa-solid fa-microchip text-cyan-400"></i> nvidia/nemotron-3.5-lightning-30b-a3b
+            </span>
+          </div>
+        </div>
+
+        <!-- Quick Query Pills -->
+        <div class="flex flex-col gap-1.5">
+          <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">Quick inquiries:</span>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="sendQuickQuery('Why was erlotinib kept neutral?')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
+              💡 <span>Why was erlotinib kept neutral?</span>
+            </button>
+            <button onclick="sendQuickQuery('Explain the QM/MM MD 1.0 fs time step & thermostat')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
+              ⏱️ <span>Explain the QM/MM MD 1.0 fs time step & thermostat</span>
+            </button>
+            <button onclick="sendQuickQuery('How did Critic diagnose and fix the I-PpoI radical mismatch?')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
+              🛡️ <span>How did Critic diagnose and fix the I-PpoI radical mismatch?</span>
+            </button>
+            <button onclick="sendQuickQuery('What does the H-MEM memory ledger store?')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
+              🧠 <span>What does the H-MEM memory ledger store?</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Chat History Area -->
+        <div id="chatHistory" class="flex-1 bg-slate-950/80 rounded-xl p-4 border border-slate-800/80 flex flex-col gap-3 overflow-y-auto max-h-[420px] min-h-[260px]">
+          <div class="flex items-start gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center text-cyan-300 text-xs shrink-0">🔬</div>
+            <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-200 leading-relaxed max-w-[85%]">
+              Hello! I am your AI Biochemist. Ask me anything about QM/MM active site partitioning, link atom boundary cuts, PROPKA protonation states, Langevin dynamics, or how the Critic diagnoses parity failures.
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Input Area -->
+        <div class="flex items-center gap-2 pt-2 border-t border-slate-800/80">
+          <input type="text" id="chatInput" placeholder="Ask the AI Biochemist about protonation, QM/MM partition, MD dynamics..." class="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition" onkeydown="if(event.key==='Enter') sendChatMessage()">
+          <button id="chatSendBtn" onclick="sendChatMessage()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold text-xs shadow-md shadow-cyan-500/20 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-paper-plane"></i> Send
+          </button>
+        </div>
+      </div>
       <div id="tabMemory" class="hidden glass-card p-6 rounded-2xl flex flex-col gap-3">
         <h3 class="text-sm font-semibold text-white">Meterless H-MEM memories and ledger</h3>
         <p class="text-xs text-slate-400">The store starts empty. A row appears only after the Critic learns something from a converged retry; the ledger below is append-only.</p>
@@ -177,6 +248,9 @@
     const AGENTS = ["Planner", "DataScout", "Setup", "LigandSetup", "Critic", "LigandCritic", "Runner", "Explainer", "Orchestrator"];
     let activeCaseId = null;
     let es = null;
+    let currentRunId = null;
+    let currentScriptPath = null;
+    let chatHistoryList = [];
 
     const PROMPTS = {
       "ippoi_site_a": "Set up a QM/MM model for DNA phosphodiester cleavage at I-PpoI active site A (Mg :371) and compute its PM6 QM/MM energy. Explain every setup choice.",
@@ -188,6 +262,7 @@
       activeCaseId = caseId;
       document.getElementById("promptInput").value = PROMPTS[caseId] || "";
       document.querySelectorAll("#caseButtons button").forEach(b => b.classList.toggle("ring-1", b.dataset.case === caseId));
+      document.getElementById("mdToggle").checked = (caseId === "egfr_erlotinib");
     }
     document.getElementById("promptInput").addEventListener("input", () => { activeCaseId = null; });
 
@@ -202,13 +277,17 @@
     renderPipeline(null, null);
 
     function switchTab(tab) {
-      for (const t of ["Cards", "Report", "Memory", "Sql"]) {
-        document.getElementById("tab" + t).classList.add("hidden");
-        document.getElementById("tabBtn" + t).className = "px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2";
+      for (const t of ["Cards", "Report", "Chat", "Memory", "Sql"]) {
+        const el = document.getElementById("tab" + t);
+        const btn = document.getElementById("tabBtn" + t);
+        if (el) el.classList.add("hidden");
+        if (btn) btn.className = "px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2";
       }
       const T = tab.charAt(0).toUpperCase() + tab.slice(1);
-      document.getElementById("tab" + T).classList.remove("hidden");
-      document.getElementById("tabBtn" + T).className = "px-4 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-cyan-400 border border-slate-700 flex items-center gap-2";
+      const activeEl = document.getElementById("tab" + T);
+      const activeBtn = document.getElementById("tabBtn" + T);
+      if (activeEl) activeEl.classList.remove("hidden");
+      if (activeBtn) activeBtn.className = "px-4 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-cyan-400 border border-slate-700 flex items-center gap-2";
       if (tab === "memory") loadMemory();
     }
 
@@ -234,6 +313,7 @@
       stream.scrollTop = stream.scrollHeight;
       renderPipeline(e.agent_name, e.target_agent);
       if (e.run_id) {
+        currentRunId = e.run_id;
         const link = document.getElementById("traceLink");
         link.href = `/api/trace/${e.run_id}`;
         link.innerText = `trace-${e.run_id}.jsonl`;
@@ -245,6 +325,16 @@
     function showResult(payload) {
       const st = payload.stats || {};
       const res = payload.result || {};
+      currentRunId = st.run_id || currentRunId;
+      currentScriptPath = payload.chimerax_script || st.chimerax_script || null;
+
+      const launchBtn = document.getElementById("launchChimeraXBtn");
+      if (currentScriptPath) {
+        launchBtn.classList.remove("hidden");
+      } else {
+        launchBtn.classList.add("hidden");
+      }
+
       document.getElementById("metricEnergy").innerText = res.qm_escf_kcal === null || res.qm_escf_kcal === undefined ? "not computed" : `${fmt(res.qm_escf_kcal, 3)} kcal/mol`;
       document.getElementById("metricTotal").innerText = "total: " + (res.total_energy_kcal === null || res.total_energy_kcal === undefined ? "not computed" : `${fmt(res.total_energy_kcal, 2)} kcal/mol`);
       setEngineBadge(st.engine_label || "engine unavailable");
@@ -258,10 +348,7 @@
       document.getElementById("reportContent").innerText = payload.report_markdown || "";
       const sql = payload.sql || {};
       document.getElementById("sqlLabel").innerText = `Adapter: ${st.catalog || "none"}`;
-      document.getElementById("sqlContent").innerText = Object.entries(sql).map(([k, v]) => `-- ${k}
-${v}`).join("
-
-");
+      document.getElementById("sqlContent").innerText = Object.entries(sql).map(([k, v]) => `-- ${k}\n${v}`).join("\n\n");
       if (st.errors && st.errors.length) appendStep({ts: new Date().toISOString(), agent_name: "Orchestrator", action: "engine", status: "failed", output_summary: st.errors.join("; ")});
     }
 
@@ -297,7 +384,11 @@ ${v}`).join("
       status.className = "text-[11px] px-2 py-0.5 rounded-full bg-cyan-900/60 text-cyan-300 animate-pulse";
       document.getElementById("thoughtStream").innerHTML = "";
       renderPipeline(null, null);
+
       const body = activeCaseId ? { case_id: activeCaseId } : { prompt: document.getElementById("promptInput").value };
+      body.sample_mode = document.getElementById("sampleModeToggle").checked;
+      body.md = document.getElementById("mdToggle").checked;
+
       try {
         const resp = await fetch("/api/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
         if (!resp.ok) throw new Error((await resp.json()).detail || resp.statusText);
@@ -327,6 +418,109 @@ ${v}`).join("
         btn.disabled = false; btn.innerHTML = `<i class="fa-solid fa-play"></i> Run Autonomous Setup & Explanation`;
       }
     }
+
+    async function launchChimeraX() {
+      const btn = document.getElementById("launchChimeraXBtn");
+      const orig = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Launching…`;
+      try {
+        const resp = await fetch("/api/chimerax/launch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ run_id: currentRunId, script_path: currentScriptPath })
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.detail || resp.statusText);
+        appendStep({ts: new Date().toISOString(), agent_name: "ChimeraX", action: "launch", status: "ok", output_summary: `Launched ${data.binary} with ${data.script_path}`});
+      } catch (err) {
+        alert(`Could not launch ChimeraX: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+      }
+    }
+
+    function sendQuickQuery(text) {
+      document.getElementById("chatInput").value = text;
+      switchTab("chat");
+      sendChatMessage();
+    }
+
+    async function sendChatMessage() {
+      const input = document.getElementById("chatInput");
+      const msg = input.value.trim();
+      if (!msg) return;
+      input.value = "";
+
+      const historyEl = document.getElementById("chatHistory");
+      const userMsg = document.createElement("div");
+      userMsg.className = "flex items-start justify-end gap-2.5";
+      userMsg.innerHTML = `<div class="p-3 rounded-2xl bg-indigo-900/60 border border-indigo-700/50 text-xs text-white leading-relaxed max-w-[85%]">${escapeHtml(msg)}</div><div class="w-7 h-7 rounded-lg bg-indigo-950 border border-indigo-700 flex items-center justify-center text-indigo-300 text-xs shrink-0">👤</div>`;
+      historyEl.appendChild(userMsg);
+
+      const loadingMsg = document.createElement("div");
+      loadingMsg.id = "chatLoadingIndicator";
+      loadingMsg.className = "flex items-start gap-2.5";
+      loadingMsg.innerHTML = `<div class="w-7 h-7 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center text-cyan-300 text-xs shrink-0">🔬</div><div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-400 italic flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin text-cyan-400"></i> AI Biochemist is evaluating chemical principles…</div>`;
+      historyEl.appendChild(loadingMsg);
+      historyEl.scrollTop = historyEl.scrollHeight;
+
+      chatHistoryList.push({ role: "user", content: msg });
+
+      try {
+        const resp = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: msg, run_id: currentRunId, history: chatHistoryList })
+        });
+        const data = await resp.json();
+        loadingMsg.remove();
+        if (!resp.ok) throw new Error(data.detail || resp.statusText);
+
+        chatHistoryList.push({ role: "assistant", content: data.reply });
+
+        const aiMsg = document.createElement("div");
+        aiMsg.className = "flex items-start gap-2.5";
+        aiMsg.innerHTML = `<div class="w-7 h-7 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center text-cyan-300 text-xs shrink-0">🔬</div><div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-200 leading-relaxed max-w-[85%] flex flex-col gap-1.5"><div class="whitespace-pre-wrap">${escapeHtml(data.reply)}</div><div class="text-[10px] text-slate-500 font-mono border-t border-slate-800/80 pt-1 flex items-center justify-between"><span>${escapeHtml(data.model || "nemotron")}</span><span class="text-cyan-400">${escapeHtml(data.source || "")}</span></div></div>`;
+        historyEl.appendChild(aiMsg);
+      } catch (err) {
+        if (loadingMsg) loadingMsg.remove();
+        const errEl = document.createElement("div");
+        errEl.className = "p-2 rounded-xl bg-rose-950/60 border border-rose-800 text-xs text-rose-300";
+        errEl.innerText = "Error: " + err.message;
+        historyEl.appendChild(errEl);
+      }
+      historyEl.scrollTop = historyEl.scrollHeight;
+    }
+
+    async function loadMemory() {
+      const container = document.getElementById("memoryContent");
+      try {
+        const data = await (await fetch("/api/ledger")).json();
+        container.innerHTML = "";
+        if (!data.memories.length) {
+          container.innerHTML = `<div class="text-slate-500 text-xs italic">Nothing remembered yet (${data.ledger_total} ledger lines). Run I-PpoI site A cold, then site B warm.</div>`;
+        } else {
+          const rows = data.memories.map(m => `<tr class="border-t border-slate-800"><td class="p-1.5 font-mono text-cyan-300">${escapeHtml(m.id)}</td><td class="p-1.5">${escapeHtml(m.layer)}</td><td class="p-1.5">${escapeHtml((m.tags || []).join(", "))}</td><td class="p-1.5">${Number(m.confidence).toFixed(2)}</td><td class="p-1.5">${m.access_count}</td><td class="p-1.5 text-slate-300">${escapeHtml(m.content)}</td><td class="p-1.5 text-slate-500">${escapeHtml(m.source)}</td></tr>`).join("");
+          container.innerHTML = `<table class="text-[11px] w-full"><thead><tr class="text-slate-400 text-left"><th class="p-1.5">id</th><th class="p-1.5">layer</th><th class="p-1.5">tags</th><th class="p-1.5">conf</th><th class="p-1.5">reads</th><th class="p-1.5">content</th><th class="p-1.5">source</th></tr></thead><tbody>${rows}</tbody></table>`;
+        }
+        document.getElementById("ledgerContent").innerText = data.ledger.map(l => JSON.stringify(l)).join("\n");
+      } catch (e) {
+        container.innerHTML = `<div class="text-rose-400 text-xs">Failed to load memory: ${escapeHtml(e.message)}</div>`;
+      }
+    }
+
+    async function resetMemory() {
+      if (!confirm("Delete the H-MEM database and ledger so the next run is cold?")) return;
+      const r = await (await fetch("/api/memory/reset", { method: "POST" })).json();
+      appendStep({ts: new Date().toISOString(), agent_name: "Server", action: "memory_reset", status: "ok", output_summary: `removed ${r.removed.length} file(s); memories now ${r.memories}`});
+      loadMemory();
+    }
+
+    selectCase("ippoi_site_a");
+    loadMemory();
+  </script>
 
     async function loadMemory() {
       const container = document.getElementById("memoryContent");

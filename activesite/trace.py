@@ -48,6 +48,7 @@ class Trace:
             "molecule": molecule,
             "data": data if data is not None else None,
         }
+        self.path.parent.mkdir(parents=True, exist_ok=True)
         with open(self.path, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, default=str) + "\n")
         self.entries.append(entry)
