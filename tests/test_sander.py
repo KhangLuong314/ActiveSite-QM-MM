@@ -9,9 +9,13 @@ from activesite.chem import sander
 from activesite.chem.sander import (
     ENGINE_IMAGE,
     build_command,
+    build_md_command,
     docker_available,
+    mdin_md_text,
     mdin_text,
+    parse_sander_md_output,
     parse_sander_output,
+    run_qmmm_md,
     run_single_point,
 )
 
@@ -184,6 +188,205 @@ def test_run_single_point_rejects_split_directories(tmp_path):
     (other / "sys.ncrst").write_text("x\n")
     with pytest.raises(ValueError):
         run_single_point(ref / "sys.parm7", other / "sys.ncrst", "@1-3", 1, tmp_path / "w")
+
+
+# ----------------------------------------------------------------------- MD
+SAMPLE_MD_OUT = """
+          -------------------------------------------------------
+          Amber 26 SANDER                              2026
+          -------------------------------------------------------
+LOADING THE QUANTUM ATOMS AS GROUPS
+     Mask :LIG; matches    52 atoms
+ QM atom RESP charge sum (inc MM link) =    1.002
+ nlink =    0
+
+ NSTEP =       50   TIME(PS) =       0.050  TEMP(K) =   295.42  PRESS =     0.0
+ Etot   =   -1520.1234  EKtot   =     210.1234  EPtot      =   -1730.2468
+ PM6ESCF=    -350.5432
+------------------------------------------------------------------------------
+ NSTEP =      100   TIME(PS) =       0.100  TEMP(K) =   299.85  PRESS =     0.0
+ Etot   =   -1518.2345  EKtot   =     212.4567  EPtot      =   -1730.6912
+ PM6ESCF=    -351.1200
+------------------------------------------------------------------------------
+                    A V E R A G E S   O V E R     100 S T E P S
+
+
+ NSTEP =      100   TIME(PS) =       0.100  TEMP(K) =   297.64  PRESS =     0.0
+ Etot   =   -1519.1789  EKtot   =     211.2900  EPtot      =   -1730.4690
+ PM6ESCF=    -350.8316
+------------------------------------------------------------------------------
+
+
+                    R M S  F L U C T U A T I O N S
+
+
+ NSTEP =      100   TIME(PS) =       0.100  TEMP(K) =     3.12  PRESS =     0.0
+ Etot   =       1.3450  EKtot   =       1.6500  EPtot      =       0.3142
+ PM6ESCF=       0.4078
+------------------------------------------------------------------------------
+"""
+
+
+def test_mdin_md_template():
+    md = mdin_md_text(":LIG", 1, "PM6", steps=1000, dt=0.001)
+    assert md.splitlines()[0] == "ActiveSite PM6 QM/MM MD, qmcharge=+1, GB"
+    expected_cntrl = [
+        "imin=0", "nstlim=1000", "dt=0.001",
+        "ntx=1", "irest=0",
+        "ntt=3", "gamma_ln=2.0", "tempi=300.0", "temp0=300.0",
+        "ntb=0", "igb=5", "cut=999.0",
+        "ntpr=10", "ntwx=10",
+        "ifqnt=1",
+    ]
+    for key in expected_cntrl:
+        assert key in md, f"missing cntrl key: {key}"
+
+    expected_qmmm = [
+        "qmmask=':LIG'",
+        "qm_theory='PM6'",
+        "qmcharge=1",
+        "spin=1",
+        "qmgb=2",
+        "qmcut=999.0",
+    ]
+    for key in expected_qmmm:
+        assert key in md, f"missing qmmm key: {key}"
+
+    with pytest.raises(ValueError):
+        mdin_md_text(":LIG", 1, "PM6", steps=-5)
+    with pytest.raises(ValueError):
+        mdin_md_text(":LIG", 1, "PM6", dt=0.0)
+
+
+def test_parse_sander_md_output():
+    r = parse_sander_md_output(SAMPLE_MD_OUT, "PM6")
+    assert r["ok"] is True
+    assert r["steps_completed"] == 100
+    assert r["final_temperature_k"] == pytest.approx(299.85)
+    assert r["qm_escf_kcal"] == pytest.approx(-351.1200)
+    assert r["total_energy_kcal"] == pytest.approx(-1518.2345)
+    assert r["qm_resp_charge_sum"] == pytest.approx(1.002)
+    assert r["link_atoms"] == 0
+    assert len(r["energy_progression"]) == 2
+    assert r["energy_progression"][0]["nstep"] == 50
+    assert r["energy_progression"][0]["temp_k"] == pytest.approx(295.42)
+    assert r["energy_progression"][1]["nstep"] == 100
+    assert r["averages"]["temp_k"] == pytest.approx(297.64)
+    assert r["averages"]["qm_escf"] == pytest.approx(-350.8316)
+    assert r["rms_fluctuations"]["temp_k"] == pytest.approx(3.12)
+    assert r["rms_fluctuations"]["qm_escf"] == pytest.approx(0.4078)
+    assert r["errors"] == []
+
+
+def test_parse_sander_md_output_errors():
+    empty = parse_sander_md_output("", "PM6")
+    assert empty["ok"] is False
+    assert empty["steps_completed"] == 0
+    assert empty["final_temperature_k"] is None
+
+    odd_text = SAMPLE_MD_OUT + "\n QMMM: odd number of electrons (203) incorrectly specified\n"
+    r_odd = parse_sander_md_output(odd_text, "PM6")
+    assert r_odd["ok"] is False
+    assert r_odd["odd_electrons"] == 203
+    assert any("odd number of electrons" in e for e in r_odd["errors"])
+
+
+def test_build_md_command_matches_spec():
+    cmd = build_md_command("sander-md-1234", "/ref/sys.parm7", "/ref/sys.rst7", Path("/data/work"), refdir=Path("/data/ref"))
+    assert cmd == [
+        "docker", "run", "--rm", "--name", "sander-md-1234",
+        "-v", "/data/ref:/ref:ro",
+        "-v", "/data/work:/work",
+        ENGINE_IMAGE,
+        "sander", "-O",
+        "-i", "md.mdin",
+        "-o", "md.out",
+        "-r", "md.rst7",
+        "-x", "traj.nc",
+        "-p", "/ref/sys.parm7",
+        "-c", "/ref/sys.rst7",
+    ]
+
+
+def test_run_qmmm_md_invokes_docker_and_parses(tmp_path, monkeypatch):
+    ref = _ref_files(tmp_path)
+    work = tmp_path / "work"
+    calls = []
+
+    def fake_run(cmd, capture_output, text, timeout):
+        calls.append((cmd, timeout))
+        assert (work / "md.mdin").exists(), "md.mdin must be written before docker runs"
+        (work / "md.out").write_text(SAMPLE_MD_OUT)
+        (work / "traj.nc").write_bytes(b"dummy_netcdf_bytes")
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(sander.subprocess, "run", fake_run)
+    r = run_qmmm_md(work, ref / "sys.parm7", ref / "sys.ncrst", "@1-3", 1, theory="PM6", steps=100, dt=0.001, timeout_s=120)
+
+    cmd, timeout = calls[0]
+    assert timeout == 120
+    assert cmd[:4] == ["docker", "run", "--rm", "--name"]
+    assert cmd[4].startswith("sander-md-")
+    assert "-x" in cmd and "traj.nc" in cmd
+    assert r["ok"] is True
+    assert r["steps_completed"] == 100
+    assert r["final_temperature_k"] == pytest.approx(299.85)
+    assert r["traj"] == str((work / "traj.nc").resolve())
+    assert r["mdout"] == str((work / "md.out").resolve())
+
+
+def test_trajectory_stability_and_dynamics_card():
+    from activesite.agent.ligand import check_trajectory_stability, simulation_dynamics_card
+    from activesite.models import DecisionCategory
+
+    parm = Path("data/sample/egfr_erlotinib/prep/complex.parm7")
+    min_rst = Path("data/sample/egfr_erlotinib/prep/min.rst7")
+
+    # Single-point / min.rst7 geometry test
+    stab = check_trajectory_stability(parm, min_rst, contact_pair=(":AQ4@N2", ":MET97@H"))
+    assert stab["available"] is True
+    assert stab["frames"] == 1
+    assert stab["mean_distance"] < 2.5
+    assert stab["ligand_retained"] is True
+
+    md_res = {
+        "ok": True,
+        "steps_completed": 1000,
+        "final_temperature_k": 301.2,
+        "rms_fluctuations": {"temp_k": 4.5},
+        "traj": str(min_rst),
+    }
+    card = simulation_dynamics_card(md_res, stab, steps=1000, dt=0.001)
+    assert card.category == DecisionCategory.SIMULATION_DYNAMICS
+    assert "1.0 fs time step" in card.choice
+    assert "300 K Langevin thermostat" in card.choice
+    assert "2.0 fs time step with SHAKE" in card.alternatives[0].name
+    assert card.confidence >= 0.90
+    assert card.evidence["temperature_k"] == 300.0
+
+
+def test_chimerax_trajectory_script(tmp_path):
+    from activesite.chem.chimerax import ChimeraXGenerator
+
+    gen = ChimeraXGenerator()
+    out_file = tmp_path / "trajectory.cxc"
+    parm_file = Path("data/sample/egfr_erlotinib/prep/complex.parm7")
+    rst_file = Path("data/sample/egfr_erlotinib/prep/min.rst7")
+
+    script = gen.generate_trajectory_script(
+        parm_file,
+        tmp_path / "traj.nc",
+        ligand_resname="AQ4",
+        output_script_path=out_file,
+        rst7_path=rst_file,
+    )
+    assert out_file.exists()
+    assert (tmp_path / "complex.pdb").exists()
+    assert f"open {tmp_path / 'complex.pdb'}" in script
+    assert f"open {tmp_path / 'traj.nc'} format amber structureModel #1" in script
+    assert "coordset slider #1" in script
+    assert "color :AQ4 magenta" in script
+    assert "view :AQ4" in script
 
 
 # --------------------------------------------------------------------- engine

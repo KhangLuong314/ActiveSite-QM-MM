@@ -18,6 +18,7 @@ class DecisionCategory(str, Enum):
     CUT_LEVEL = "cut_level"
     VALIDATION = "validation"
     ANALOGY = "analogy"
+    SIMULATION_DYNAMICS = "simulation_dynamics"
 
 
 class AlternativeChoice(BaseModel):

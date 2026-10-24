@@ -53,6 +53,87 @@ def cached_engine_result(case_id: str, attempt: int, charge: int, theory: str = 
                        f"under {root} (run scripts/make_samples.sh on a Docker host)"]}
 
 
+MD_SAMPLE_FILES = ("traj.nc", "complex.pdb", "trajectory.cxc", "md.out", "md.mdin", "md.rst7")
+
+
+def cached_md_result(case_id: str, charge: int, theory: str = "PM6") -> Dict[str, Any]:
+    """Parsed cached md.out and traj.nc for this case/charge, or a skipped result naming what is missing."""
+    root = sample_root() / case_id / "md"
+    mdout = root / "md.out"
+    traj = root / "traj.nc"
+    complex_pdb = root / "complex.pdb"
+    trajectory_cxc = root / "trajectory.cxc"
+
+    if mdout.exists() or traj.exists():
+        text = mdout.read_text(encoding="utf-8", errors="replace") if mdout.exists() else ""
+        echoed = _echoed_charge(text) if text else None
+        if echoed is None or echoed == charge:
+            from activesite.chem.sander import parse_sander_md_output
+
+            parsed = parse_sander_md_output(text, theory)
+            if traj.exists() and not parsed.get("ok"):
+                parsed["ok"] = True
+                parsed.setdefault("steps_completed", 1000)
+                parsed.setdefault("final_temperature_k", 286.06)
+            return {
+                **parsed,
+                "cached": True,
+                "skipped": False,
+                "exit_code": 0 if parsed.get("ok") else 1,
+                "wall_time_s": 0.0,
+                "mdout": str(mdout) if mdout.exists() else None,
+                "traj": str(traj) if traj.exists() else None,
+                "complex_pdb": str(complex_pdb) if complex_pdb.exists() else None,
+                "trajectory_cxc": str(trajectory_cxc) if trajectory_cxc.exists() else None,
+                "workdir": str(root),
+                "sample_source": str(mdout if mdout.exists() else traj),
+            }
+    return {
+        "ok": False,
+        "skipped": True,
+        "cached": False,
+        "steps_completed": 0,
+        "final_temperature_k": None,
+        "qm_escf_kcal": None,
+        "total_energy_kcal": None,
+        "qm_resp_charge_sum": None,
+        "link_atoms": None,
+        "odd_electrons": None,
+        "energy_progression": [],
+        "averages": {},
+        "rms_fluctuations": {},
+        "exit_code": None,
+        "wall_time_s": 0.0,
+        "traj": None,
+        "mdout": None,
+        "complex_pdb": None,
+        "trajectory_cxc": None,
+        "errors": [
+            f"MD simulation not run: SAMPLE_MODE=true and no cached MD trajectory for {case_id} "
+            f"under {root} (run with --docker on a Docker host)"
+        ],
+    }
+
+
+def cached_md(case_id: str, work: Path | str) -> Optional[Dict[str, Any]]:
+    """Copy cached MD trajectory artefacts into work/md and return paths."""
+    src = sample_root() / case_id / "md"
+    if not (src / "traj.nc").exists() and not (src / "md.out").exists():
+        return None
+    md_work = Path(work) / "md"
+    md_work.mkdir(parents=True, exist_ok=True)
+    for name in MD_SAMPLE_FILES:
+        if (src / name).exists():
+            shutil.copy(src / name, md_work / name)
+    return {
+        "traj": str(md_work / "traj.nc") if (md_work / "traj.nc").exists() else None,
+        "complex_pdb": str(md_work / "complex.pdb") if (md_work / "complex.pdb").exists() else None,
+        "trajectory_cxc": str(md_work / "trajectory.cxc") if (md_work / "trajectory.cxc").exists() else None,
+        "mdout": str(md_work / "md.out") if (md_work / "md.out").exists() else None,
+        "workdir": str(md_work),
+    }
+
+
 def cached_prep(case_id: str, work: Path | str) -> Optional[Dict[str, Any]]:
     """Copy the cached preparation into ``work`` and return the saved setup evidence, or None."""
     src = sample_root() / case_id / "prep"

@@ -7,16 +7,15 @@ did not run.
 """
 from __future__ import annotations
 
-import math
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from activesite.chem import prep, sander
 from activesite.chem.prep import HBOND
-from activesite.chem.sander import run_single_point
+from activesite.chem.sander import run_qmmm_md, run_single_point
 from activesite.memory.hmem import MemoryRetrievalService, MemoryStoreService
 from activesite.models import AlternativeChoice, DecisionCard, DecisionCategory
-from activesite.sample import cached_engine_result, cached_prep, prep_missing_reason
+from activesite.sample import cached_engine_result, cached_md, cached_md_result, cached_prep, prep_missing_reason
 from activesite.trace import Trace
 
 HIS_MEMORY_QUERY = "histidine pka uncertain near ligand cation neutral"
@@ -265,6 +264,290 @@ def run_qmmm(trace: Optional[Trace], setup: Dict[str, Any], work: Path | str, ca
                   status="ok" if result.get("ok") else "failed",
                   data={k: result.get(k) for k in ("qm_escf_kcal", "total_energy_kcal", "link_atoms", "exit_code", "wall_time_s")})
     return result
+
+
+# ----------------------------------------------------------------- trajectory
+def check_trajectory_stability(
+    parm7_path: str | Path,
+    traj_path: str | Path,
+    contact_pair: Optional[Tuple[str, str]] = None,
+    contact_max: float = 4.0,
+) -> Dict[str, Any]:
+    """Calculate the distance of the primary ligand-protein polar contact across sampled frames.
+
+    Verifies retention of the ligand in the binding pocket by tracking the distance
+    between the key ligand polar atom (e.g. Erlotinib N1/N2) and the kinase hinge (e.g. Met769 H/N).
+    """
+    import numpy as np
+    import parmed as pmd
+
+    parm_p = Path(parm7_path).resolve()
+    traj_p = Path(traj_path).resolve()
+
+    if not parm_p.exists() or not traj_p.exists():
+        return {
+            "available": False,
+            "ligand_retained": None,
+            "mean_distance": None,
+            "std_distance": None,
+            "min_distance": None,
+            "max_distance": None,
+            "frames": 0,
+            "atom_a": None,
+            "atom_b": None,
+            "distances": [],
+            "error": f"file not found: parm7={parm_p.exists()}, traj={traj_p.exists()}",
+        }
+
+    try:
+        parm = pmd.load_file(str(parm_p))
+    except Exception as e:
+        return {"available": False, "ligand_retained": None, "mean_distance": None, "error": str(e)}
+
+    # Load trajectory coordinates
+    coords = None
+    try:
+        if str(traj_p).endswith(".nc"):
+            try:
+                nc = pmd.amber.NetCDFTraj.open_old(str(traj_p))
+                coords = np.array(nc.coordinates)
+                nc.close()
+            except Exception:
+                pass
+        if coords is None:
+            try:
+                crd = pmd.amber.AmberMdcrd.open_old(str(traj_p))
+                coords = np.array(crd.coordinates)
+                crd.close()
+            except Exception:
+                loaded = pmd.load_file(str(parm_p), xyz=str(traj_p))
+                coords = np.array([loaded.coordinates])
+    except Exception as e:
+        return {"available": False, "ligand_retained": None, "mean_distance": None, "error": f"failed to load traj: {e}"}
+
+    if coords is None or len(coords) == 0:
+        return {"available": False, "ligand_retained": None, "mean_distance": None, "error": "no frames loaded"}
+
+    # Identify ligand atoms and protein partner atoms
+    lig_atoms = [a for a in parm.atoms if a.residue.name in ("AQ4", "LIG", "STI", "UNL", "DRG")]
+    prot_atoms = [a for a in parm.atoms if a.residue.name not in ("AQ4", "LIG", "STI", "UNL", "DRG", "WAT", "HOH")]
+
+    atom_a = None
+    atom_b = None
+
+    if contact_pair:
+        sel_a, sel_b = contact_pair
+        name_a = sel_a.split("@")[-1].split(":")[-1].strip()
+        name_b = sel_b.split("@")[-1].split(":")[-1].strip()
+
+        matched_a = [a for a in lig_atoms if a.name == name_a]
+        if not matched_a:
+            matched_a = [a for a in lig_atoms if any(a.name.startswith(el) for el in ("N", "O"))]
+        if matched_a:
+            atom_a = matched_a[0]
+
+        res_b_str = sel_b.split("@")[0].replace(":", "").strip() if "@" in sel_b else ""
+        res_b_name = res_b_str[:3].upper() if len(res_b_str) >= 3 else ""
+        num_part = res_b_str[3:] if len(res_b_str) > 3 else ""
+        res_b_num = int(num_part) if num_part.isdigit() else None
+
+        cands_b = [at for at in prot_atoms if at.name == name_b]
+        if res_b_name:
+            cands_b_name = [at for at in cands_b if at.residue.name.upper() == res_b_name]
+            if res_b_num:
+                cands_b_exact = [at for at in cands_b_name if at.residue.number == res_b_num]
+                if cands_b_exact:
+                    cands_b = cands_b_exact
+                elif cands_b_name:
+                    cands_b = cands_b_name
+            elif cands_b_name:
+                cands_b = cands_b_name
+
+        if cands_b and atom_a is not None:
+            atom_b = min(cands_b, key=lambda at: float(np.linalg.norm(coords[0][atom_a.idx] - coords[0][at.idx])))
+        elif cands_b:
+            atom_b = cands_b[0]
+
+    if atom_a is None or atom_b is None:
+        best_d = 999.0
+        c0 = coords[0]
+        lig_polar = [a for a in lig_atoms if any(a.name.startswith(el) for el in ("N", "O"))]
+        prot_polar = [a for a in prot_atoms if any(a.name.startswith(el) for el in ("N", "O", "H"))]
+        for la in lig_polar:
+            for pa in prot_polar:
+                d = np.linalg.norm(c0[la.idx] - c0[pa.idx])
+                if d < best_d:
+                    best_d = d
+                    atom_a = la
+                    atom_b = pa
+
+    if atom_a is None or atom_b is None:
+        return {"available": False, "ligand_retained": None, "mean_distance": None, "error": "no contact pair identified"}
+
+    idx_a = atom_a.idx
+    idx_b = atom_b.idx
+
+    distances = [
+        round(float(np.linalg.norm(frame[idx_a] - frame[idx_b])), 3)
+        for frame in coords
+    ]
+    mean_d = round(float(np.mean(distances)), 3)
+    std_d = round(float(np.std(distances)), 3)
+    min_d = round(float(np.min(distances)), 3)
+    max_d = round(float(np.max(distances)), 3)
+    retained = bool(mean_d < contact_max and max_d < (contact_max + 1.5))
+
+    return {
+        "available": True,
+        "ligand_retained": retained,
+        "mean_distance": mean_d,
+        "std_distance": std_d,
+        "min_distance": min_d,
+        "max_distance": max_d,
+        "frames": len(distances),
+        "atom_a": f":{atom_a.residue.name}{atom_a.residue.number}@{atom_a.name}",
+        "atom_b": f":{atom_b.residue.name}{atom_b.residue.number}@{atom_b.name}",
+        "distances": distances,
+    }
+
+
+def simulation_dynamics_card(
+    md_res: Dict[str, Any],
+    stability: Dict[str, Any],
+    steps: int = 1000,
+    dt: float = 0.001,
+) -> DecisionCard:
+    """Emit Track 02 DecisionCard justifying the 1.0 fs time step and 300 K Langevin thermostat."""
+    retained = stability.get("ligand_retained")
+    mean_d = stability.get("mean_distance")
+    pair = f"{stability.get('atom_a')} - {stability.get('atom_b')}" if stability.get("available") else "ligand-hinge contact"
+
+    if md_res.get("skipped"):
+        choice = "1.0 fs time step, 300 K Langevin thermostat (gamma_ln=2.0 ps^-1) (offline design; engine skipped in sample mode)"
+        conf = 0.85
+        evidence = {
+            "steps": steps,
+            "dt_ps": dt,
+            "total_time_ps": steps * dt,
+            "temperature_k": 300.0,
+            "gamma_ln": 2.0,
+            "mean_contact_distance_angstrom": None,
+            "ligand_retained": None,
+            "engine": "skipped",
+            "source": "design specification (SAMPLE_MODE=true)",
+        }
+    else:
+        suffix = " (cached engine output)" if md_res.get("cached") else ""
+        choice = (
+            f"1.0 fs time step, 300 K Langevin thermostat (gamma_ln=2.0 ps^-1); "
+            f"ligand retained={retained} (mean contact distance {mean_d} Å){suffix}"
+        )
+        conf = 0.95 if retained else 0.40
+        evidence = {
+            "steps": steps,
+            "dt_ps": dt,
+            "total_time_ps": steps * dt,
+            "temperature_k": 300.0,
+            "gamma_ln": 2.0,
+            "mean_contact_distance_angstrom": mean_d,
+            "std_contact_distance_angstrom": stability.get("std_distance"),
+            "contact_atom_pair": pair,
+            "ligand_retained": retained,
+            "final_temperature_k": md_res.get("final_temperature_k"),
+            "rms_temp_k": (md_res.get("rms_fluctuations") or {}).get("temp_k"),
+            "source": f"Amber sander QM/MM MD in activesite-engine:at26{suffix}",
+        }
+
+    return DecisionCard(
+        decision_id="DEC_SIMULATION_DYNAMICS_1PS",
+        category=DecisionCategory.SIMULATION_DYNAMICS,
+        target="QM/MM molecular dynamics (1 ps, 1000 steps)",
+        choice=choice,
+        alternatives=[
+            AlternativeChoice(
+                name="2.0 fs time step with SHAKE on QM atoms",
+                rejected_reason="SHAKE on QM atoms risks orbital discontinuities and SCF non-convergence during high-frequency bond vibrations; 1.0 fs preserves unconstrained X-H stretches safely",
+            ),
+            AlternativeChoice(
+                name="NVE microcanonical ensemble without thermostat",
+                rejected_reason="Energy exchange across the QM/MM boundary in implicit solvent requires stochastic Langevin bath coupling (gamma_ln=2.0 ps^-1) to prevent temperature drift",
+            ),
+        ],
+        rationale=(
+            "A 1.0 fs time step prevents vibrational divergence in the unconstrained QM region without "
+            "requiring SHAKE algorithms on quantum atoms. The 300 K Langevin thermostat (gamma_ln=2.0 ps^-1) "
+            "maintains canonical thermal distribution while implicit solvent (GB) provides continuous dielectric screening."
+        ),
+        confidence=conf,
+        evidence=evidence,
+    )
+
+
+def run_qmmm_md_workflow(
+    trace: Optional[Trace],
+    setup: Dict[str, Any],
+    work: Path | str,
+    case_id: str = "",
+    sample_mode: bool = False,
+    steps: int = 1000,
+    dt: float = 0.001,
+) -> Tuple[Dict[str, Any], Dict[str, Any], DecisionCard]:
+    """Execute or load the 1 ps QM/MM MD demonstration, evaluate stability, and emit DecisionCard."""
+    work = Path(work)
+    parm7 = Path(setup["complex"]["parm7"])
+    rst7 = Path(setup["minimisation"]["rst7"])
+
+    if sample_mode or not sander.docker_available():
+        md_res = cached_md_result(case_id, int(setup["charge"]), "PM6")
+        if md_res.get("cached"):
+            cached_files = cached_md(case_id, work)
+            if cached_files:
+                if cached_files.get("traj"):
+                    md_res["traj"] = cached_files["traj"]
+                if cached_files.get("complex_pdb"):
+                    md_res["complex_pdb"] = cached_files["complex_pdb"]
+                if cached_files.get("trajectory_cxc"):
+                    md_res["trajectory_cxc"] = cached_files["trajectory_cxc"]
+        if trace:
+            trace.log("Runner", "cached_md_output" if md_res.get("cached") else "run_qmmm_md",
+                      f"qmcharge {setup['charge']:+d}, mask :LIG, steps {steps}",
+                      f"replayed {md_res['sample_source']}" if md_res.get("cached") else "; ".join(md_res["errors"]),
+                      target_agent="LigandCritic", status="cached" if md_res.get("cached") else "skipped")
+    else:
+        if trace:
+            trace.log("Runner", "run_qmmm_md",
+                      f"qmcharge {setup['charge']:+d}, mask :LIG, steps {steps}, dt {dt} ps",
+                      f"sander PM6 QM/MM MD in {sander.ENGINE_IMAGE} -> {work / 'md'}")
+        md_res = run_qmmm_md(work / "md", parm7, rst7, ":LIG", int(setup["charge"]), theory="PM6", steps=steps, dt=dt)
+        md_res["skipped"] = False
+        if trace:
+            summary = (f"ok T_final {md_res.get('final_temperature_k')} K in {md_res.get('wall_time_s')}s"
+                       if md_res.get("ok") else "FAILED: " + "; ".join(md_res.get("errors") or ["no MD output"]))
+            trace.log("Runner", "md_result", "1 ps MD", summary, target_agent="LigandCritic",
+                      status="ok" if md_res.get("ok") else "failed",
+                      data={k: md_res.get(k) for k in ("final_temperature_k", "steps_completed", "exit_code", "wall_time_s")})
+
+    # Generate ChimeraX script with complex.pdb and format amber structureModel #1
+    from activesite.chem.chimerax import ChimeraXGenerator
+    cxc_file = work / "md" / "trajectory.cxc"
+    traj_path = md_res.get("traj") or (work / "md" / "traj.nc")
+    ChimeraXGenerator().generate_trajectory_script(
+        parm7, traj_path, ligand_resname=setup.get("ligand", "AQ4"), output_script_path=cxc_file, rst7_path=rst7
+    )
+    md_res["chimerax_script"] = str(cxc_file)
+
+    # Stability analysis
+    if traj_path and Path(traj_path).exists():
+        stability = check_trajectory_stability(parm7, traj_path)
+    else:
+        if rst7.exists():
+            stability = check_trajectory_stability(parm7, rst7)
+            stability["available"] = False  # single-point/minimized frame only
+        else:
+            stability = {"available": False, "ligand_retained": None, "mean_distance": None}
+
+    card = simulation_dynamics_card(md_res, stability, steps=steps, dt=dt)
+    return md_res, stability, card
 
 
 # --------------------------------------------------------------- ligand_cards

@@ -458,6 +458,46 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-24 01:35 CDT] — QM/MM Molecular Dynamics (1 ps) Demonstration Mode
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/chem/sander.py`, `activesite/models.py`, `activesite/agent/ligand.py`, `activesite/chem/chimerax.py`, `activesite/sample.py`, `activesite/agent/orchestrator.py`, `run.py`, `tests/test_sander.py`
+- **Developer Prompt:**
+  > "Goal: Implement a short 1,000-step (1 ps) QM/MM Molecular Dynamics demonstration mode on a dedicated feature branch. Follow AGENTS.md rules: Isolated Docker execution in activesite-engine:at26 (nothing chemical runs on host). Honest reporting: no simulated or fabricated numbers. Maintain full test suite pass rate. Step 1: Branching & Preflight (`feat/qmmm-md-demo`). Step 2: MD Namelist & Sander Runner (`activesite/chem/sander.py`). Step 3: Trajectory Analysis & Decision Cards (`activesite/agent/ligand.py` & `activesite/chem/chimerax.py`). Step 4: CLI & Orchestrator Integration (`--md` flag in `run.py`). Step 5: Verification & Audit."
+- **Agent Action:**
+  - Added Amber sander QM/MM MD namelist template `_MD_GB_TEMPLATE` and renderer `mdin_md_text` with 1,000 steps, dt=0.001 ps (1.0 ps total), Langevin thermostat (300 K, gamma_ln=2.0 ps^-1), GB implicit solvent (igb=5, mbondi2), and QM/MM partition settings.
+  - Implemented pure parser `parse_sander_md_output` extracting step-by-step energy progression, final temperature, averages, and RMS fluctuations from sander mdout.
+  - Implemented containerized runner `run_qmmm_md` executing inside `activesite-engine:at26` mounting workdir to `/work` with output trajectory capture (`traj.nc`).
+  - Added `SIMULATION_DYNAMICS` category to `DecisionCategory` enum in `activesite/models.py`.
+  - Implemented `check_trajectory_stability` in `activesite/agent/ligand.py` to evaluate the primary ligand-protein polar contact (e.g. Erlotinib:N2/N1 to Met769:H/N) across sampled frames with ParmEd.
+  - Implemented `simulation_dynamics_card` emitting a Track 02 `SIMULATION_DYNAMICS` DecisionCard justifying the 1.0 fs time step (preventing unconstrained bond vibrational divergence without SHAKE on QM atoms) and 300 K Langevin coupling.
+  - Updated `ChimeraXGenerator` in `activesite/chem/chimerax.py` with `generate_trajectory_script` and trajectory coordinate slider support.
+  - Added `--md` CLI option to `run.py` and connected orchestrator with graceful, honest fallback in sample mode via `cached_md_result`.
+  - Added comprehensive unit tests in `tests/test_sander.py` covering MD namelist creation, output parsing, container command construction, trajectory stability calculation, and ChimeraX trajectory script generation.
+- **Verification:**
+  - `uv run pytest -m "not slow" -q` passed with 134 passed, 3 deselected, 172 warnings in 21.85s (zero regressions, 7 new unit tests).
+  - Validated `run.py --case egfr_erlotinib --sample-mode --md` generates complete report with DecisionCard #15 (`simulation_dynamics`), honest skip explanation, and valid ChimeraX visualization script (`trajectory.cxc`).
+
+---
+
+### [2026-10-24 02:40 CDT] — QM/MM MD Refinement & ChimeraX Trajectory Script Generator
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/chem/sander.py`, `activesite/chem/chimerax.py`, `activesite/agent/ligand.py`, `activesite/sample.py`, `data/sample/egfr_erlotinib/md/`, `tests/test_sander.py`, `tests/test_chimerax.py`
+- **Developer Prompt:**
+  > "Goal: Refine the QM/MM MD pipeline and ChimeraX trajectory script generator to resolve ChimeraX loading errors and increase trajectory frame density. Follow AGENTS.md rules (isolated Docker execution, honest reporting, clean tests). Issues to resolve: 1. ChimeraX cannot open .parm7 files directly; it requires a .pdb reference structure. 2. ChimeraX requires explicit format specification for Amber NetCDF trajectories: open <traj.nc> format amber structureModel #1. 3. Trajectory frame density: Change default ntwx from 50 to 10 in the MD namelist, so a 1,000-step simulation yields 100 smooth frames instead of 20. 4. Offline Judge Cache: Cache the real EGFR Erlotinib 1 ps MD simulation into data/sample/egfr_erlotinib/md/ so judges running SAMPLE_MODE=true get instant trajectory replays."
+- **Agent Action:**
+  - In `activesite/chem/sander.py`: Updated `_MD_GB_TEMPLATE` and `mdin_md_text` with default `ntpr=10` and `ntwx=10`, producing 100 coordinate frames for smooth playback in 1,000-step MD simulations.
+  - In `activesite/chem/chimerax.py`: Enhanced `generate_trajectory_script` to convert topology and restart coordinates into a reference `complex.pdb` using ParmEd (`parmed.load_file(...).save(...)`).
+  - Added explicit format specification in ChimeraX scripts (`open <traj.nc> format amber structureModel #1`) and `coordset slider #1` with ribbon protein styling, magenta ball-and-stick ligand, and yellow pseudobonds for hydrogen bonds.
+  - In `activesite/sample.py` and `activesite/agent/ligand.py`: Added `cached_md` to populate `work/md/` during offline runs (`SAMPLE_MODE=true`), updated `cached_md_result` to check for `complex.pdb` and `trajectory.cxc`, and marked decision cards with honest `(cached engine output)` source attribution.
+  - Cached the real, verified EGFR Erlotinib 1 ps MD simulation (100 frames) into `data/sample/egfr_erlotinib/md/`.
+  - Added unit test `test_chimerax_trajectory_script_format` in `tests/test_chimerax.py` and updated `tests/test_sander.py` to assert `format amber structureModel #1` and `complex.pdb` generation.
+- **Verification:**
+  - `uv run pytest -m "not slow" -q` passed with 135 passed, 3 deselected, 184 warnings in 20.41s.
+  - Validated `run.py --case egfr_erlotinib --sample-mode --md` successfully copies cached trajectory and generates valid ChimeraX visualization script (`trajectory.cxc`).
+  - Pre-commit hooks (`gitleaks`, `ruff`) passed cleanly on all staged files.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
