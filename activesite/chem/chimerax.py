@@ -59,7 +59,7 @@ class ChimeraXGenerator:
 
         if traj_path:
             lines.extend([
-                f"open {Path(traj_path).resolve()}",
+                f"open {Path(traj_path).resolve()} format amber structureModel #1",
                 "coordset slider #1",
             ])
 
@@ -144,15 +144,61 @@ class ChimeraXGenerator:
         traj_path: str | Path,
         ligand_resname: str = "AQ4",
         output_script_path: Optional[str | Path] = None,
+        rst7_path: Optional[str | Path] = None,
     ) -> str:
-        """Create a ChimeraX script to load complex topology, MD trajectory, and slider."""
+        """Create a ChimeraX script to load complex PDB reference, MD trajectory, and slider."""
+        target_dir = Path(output_script_path).parent if output_script_path else Path(traj_path).parent
+        struct_p = Path(parm7_path).resolve()
+        pdb_path = None
+
+        if struct_p.suffix.lower() == ".pdb" and struct_p.exists():
+            pdb_path = struct_p
+        elif rst7_path is not None and struct_p.exists() and Path(rst7_path).exists():
+            import parmed
+            pdb_out = target_dir / "complex.pdb"
+            try:
+                parmed.load_file(str(struct_p), str(rst7_path)).save(str(pdb_out), overwrite=True)
+                pdb_path = pdb_out.resolve()
+            except Exception:
+                pdb_path = struct_p
+        else:
+            if (target_dir / "complex.pdb").exists():
+                pdb_path = (target_dir / "complex.pdb").resolve()
+            elif (struct_p.parent / "complex.pdb").exists():
+                pdb_path = (struct_p.parent / "complex.pdb").resolve()
+            elif struct_p.suffix.lower() in (".parm7", ".prmtop"):
+                rst_candidates = [struct_p.parent / "min.rst7", struct_p.parent / "complex.rst7"]
+                found_rst = next((c for c in rst_candidates if c.exists()), None)
+                if found_rst:
+                    import parmed
+                    pdb_out = target_dir / "complex.pdb"
+                    try:
+                        parmed.load_file(str(struct_p), str(found_rst)).save(str(pdb_out), overwrite=True)
+                        pdb_path = pdb_out.resolve()
+                    except Exception:
+                        pdb_path = struct_p
+                else:
+                    pdb_path = struct_p
+            else:
+                pdb_path = struct_p
+
         lines = [
             "# ActiveSite UCSF ChimeraX Trajectory Visualization Script",
-            f"open {Path(parm7_path).resolve()}",
-            f"open {Path(traj_path).resolve()}",
+            f"open {Path(pdb_path).resolve()}",
+            f"open {Path(traj_path).resolve()} format amber structureModel #1",
             "coordset slider #1",
+            "",
+            "# Styling: ribbon for protein, magenta ball/stick for ligand, yellow pseudobonds for hbonds",
+            "hide",
+            "cartoon",
+            "color /A-Z grey(0.85)",
+            "transparency 50 cartoon",
+            f"show :{ligand_resname} atoms",
             f"color :{ligand_resname} magenta",
-            "view",
+            f"style :{ligand_resname} ball",
+            f"hbonds :{ligand_resname} reveal true makePseudobonds true color yellow radius 0.08",
+            f"view :{ligand_resname}",
+            "lighting soft",
         ]
         script_content = "\n".join(lines) + "\n"
 

@@ -69,7 +69,7 @@ _MD_GB_TEMPLATE = """ActiveSite {theory} QM/MM MD, qmcharge={charge:+d}, GB
     ntx=1, irest=0,
     ntt=3, gamma_ln=2.0, tempi=300.0, temp0=300.0,
     ntb=0, igb=5, cut=999.0,
-    ntpr=50, ntwx=50,
+    ntpr={ntpr}, ntwx={ntwx},
     ifqnt=1,
  /
  &qmmm
@@ -107,6 +107,8 @@ def mdin_md_text(
     theory: str = "PM6",
     steps: int = 1000,
     dt: float = 0.001,
+    ntpr: int = 10,
+    ntwx: int = 10,
 ) -> str:
     """Render the QM/MM MD mdin template."""
     validate_inputs(mask, charge, theory, "gb")
@@ -114,7 +116,11 @@ def mdin_md_text(
         raise ValueError(f"steps must be a positive int, got {steps!r}")
     if not isinstance(dt, (int, float)) or dt <= 0:
         raise ValueError(f"dt must be a positive float, got {dt!r}")
-    return _MD_GB_TEMPLATE.format(mask=mask, charge=charge, theory=theory, steps=steps, dt=dt)
+    if not isinstance(ntpr, int) or ntpr <= 0:
+        raise ValueError(f"ntpr must be a positive int, got {ntpr!r}")
+    if not isinstance(ntwx, int) or ntwx <= 0:
+        raise ValueError(f"ntwx must be a positive int, got {ntwx!r}")
+    return _MD_GB_TEMPLATE.format(mask=mask, charge=charge, theory=theory, steps=steps, dt=dt, ntpr=ntpr, ntwx=ntwx)
 
 
 # --------------------------------------------------------------------- parser
@@ -452,6 +458,8 @@ def run_qmmm_md(
     dt: float = 0.001,
     timeout_s: int = 600,
     image: str = ENGINE_IMAGE,
+    ntpr: int = 10,
+    ntwx: int = 10,
 ) -> Dict[str, Any]:
     """Run one short QM/MM MD simulation inside the engine container and parse md.out."""
     parm7 = Path(parm7).resolve()
@@ -465,7 +473,7 @@ def run_qmmm_md(
     validate_inputs(mask, charge, theory, "gb")
 
     workdir.mkdir(parents=True, exist_ok=True)
-    (workdir / "md.mdin").write_text(mdin_md_text(mask, charge, theory, steps, dt), encoding="utf-8")
+    (workdir / "md.mdin").write_text(mdin_md_text(mask, charge, theory, steps, dt, ntpr=ntpr, ntwx=ntwx), encoding="utf-8")
 
     name = f"sander-md-{secrets.token_hex(4)}"
 
@@ -489,6 +497,8 @@ def run_qmmm_md(
         "mask": mask,
         "steps": steps,
         "dt": dt,
+        "ntpr": ntpr,
+        "ntwx": ntwx,
         "workdir": str(workdir),
         "container": name,
         "command": cmd,

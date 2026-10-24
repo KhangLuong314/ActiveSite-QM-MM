@@ -1,0 +1,16 @@
+# ActiveSite UCSF ChimeraX Trajectory Visualization Script
+open /Users/khangluong/Desktop/Projects/ActiveSite-QM-MM/data/sample/egfr_erlotinib/md/complex.pdb
+open /Users/khangluong/Desktop/Projects/ActiveSite-QM-MM/data/sample/egfr_erlotinib/md/traj.nc format amber structureModel #1
+coordset slider #1
+
+# Styling: ribbon for protein, magenta ball/stick for ligand, yellow pseudobonds for hbonds
+hide
+cartoon
+color /A-Z grey(0.85)
+transparency 50 cartoon
+show :AQ4 atoms
+color :AQ4 magenta
+style :AQ4 ball
+hbonds :AQ4 reveal true makePseudobonds true color yellow radius 0.08
+view :AQ4
+lighting soft

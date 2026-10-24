@@ -479,6 +479,25 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-24 02:40 CDT] — QM/MM MD Refinement & ChimeraX Trajectory Script Generator
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/chem/sander.py`, `activesite/chem/chimerax.py`, `activesite/agent/ligand.py`, `activesite/sample.py`, `data/sample/egfr_erlotinib/md/`, `tests/test_sander.py`, `tests/test_chimerax.py`
+- **Developer Prompt:**
+  > "Goal: Refine the QM/MM MD pipeline and ChimeraX trajectory script generator to resolve ChimeraX loading errors and increase trajectory frame density. Follow AGENTS.md rules (isolated Docker execution, honest reporting, clean tests). Issues to resolve: 1. ChimeraX cannot open .parm7 files directly; it requires a .pdb reference structure. 2. ChimeraX requires explicit format specification for Amber NetCDF trajectories: open <traj.nc> format amber structureModel #1. 3. Trajectory frame density: Change default ntwx from 50 to 10 in the MD namelist, so a 1,000-step simulation yields 100 smooth frames instead of 20. 4. Offline Judge Cache: Cache the real EGFR Erlotinib 1 ps MD simulation into data/sample/egfr_erlotinib/md/ so judges running SAMPLE_MODE=true get instant trajectory replays."
+- **Agent Action:**
+  - In `activesite/chem/sander.py`: Updated `_MD_GB_TEMPLATE` and `mdin_md_text` with default `ntpr=10` and `ntwx=10`, producing 100 coordinate frames for smooth playback in 1,000-step MD simulations.
+  - In `activesite/chem/chimerax.py`: Enhanced `generate_trajectory_script` to convert topology and restart coordinates into a reference `complex.pdb` using ParmEd (`parmed.load_file(...).save(...)`).
+  - Added explicit format specification in ChimeraX scripts (`open <traj.nc> format amber structureModel #1`) and `coordset slider #1` with ribbon protein styling, magenta ball-and-stick ligand, and yellow pseudobonds for hydrogen bonds.
+  - In `activesite/sample.py` and `activesite/agent/ligand.py`: Added `cached_md` to populate `work/md/` during offline runs (`SAMPLE_MODE=true`), updated `cached_md_result` to check for `complex.pdb` and `trajectory.cxc`, and marked decision cards with honest `(cached engine output)` source attribution.
+  - Cached the real, verified EGFR Erlotinib 1 ps MD simulation (100 frames) into `data/sample/egfr_erlotinib/md/`.
+  - Added unit test `test_chimerax_trajectory_script_format` in `tests/test_chimerax.py` and updated `tests/test_sander.py` to assert `format amber structureModel #1` and `complex.pdb` generation.
+- **Verification:**
+  - `uv run pytest -m "not slow" -q` passed with 135 passed, 3 deselected, 184 warnings in 20.41s.
+  - Validated `run.py --case egfr_erlotinib --sample-mode --md` successfully copies cached trajectory and generates valid ChimeraX visualization script (`trajectory.cxc`).
+  - Pre-commit hooks (`gitleaks`, `ruff`) passed cleanly on all staged files.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name

@@ -1,0 +1,17 @@
+ActiveSite PM6 QM/MM MD, qmcharge=+0, GB
+ &cntrl
+    imin=0, nstlim=1000, dt=0.001,
+    ntx=1, irest=0,
+    ntt=3, gamma_ln=2.0, tempi=300.0, temp0=300.0,
+    ntb=0, igb=5, cut=999.0,
+    ntpr=50, ntwx=50,
+    ifqnt=1,
+ /
+ &qmmm
+    qmmask=':LIG',
+    qm_theory='PM6',
+    qmcharge=0,
+    spin=1,
+    qmgb=2,
+    qmcut=999.0,
+ /

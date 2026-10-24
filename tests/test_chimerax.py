@@ -1,5 +1,4 @@
 """Unit tests for ChimeraXGenerator (.cxc)."""
-import pytest
 from pathlib import Path
 from activesite.chem.chimerax import ChimeraXGenerator
 from activesite.models import LinkAtom, QMMMPartition, ResidueRole, ResidueSelection
@@ -36,3 +35,28 @@ def test_chimerax_script_generation(tmp_path: Path):
     assert "color :769 cyan" in script
     assert "shape sphere center 12.500,34.200,56.100" in script
     assert "hbonds" in script
+
+
+def test_chimerax_trajectory_script_format(tmp_path: Path):
+    gen = ChimeraXGenerator()
+    out_file = tmp_path / "traj.cxc"
+    parm_file = Path("data/sample/egfr_erlotinib/prep/complex.parm7")
+    rst_file = Path("data/sample/egfr_erlotinib/prep/min.rst7")
+
+    script = gen.generate_trajectory_script(
+        parm_file,
+        tmp_path / "traj.nc",
+        ligand_resname="AQ4",
+        output_script_path=out_file,
+        rst7_path=rst_file,
+    )
+
+    assert out_file.exists()
+    assert (tmp_path / "complex.pdb").exists()
+    assert f"open {tmp_path / 'complex.pdb'}" in script
+    assert f"open {tmp_path / 'traj.nc'} format amber structureModel #1" in script
+    assert "coordset slider #1" in script
+    assert "color :AQ4 magenta" in script
+    assert "cartoon" in script
+    assert "hbonds :AQ4 reveal true makePseudobonds true color yellow radius 0.08" in script
+    assert "view :AQ4" in script

@@ -235,7 +235,7 @@ def test_mdin_md_template():
         "ntx=1", "irest=0",
         "ntt=3", "gamma_ln=2.0", "tempi=300.0", "temp0=300.0",
         "ntb=0", "igb=5", "cut=999.0",
-        "ntpr=50", "ntwx=50",
+        "ntpr=10", "ntwx=10",
         "ifqnt=1",
     ]
     for key in expected_cntrl:
@@ -370,18 +370,23 @@ def test_chimerax_trajectory_script(tmp_path):
 
     gen = ChimeraXGenerator()
     out_file = tmp_path / "trajectory.cxc"
+    parm_file = Path("data/sample/egfr_erlotinib/prep/complex.parm7")
+    rst_file = Path("data/sample/egfr_erlotinib/prep/min.rst7")
+
     script = gen.generate_trajectory_script(
-        "complex.parm7",
-        "traj.nc",
+        parm_file,
+        tmp_path / "traj.nc",
         ligand_resname="AQ4",
         output_script_path=out_file,
+        rst7_path=rst_file,
     )
     assert out_file.exists()
-    assert "open " in script and "complex.parm7" in script
-    assert "open " in script and "traj.nc" in script
+    assert (tmp_path / "complex.pdb").exists()
+    assert f"open {tmp_path / 'complex.pdb'}" in script
+    assert f"open {tmp_path / 'traj.nc'} format amber structureModel #1" in script
     assert "coordset slider #1" in script
     assert "color :AQ4 magenta" in script
-    assert "view" in script
+    assert "view :AQ4" in script
 
 
 # --------------------------------------------------------------------- engine

@@ -15,7 +15,7 @@ from activesite.chem.prep import HBOND
 from activesite.chem.sander import run_qmmm_md, run_single_point
 from activesite.memory.hmem import MemoryRetrievalService, MemoryStoreService
 from activesite.models import AlternativeChoice, DecisionCard, DecisionCategory
-from activesite.sample import cached_engine_result, cached_md_result, cached_prep, prep_missing_reason
+from activesite.sample import cached_engine_result, cached_md, cached_md_result, cached_prep, prep_missing_reason
 from activesite.trace import Trace
 
 HIS_MEMORY_QUERY = "histidine pka uncertain near ligand cation neutral"
@@ -437,9 +437,10 @@ def simulation_dynamics_card(
             "source": "design specification (SAMPLE_MODE=true)",
         }
     else:
+        suffix = " (cached engine output)" if md_res.get("cached") else ""
         choice = (
             f"1.0 fs time step, 300 K Langevin thermostat (gamma_ln=2.0 ps^-1); "
-            f"ligand retained={retained} (mean contact distance {mean_d} Å)"
+            f"ligand retained={retained} (mean contact distance {mean_d} Å){suffix}"
         )
         conf = 0.95 if retained else 0.40
         evidence = {
@@ -454,7 +455,7 @@ def simulation_dynamics_card(
             "ligand_retained": retained,
             "final_temperature_k": md_res.get("final_temperature_k"),
             "rms_temp_k": (md_res.get("rms_fluctuations") or {}).get("temp_k"),
-            "source": "Amber sander QM/MM MD in activesite-engine:at26",
+            "source": f"Amber sander QM/MM MD in activesite-engine:at26{suffix}",
         }
 
     return DecisionCard(
@@ -498,6 +499,15 @@ def run_qmmm_md_workflow(
 
     if sample_mode or not sander.docker_available():
         md_res = cached_md_result(case_id, int(setup["charge"]), "PM6")
+        if md_res.get("cached"):
+            cached_files = cached_md(case_id, work)
+            if cached_files:
+                if cached_files.get("traj"):
+                    md_res["traj"] = cached_files["traj"]
+                if cached_files.get("complex_pdb"):
+                    md_res["complex_pdb"] = cached_files["complex_pdb"]
+                if cached_files.get("trajectory_cxc"):
+                    md_res["trajectory_cxc"] = cached_files["trajectory_cxc"]
         if trace:
             trace.log("Runner", "cached_md_output" if md_res.get("cached") else "run_qmmm_md",
                       f"qmcharge {setup['charge']:+d}, mask :LIG, steps {steps}",
@@ -517,8 +527,16 @@ def run_qmmm_md_workflow(
                       status="ok" if md_res.get("ok") else "failed",
                       data={k: md_res.get(k) for k in ("final_temperature_k", "steps_completed", "exit_code", "wall_time_s")})
 
+    # Generate ChimeraX script with complex.pdb and format amber structureModel #1
+    from activesite.chem.chimerax import ChimeraXGenerator
+    cxc_file = work / "md" / "trajectory.cxc"
+    traj_path = md_res.get("traj") or (work / "md" / "traj.nc")
+    ChimeraXGenerator().generate_trajectory_script(
+        parm7, traj_path, ligand_resname=setup.get("ligand", "AQ4"), output_script_path=cxc_file, rst7_path=rst7
+    )
+    md_res["chimerax_script"] = str(cxc_file)
+
     # Stability analysis
-    traj_path = md_res.get("traj")
     if traj_path and Path(traj_path).exists():
         stability = check_trajectory_stability(parm7, traj_path)
     else:
