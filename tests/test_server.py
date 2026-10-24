@@ -111,3 +111,51 @@ def test_ledger_and_memory_reset(client):
     assert len(r["removed"]) == 2 and r["memories"] == 0 and r["ledger"] == 0
     led = client.get("/api/ledger").json()
     assert led["memories"] == [] and led["ledger"] == []
+
+
+def test_chat_endpoint_validation_and_explanations(client):
+    # Empty message rejection
+    assert client.post("/api/chat", json={"message": ""}).status_code == 400
+    assert client.post("/api/chat", json={"message": "   "}).status_code == 400
+
+    # Pill 1: Erlotinib neutrality
+    r1 = client.post("/api/chat", json={"message": "Why was erlotinib kept neutral?"}).json()
+    assert "reply" in r1 and "neutral" in r1["reply"] and "Met769" in r1["reply"]
+
+    # Pill 2: 1.0 fs time step and thermostat
+    r2 = client.post("/api/chat", json={"message": "Explain the QM/MM MD 1.0 fs time step & thermostat"}).json()
+    assert "1.0 fs" in r2["reply"] and "Langevin" in r2["reply"]
+
+    # Pill 3: I-PpoI radical mismatch
+    r3 = client.post("/api/chat", json={"message": "How did Critic diagnose and fix the I-PpoI radical mismatch?"}).json()
+    assert "I-PpoI" in r3["reply"] and "203" in r3["reply"] and "Critic" in r3["reply"]
+
+    # Pill 4: H-MEM memory ledger
+    r4 = client.post("/api/chat", json={"message": "What does the H-MEM memory ledger store?"}).json()
+    assert "H-MEM" in r4["reply"] and "ledger" in r4["reply"]
+
+
+def test_chimerax_launch_endpoint(client, tmp_path, monkeypatch):
+    # 404 for missing file
+    assert client.post("/api/chimerax/launch", json={"run_id": "nonexistent"}).status_code == 404
+
+    # Create dummy script
+    script = tmp_path / "trajectory.cxc"
+    script.write_text("open complex.pdb\nopen traj.nc format amber structureModel #1\n")
+
+    class FakeProc:
+        pid = 12345
+
+    monkeypatch.setattr(server.subprocess, "Popen", lambda *a, **kw: FakeProc())
+    monkeypatch.setattr(server.shutil, "which", lambda cmd: f"/mock/bin/{cmd}")
+
+    resp = client.post("/api/chimerax/launch", json={"script_path": str(script)})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "launched" and data["pid"] == 12345
+
+
+def test_run_with_md_toggle(client):
+    resp = client.post("/api/run", json={"case_id": "egfr_erlotinib", "sample_mode": True, "md": True})
+    assert resp.status_code == 200
+    assert resp.json()["md"] is True

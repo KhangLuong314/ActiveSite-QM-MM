@@ -1,19 +1,50 @@
 # ActiveSite 🔬🤖
-### Autonomous QM/MM setup that explains every choice
+### Autonomous QM/MM Assistant that explains every choice
 **Open Agent Hackathon 2026 | Track 02: "The Agent That Can Explain Why"**
 
 [![Hackathon: Open Agent 2026](https://img.shields.io/badge/Hackathon-Open_Agent_2026-blue)](https://hackathons.genai.works)
 [![Track: Explainable Agents](https://img.shields.io/badge/Track_02-The_Agent_That_Can_Explain_Why-brightgreen)](https://hackathons.genai.works)
 [![Engine: AmberTools 26](https://img.shields.io/badge/Engine-AmberTools_26_sander_PM6-orange)](https://ambermd.org)
+[![Model: NVIDIA Nemotron](https://img.shields.io/badge/Model-NVIDIA_Nemotron_3.5-76b900)](https://build.nvidia.com)
 [![Memory: Meterless H--MEM](https://img.shields.io/badge/Memory-Meterless_H--MEM-purple)](https://meterless.io)
-[![Catalog: catalog-STANDIN (DuckDB)](https://img.shields.io/badge/Data-catalog--STANDIN_(DuckDB)-blueviolet)](https://zetaris.com)
+[![Data: Zetaris Federated Catalog](https://img.shields.io/badge/Data-catalog--STANDIN_(DuckDB)_%2F_Zetaris-blueviolet)](https://zetaris.com)
+[![Dynamics: 1_ps_QM%2FMM_MD](https://img.shields.io/badge/Dynamics-1_ps_QM%2FMM_MD_(100_frames)-cyan)](https://ambermd.org)
+
+<p align="center">
+  <img src="docs/assets/egfr_erlotinib_md.gif" alt="ActiveSite 1 ps QM/MM MD Trajectory in ChimeraX" width="720px" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);"/>
+  <br>
+  <em>1,000-step (1 ps) autonomous QM/MM MD trajectory of EGFR kinase with erlotinib (PDB 1M17). ActiveSite monitors hinge stability (:LIG@N2 to Met769:H locked at 2.45 ± 0.29 Å) and generates 1-click ChimeraX playback scripts.</em>
+</p>
 
 ## What it does
 1. Takes a benchmark case (a Mg-dependent phosphodiester site or a protein-ligand complex) and proposes a QM region from geometry, with the distance, angle and rejected alternative behind every residue.
-2. Runs one PM6 QM/MM single point in `sander` inside a Docker container, never on the host.
+2. Runs one PM6 QM/MM single point or 1 ps (1,000 steps, 100 frames) Molecular Dynamics simulation in `sander` inside a Docker container, never on the host.
 3. Lets a Critic diagnose an odd-electron failure, retry once with the MM partial-charge integer, and store that rule in Meterless H-MEM so the next site starts warm.
-4. Explains the run as numbered Decision Cards with evidence, source and a confidence computed from a measured margin, streamed live to a dashboard.
+4. Explains the run as **15 numbered Decision Cards** with evidence, source and a confidence computed from a measured margin, streamed live to an interactive dashboard.
 5. Never shows a number an engine did not produce: a missing energy is `null` with the reason, and sample mode replays real cached outputs labelled as such.
+
+## Track 02 "Why": Auditable Decision Cards & Episodic Learning
+
+### 15 Auditable Decision Cards
+Every autonomous choice generates an auditable Track 02 Decision Card (`decision_id`, `choice`, `alternatives`, `rationale`, `confidence`, `evidence`):
+- **Residue Inclusion (`residue_inclusion`):** Chain choice selected via crystallographic pocket completeness (REMARK 465/470).
+- **Protein Protonation (`protonation_state`):** Residues titrated with PDB2PQR + PROPKA 3.5.1 at pH 7.4 with environmental pKa shifts and His tautomer calls (HID vs. HIE).
+- **Ligand Neutrality (`protonation_state`):** Explains why erlotinib is neutral (+0): secondary aniline lone-pair delocalization into quinazoline core (pKa < 4.0) and hinge H-bond integrity to Met769.
+- **Force Field Parameterization (`theory_selection`):** GAFF2 + AM1-BCC parameterization with net charge sum verified to $\pm 10^{-6}$ e.
+- **Frontier Link-Atom Cuts (`link_atom`):** Boundary cuts placed along single non-polar Cα–Cβ σ-bonds with capping hydrogen alignment.
+- **Solvent Treatment (`solvent_handling`):** Generalized Born implicit solvent (igb=5, mbondi2) trade-off evaluated against explicit solvent boxes.
+- **Critic Precheck & Verification (`critic_correction`):** 5 automated guardrails (ligand charge sum, centroid displacement, steric contacts, total complex charge, minimization gradient GMAX).
+- **Literature Binding Mode Validation (`validation`):** Compares computed model contacts to crystal structure (Met769 hinge contact present at 2.90 Å, Thr766 absent due to crystal water removal).
+- **Structure Source Audit (`validation`):** Federated SQL query through data layer ranking candidate PDBs by crystallographic resolution.
+- **Dynamics Stability (`simulation_dynamics`):** Justifies the 1.0 fs time step (preventing unconstrained X–H vibrational divergence without SHAKE on QM atoms) and 300 K Langevin thermostat coupling.
+
+### Cold vs. Warm Self-Correction (Meterless H-MEM)
+The Critic diagnoses parity failures and commits corrective rules to an append-only verifiable trust ledger:
+
+| Phase | Benchmark System | Initial Attempt | Failure Mode & Diagnosis | Critic Action & Ledger Commit | Retries | Final Outcome |
+|---|---|---|---|---|---|---|
+| **Cold Run** | I-PpoI Site A (`Mg :371`) | Textbook formal charge 0 | Odd valence electrons (203 e⁻), spin=1 mismatch in `sander` | Boundary re-cut to 204 e⁻ (net charge +1); committed `qm-charge` rule to H-MEM ledger | **1 retry** | Converged (ESCF -456.56 kcal/mol) |
+| **Warm Run** | I-PpoI Site B (`Mg :372`) | Recalled from H-MEM | None (pre-emptively applied learned charge rule) | Scored memory match from `MemoryRetrievalService`; executed single-pass | **0 retries** | Converged on Attempt 0 |
 
 ## Quickstart (judges)
 ```bash
@@ -29,6 +60,7 @@ With Docker and the engine images (`docker build -f docker/engine.Dockerfile -t 
 `docker build -f docker/prep.Dockerfile -t activesite-prep:at26 .`):
 ```bash
 SAMPLE_MODE=false uv run python run.py --demo-memory --docker   # site A cold (retries 1), site B warm (retries 0)
+uv run python run.py --case egfr_erlotinib --docker --md        # 1,000-step QM/MM MD demonstration
 uv run python run.py --case egfr_erlotinib --docker --json      # same JSON as POST /run
 ```
 
@@ -37,7 +69,7 @@ uv run python run.py --case egfr_erlotinib --docker --json      # same JSON as P
 |---|---|---|
 | `ippoi_site_a` | cold run: textbook charge 0 fails with an odd electron count, Critic retries at +1, rule stored | `retries 1`, `memory_used False`, a memory written, ESCF from the cached sp.out, engine label `cached engine output (sample mode)` |
 | `ippoi_site_b` | warm run: the stored rule is recalled, no retry | `retries 0`, `memory_used True`, 64-67 QM atoms, same label |
-| `egfr_erlotinib` | ligand case: chain A, erlotinib kept neutral, GB single point of the whole ligand, MET769 hinge contact recovered, THR766 absent | `qm_ok True` with the cached preparation, label as above |
+| `egfr_erlotinib` | ligand case: chain A, erlotinib kept neutral, GB single point of the whole ligand, MET769 hinge contact recovered, THR766 absent, 1 ps QM/MM MD | `qm_ok True` with the cached preparation, label as above |
 
 Saved inputs live in `samples/<case>/input.json`; the saved outputs (`report.md`, `cards.json`, `trace.jsonl`,
 `stats.json`) are produced by `scripts/make_samples.sh` on a Docker host and stamped in `data/sample/MANIFEST.md`.
@@ -58,23 +90,23 @@ flowchart LR
 ```
 - **Agents** (`activesite/agent/core.py`, `ligand.py`): Planner (allow-listed steps), DataScout (validated ids, three SQL queries), Setup / LigandSetup, Runner, Critic / LigandCritic, Explainer. Every action is one line in `logs/trace-<run_id>.jsonl` (`activesite/trace.py`).
 - **Loop** (`activesite/agent/orchestrator.py`): `run_case` routes on the case file; the metal loop retries once on an odd-electron failure and remembers only after the retry converged; the ligand loop blocks QM/MM when the ligand left its pocket.
-- **Chemistry** (`activesite/chem/`): `system.py` (parmed geometry and charge), `qmregion.py` (evidence-bearing region proposal), `sander.py` (containerised single point, pure mdout parser), `prep.py` + `ligand_rdkit.py` (PDB2PQR/PROPKA, GAFF2/AM1-BCC, tleap, minimisation, pose checks).
+- **Chemistry** (`activesite/chem/`): `system.py` (parmed geometry and charge), `qmregion.py` (evidence-bearing region proposal), `sander.py` (containerised single point & 1 ps QM/MM MD runner, pure mdout parser), `chimerax.py` (3D scene & 100-frame NetCDF trajectory scripts), `prep.py` + `ligand_rdkit.py` (PDB2PQR/PROPKA, GAFF2/AM1-BCC, tleap, minimisation, pose checks).
 - **Memory** (`activesite/memory/hmem.py`): SQLite memories with provenance, append-only JSONL ledger, scored retrieval with a hard domain-tag gate; `meterless.py` is the facade, `meterless_mcp.py` the MCP server.
 - **Data layer** (`activesite/adapters/`): `zetaris.py` (REST), `catalog_standin.py` (DuckDB over Postgres + MinIO Parquet + cached RCSB), `zetaris_mcp.py` (`list_sources`, read-only `query`); `seed/seed.py` fills the stand-in.
-- **Server/UI** (`activesite/server/`): `POST /api/run` + SSE `GET /run/stream`, `POST /run` for judges, memory and SQL panels.
+- **Server/UI** (`activesite/server/`): `POST /api/run` + SSE `GET /run/stream`, `POST /run` for judges, `POST /api/chat` (AI Biochemist powered by NVIDIA Nemotron), `POST /api/chimerax/launch` (1-click 3D viewer launch), memory and SQL panels.
 
 ## Sponsor technologies
 * **Zetaris:** `activesite/adapters/zetaris.py` posts SQL to the Zetaris REST endpoint when `ZETARIS_REST_URL` and `ZETARIS_API_KEY` are set. Otherwise **catalog-STANDIN (DuckDB)** (`activesite/adapters/catalog_standin.py`) federates Postgres (`lab_runs`), MinIO Parquet (`eda_synthetic`, a clearly synthetic placeholder) and a cached RCSB entries table in one DuckDB connection. Seed with `docker compose up -d && uv run python seed/seed.py`. Every DataScout trace line and card source names which adapter ran. MCP: `python -m activesite.adapters.zetaris_mcp`.
 * **Meterless H-MEM:** `activesite/memory/hmem.py` implements the store service (memories with provenance and confidence, append-only ledger) and the retrieval service (keyword, tag, layer, recency; the semantic, domain and entity terms are not computed). The remote Meterless endpoint is not used.
-* **NVIDIA:** `activesite/llm.py` talks to `integrate.api.nvidia.com` (OpenAI-compatible) only when `MODEL_API_KEY` is set; the Planner allow-lists everything the model returns.
+* **NVIDIA:** `activesite/llm.py` talks to `integrate.api.nvidia.com` (OpenAI-compatible) using `nvidia/nemotron-3.5-lightning-30b-a3b` (or `nvidia/llama-3.3-nemotron-super-49b-v1`) only when `MODEL_API_KEY` is set; the Planner allow-lists everything the model returns, and the AI Biochemist chat endpoint contextualizes answers with Decision Cards.
 * **Cursor:** `docs/prompts/PROMPT_LOG.md` is the prompt audit trail; `.cursorrules` and `.cursor/mcp.json` configure the IDE.
 
 ## Models and frameworks
 PM6 (AmberTools 26 `sander`, `activesite-engine:at26`); ff14SB + GAFF2/AM1-BCC; PDB2PQR + PROPKA 3.5.1; RDKit (in `activesite-prep:at26`).
-Optional LLM: `nvidia/llama-3.3-nemotron-super-49b-v1`. Python: FastAPI, pydantic, parmed, numpy, pandas, duckdb, httpx, psycopg2. See `metadata.json`.
+Optional LLM: `nvidia/llama-3.3-nemotron-super-49b-v1` / `nvidia/nemotron-3.5-lightning-30b-a3b`. Python: FastAPI, pydantic, parmed, numpy, pandas, duckdb, httpx, psycopg2. See `metadata.json`.
 
 ## Limitations
-- PM6 single points only; no geometry optimisation at the QM level, no dynamics, no higher-level theory.
+- PM6 semi-empirical single points and 1 ps (1,000-step, 100-frame) Langevin QM/MM MD; higher-level DFT (B3LYP) is available in reference protocols but not executed locally in the quick judge path.
 - Implicit solvent (igb=5) for ligand cases; crystal waters, including the Thr766 bridge in 1M17, are removed.
 - No free-energy barriers are computed locally; the lab's QMHub/B3LYP protocol is cited, not reproduced.
 - The data catalog is a local stand-in (`catalog-STANDIN (DuckDB)`) until Zetaris credentials are configured; the EDA table it serves is synthetic.
@@ -102,3 +134,4 @@ docs/              PROMPT_LOG.md, PRE_EXISTING.md             tests/         pyt
 
 ## Authors
 - **Khang Luong** ([@KhangLuong314](https://github.com/KhangLuong314)) — University of Nebraska–Lincoln
+- **Mohanendra Siddha** ([@mohanendrasidda](https://github.com/mohanendrasidda)) — University of Nebraska–Lincoln
