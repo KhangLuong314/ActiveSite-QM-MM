@@ -47,6 +47,15 @@ The Critic diagnoses parity failures and commits corrective rules to an append-o
 | **Warm Run** | I-PpoI Site B (`Mg :372`) | Recalled from H-MEM | None (pre-emptively applied learned charge rule) | Scored memory match from `MemoryRetrievalService`; executed single-pass | **0 retries** | Converged on Attempt 0 |
 
 ## Quickstart (judges)
+Fastest path, Docker only (no Python setup, no keys):
+```bash
+docker build -t activesite . && docker run --rm -p 8088:8088 activesite   # dashboard at http://localhost:8088
+curl -s -X POST localhost:8088/run -H 'content-type: application/json' -d '{"case_id":"ippoi_site_a"}'
+```
+The image runs in sample mode: every agent runs for real and the engine step replays recorded real `sander` output,
+labelled `cached engine output (sample mode)`. To use live Zetaris and NVIDIA Nemotron, add `--env-file .env`.
+
+With Python and `uv` instead:
 ```bash
 docker compose up -d                       # Postgres + MinIO for the DuckDB catalog stand-in (optional)
 uv sync
