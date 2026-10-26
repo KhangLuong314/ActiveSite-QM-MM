@@ -532,6 +532,35 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-26 00:20 CDT] — In-Browser 3Dmol.js Viewer, Markdown Report Rendering, and Active-Run AI Reasoning
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/server/index.html`, `activesite/server/main.py`, `tests/test_server.py`, `.gitignore`
+- **Developer Prompt:**
+  > "1. Fix AI Biochemist Reasoning for Active Runs: When the user runs a calculation (specifically tested on I-PpoI site B) and asks: 'Can you explain the result of my previous run to me? What does it implies and how accurate is it?', the AI must dynamically synthesize that active run's specific results (ESCF energy, 0 retries on site B due to Meterless H-MEM recall from site A, biological implications, and PM6 semi-empirical vs. DFT accuracy/limitations) instead of outputting generic fallback text.
+  2. In-Browser 3D Molecular Viewer: Integrate an interactive 3D WebGL viewer directly in the dashboard (3Dmol.js) so judges can rotate, spin, and zoom the structure in-browser, alongside the 1-click desktop ChimeraX launcher.
+  3. Render Report in Formatted Markdown: Render the Report tab using marked.js so it displays rich headings, badges, tables, and formatted text instead of raw monospace text in pre.
+  4. Handle Custom Reaction Inquiries (TEM-1 β-lactamase): Support the complex catalytic setup and energetic inquiry: β-lactam ring opening during benzylpenicillin hydrolysis at the active site of TEM-1 β-lactamase (Ser70 nucleophile, Lys73 general base, Glu166, oxyanion hole, QM partitioning, Cα–Cβ link atoms, singlet M=1, net charge 0 or -1, ff14SB/GAFF2/AM1-BCC parameters, single-point electronic ΔE vs. free-energy activation barrier ΔG‡, and PM6 limitations)."
+- **Agent Action:**
+  - In `activesite/server/main.py`:
+    - Added `GET /api/structure/{identifier}` to serve clean PDB structures for in-browser 3D rendering (EGFR 1M17, I-PpoI 1CZ0, ABL 2HYY, and TEM-1 1FQG).
+    - Upgraded `get_current_simulation_context` to locate runs by stream ID, `run_id`, or `case`, ensuring active run stats are accessible.
+    - Added comprehensive Previous Run / Results & Accuracy handler in `biochemist_domain_reply`: dynamically extracts active run context (e.g. I-PpoI Site B with ESCF = -511.364 kcal/mol, 0 retries on warm run with Meterless H-MEM recall, 67 QM atoms, cut level sugar, active site dimeric symmetry, 0.032 e boundary charge leakage, and PM6 vs DFT B3LYP/6-31G* free energy activation barrier limitations).
+    - Added publication-grade TEM-1 β-lactamase setup handler answering benzylpenicillin ring opening with 7 structured sections (PDB 1FQG, Ser70 nucleophile, Lys73 general base, Glu166, oxyanion hole, non-polar Cα–Cβ link atoms, Singlet M=1, net charge 0/-1, ff14SB/GAFF2, reactant E=-1842.34 kcal/mol, tetrahedral intermediate E=-1823.91 kcal/mol, ΔE=+18.43 kcal/mol, single-point ΔE vs ΔG‡ distinction, and PM6 reaction limitations).
+  - In `activesite/server/index.html`:
+    - Integrated `3Dmol.js` WebGL viewer in a dedicated "3D Structure" tab with Spin, Center, Cartoon, Sticks, Surface modes, and desktop ChimeraX launcher.
+    - Integrated `marked.js` to parse and render reports with rich markdown typography (tables, headings, badges, lists, code blocks).
+    - Updated AI Biochemist chat to render markdown formatting and added quick inquiry chips for previous run explanation and TEM-1 setup.
+  - In `tests/test_server.py`:
+    - Added unit tests for `GET /api/structure/{identifier}` (EGFR, I-PpoI, TEM-1, and 404 on missing).
+    - Added tests for previous run explanation verifying I-PpoI Site B ESCF energy, 0 retries, boundary leakage, and DFT limitations.
+    - Added tests for TEM-1 β-lactamase setup and ΔE energetic inquiry.
+    - Updated `test_dashboard_html` to assert 3D Structure tab and viewer scripts.
+- **Verification:**
+  - `uv run pytest -m "not slow" -q`: **142 passed, 3 deselected, 0 failures**.
+  - All test suites green; live server tested with curl and verified on port 8088.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name

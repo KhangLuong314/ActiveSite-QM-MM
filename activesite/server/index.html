@@ -6,6 +6,8 @@
   <title>ActiveSite — Autonomous QM/MM Assistant (Track 02)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.0.4/3Dmol-min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0b0f19; color: #f1f5f9; }
@@ -14,6 +16,31 @@
     .glass-card { background: rgba(23, 31, 48, 0.95); border: 1px solid rgba(255, 255, 255, 0.08); }
     .glow-cyan { box-shadow: 0 0 20px rgba(6, 182, 212, 0.25); }
     .badge-track02 { background: linear-gradient(135deg, #06b6d4, #3b82f6); }
+
+    /* Markdown Styling for Report and AI Biochemist Chat */
+    .report-markdown h1 { font-size: 1.3rem; font-weight: 700; color: #38bdf8; margin-top: 1.25rem; margin-bottom: 0.6rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 0.4rem; }
+    .report-markdown h2 { font-size: 1.1rem; font-weight: 600; color: #e2e8f0; margin-top: 1.0rem; margin-bottom: 0.4rem; }
+    .report-markdown h3 { font-size: 0.95rem; font-weight: 600; color: #93c5fd; margin-top: 0.8rem; margin-bottom: 0.3rem; }
+    .report-markdown p { margin-bottom: 0.75rem; line-height: 1.6; }
+    .report-markdown ul { list-style-type: disc; margin-left: 1.4rem; margin-bottom: 0.75rem; }
+    .report-markdown ol { list-style-type: decimal; margin-left: 1.4rem; margin-bottom: 0.75rem; }
+    .report-markdown li { margin-bottom: 0.25rem; }
+    .report-markdown code { background: rgba(15, 23, 42, 0.8); padding: 0.15rem 0.4rem; border-radius: 0.25rem; color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-size: 0.85em; }
+    .report-markdown pre { background: rgba(15, 23, 42, 0.9); padding: 0.8rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 0.8rem; border: 1px solid rgba(255, 255, 255, 0.08); }
+    .report-markdown pre code { background: transparent; padding: 0; }
+    .report-markdown table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 0.8rem; }
+    .report-markdown th { background: rgba(30, 41, 59, 0.8); padding: 0.5rem; text-align: left; font-weight: 600; color: #38bdf8; border: 1px solid rgba(255, 255, 255, 0.1); }
+    .report-markdown td { padding: 0.45rem; border: 1px solid rgba(255, 255, 255, 0.07); }
+    .report-markdown hr { border-color: rgba(255, 255, 255, 0.1); margin: 1rem 0; }
+    .report-markdown blockquote { border-left: 3px solid #06b6d4; padding-left: 0.8rem; color: #94a3b8; font-style: italic; margin-bottom: 0.7rem; }
+
+    .chat-markdown h1, .chat-markdown h2, .chat-markdown h3 { font-weight: 700; color: #38bdf8; margin-top: 0.6rem; margin-bottom: 0.3rem; }
+    .chat-markdown p { margin-bottom: 0.5rem; line-height: 1.55; }
+    .chat-markdown ul { list-style-type: disc; margin-left: 1.2rem; margin-bottom: 0.5rem; }
+    .chat-markdown ol { list-style-type: decimal; margin-left: 1.2rem; margin-bottom: 0.5rem; }
+    .chat-markdown li { margin-bottom: 0.2rem; }
+    .chat-markdown hr { border-color: rgba(255, 255, 255, 0.1); margin: 0.6rem 0; }
+    .chat-markdown code { background: rgba(15, 23, 42, 0.8); padding: 0.1rem 0.3rem; border-radius: 0.2rem; color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-size: 0.9em; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -159,6 +186,7 @@
       <div class="flex items-center gap-2 border-b border-slate-800 pb-2 flex-wrap">
         <button onclick="switchTab('cards')" id="tabBtnCards" class="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-cyan-400 border border-slate-700 flex items-center gap-2"><i class="fa-solid fa-address-card"></i> Decision Cards (<span id="cardsCount">0</span>)</button>
         <button onclick="switchTab('chat')" id="tabBtnChat" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2"><i class="fa-solid fa-comments text-cyan-400"></i> AI Biochemist Chat</button>
+        <button onclick="switchTab('structure')" id="tabBtnStructure" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2"><i class="fa-solid fa-cube text-cyan-400"></i> 3D Structure</button>
         <button onclick="switchTab('report')" id="tabBtnReport" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2"><i class="fa-solid fa-file-lines"></i> Report</button>
         <button onclick="switchTab('memory')" id="tabBtnMemory" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2"><i class="fa-solid fa-brain"></i> What the system remembers</button>
         <button onclick="switchTab('sql')" id="tabBtnSql" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2"><i class="fa-solid fa-database"></i> SQL sent through the data layer</button>
@@ -196,6 +224,12 @@
         <div class="flex flex-col gap-1.5">
           <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">Quick inquiries:</span>
           <div class="flex flex-wrap gap-2">
+            <button onclick="sendQuickQuery('Can you explain the result of my previous run to me? What does it implies and how accurate is it?')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
+              📊 <span>Explain previous run & accuracy</span>
+            </button>
+            <button onclick="sendQuickQuery('Set up a QM/MM model for β-lactam ring opening during benzylpenicillin hydrolysis at the active site of TEM-1 β-lactamase (Ser70)')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
+              💊 <span>TEM-1 β-lactamase setup</span>
+            </button>
             <button onclick="sendQuickQuery('Why is Erlotinib neutral?')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
               💡 <span>Why is Erlotinib neutral?</span>
             </button>
@@ -232,7 +266,54 @@
           </button>
         </div>
       </div>
-      <div id="tabReport" class="hidden glass-card p-6 rounded-2xl"><pre id="reportContent" class="text-xs text-slate-300 whitespace-pre-wrap font-mono"></pre></div>
+
+      <!-- 3D Structure WebGL Tab -->
+      <div id="tabStructure" class="hidden glass-card p-5 rounded-2xl flex flex-col gap-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800/80 flex-wrap gap-2">
+          <div class="flex items-center gap-2.5">
+            <span class="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white text-sm shadow">🧬</span>
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                Interactive 3D Molecular Viewer
+                <span id="structureBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-800/50">3Dmol.js Active</span>
+              </h3>
+              <p id="structureSubTitle" class="text-[11px] text-slate-400">PDB 1M17 (EGFR + Erlotinib)</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="toggleSpin()" id="spinBtn" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-rotate text-cyan-400"></i> Spin
+            </button>
+            <button onclick="resetView()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-arrows-to-dot text-indigo-400"></i> Center
+            </button>
+            <button onclick="setRepresentation('cartoon')" class="text-xs px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 transition">
+              Cartoon
+            </button>
+            <button onclick="setRepresentation('stick')" class="text-xs px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 transition">
+              Sticks
+            </button>
+            <button onclick="setRepresentation('surface')" class="text-xs px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 transition">
+              Surface
+            </button>
+            <button onclick="launchChimeraX()" class="text-xs px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 text-white font-semibold flex items-center gap-1.5 shadow">
+              <i class="fa-solid fa-desktop"></i> ChimeraX Desktop
+            </button>
+          </div>
+        </div>
+
+        <div id="molViewer" class="w-full h-[480px] rounded-xl bg-slate-950 border border-slate-800 relative overflow-hidden flex items-center justify-center">
+          <div id="molViewerLoading" class="text-xs text-slate-400 flex items-center gap-2">
+            <i class="fa-solid fa-spinner fa-spin text-cyan-400"></i> Initializing 3D molecular coordinates…
+          </div>
+        </div>
+        <div class="text-[11px] text-slate-400 flex items-center justify-between">
+          <span>💡 <b>Mouse:</b> Left-click + drag to rotate • Right-click (or Ctrl+drag) to translate • Scroll wheel to zoom.</span>
+          <span id="molAtomCount" class="font-mono text-cyan-300"></span>
+        </div>
+      </div>
+
+      <div id="tabReport" class="hidden glass-card p-6 rounded-2xl overflow-y-auto max-h-[640px]"><div id="reportContent" class="report-markdown text-xs text-slate-200 leading-relaxed"></div></div>
       <div id="tabMemory" class="hidden glass-card p-6 rounded-2xl flex flex-col gap-3">
         <h3 class="text-sm font-semibold text-white">Meterless H-MEM memories and ledger</h3>
         <p class="text-xs text-slate-400">The store starts empty. A row appears only after the Critic learns something from a converged retry; the ledger below is append-only.</p>
@@ -280,7 +361,7 @@
     renderPipeline(null, null);
 
     function switchTab(tab) {
-      for (const t of ["Cards", "Chat", "Report", "Memory", "Sql"]) {
+      for (const t of ["Cards", "Chat", "Structure", "Report", "Memory", "Sql"]) {
         const el = document.getElementById("tab" + t);
         const btn = document.getElementById("tabBtn" + t);
         if (el) el.classList.add("hidden");
@@ -292,6 +373,7 @@
       if (activeEl) activeEl.classList.remove("hidden");
       if (activeBtn) activeBtn.className = "px-4 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-cyan-400 border border-slate-700 flex items-center gap-2";
       if (tab === "memory") loadMemory();
+      if (tab === "structure") loadStructureViewer(currentRunId || activeCaseId || "egfr_erlotinib");
     }
 
     function fmt(x, digits) { return (x === null || x === undefined) ? "not computed" : Number(x).toFixed(digits); }
@@ -341,7 +423,11 @@
       document.getElementById("metricModel").innerText = `model: ${st.model_mode} (${st.model_calls} calls)`;
       renderCards(payload.cards || []);
       document.getElementById("cardsCount").innerText = (payload.cards || []).length;
-      document.getElementById("reportContent").innerText = payload.report_markdown || "";
+      if (window.marked && payload.report_markdown) {
+        document.getElementById("reportContent").innerHTML = marked.parse(payload.report_markdown);
+      } else {
+        document.getElementById("reportContent").innerText = payload.report_markdown || "No report generated yet.";
+      }
       const sql = payload.sql || {};
       document.getElementById("sqlLabel").innerText = `Adapter: ${st.catalog || "none"}`;
       document.getElementById("sqlContent").innerText = Object.entries(sql).map(([k, v]) => `-- ${k}\n${v}`).join("\n\n");
@@ -479,7 +565,8 @@
 
         const aiMsg = document.createElement("div");
         aiMsg.className = "flex items-start gap-2.5";
-        aiMsg.innerHTML = `<div class="w-7 h-7 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center text-cyan-300 text-xs shrink-0">🔬</div><div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-200 leading-relaxed max-w-[85%] flex flex-col gap-1.5"><div class="whitespace-pre-wrap">${escapeHtml(data.reply)}</div><div class="text-[10px] text-slate-500 font-mono border-t border-slate-800/80 pt-1 flex items-center justify-between"><span>${escapeHtml(data.model || "nemotron")}</span><span class="text-cyan-400">${escapeHtml(data.source || "")}</span></div></div>`;
+        const formattedReply = window.marked ? marked.parse(data.reply) : `<div class="whitespace-pre-wrap">${escapeHtml(data.reply)}</div>`;
+        aiMsg.innerHTML = `<div class="w-7 h-7 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center text-cyan-300 text-xs shrink-0">🔬</div><div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-200 leading-relaxed max-w-[85%] flex flex-col gap-1.5"><div class="chat-markdown">${formattedReply}</div><div class="text-[10px] text-slate-500 font-mono border-t border-slate-800/80 pt-1 flex items-center justify-between"><span>${escapeHtml(data.model || "nemotron")}</span><span class="text-cyan-400">${escapeHtml(data.source || "")}</span></div></div>`;
         historyEl.appendChild(aiMsg);
       } catch (err) {
         if (loadingMsg) loadingMsg.remove();
@@ -489,6 +576,100 @@
         historyEl.appendChild(errEl);
       }
       historyEl.scrollTop = historyEl.scrollHeight;
+    }
+
+    /* --- 3Dmol.js Interactive WebGL Viewer --- */
+    let molViewerInstance = null;
+    let isSpinning = false;
+    let currentStructureId = null;
+    let currentRepresentation = 'cartoon';
+    let loadedPdbData = null;
+
+    async function loadStructureViewer(targetId) {
+      const container = document.getElementById("molViewer");
+      const loading = document.getElementById("molViewerLoading");
+      if (!targetId) targetId = activeCaseId || "egfr_erlotinib";
+      currentStructureId = targetId;
+
+      const titleEl = document.getElementById("structureSubTitle");
+      if (titleEl) {
+        if (targetId.includes("ippoi_site_b") || targetId.includes("372")) titleEl.innerText = "I-PpoI Endonuclease Site B (Mg :372)";
+        else if (targetId.includes("ippoi")) titleEl.innerText = "I-PpoI Endonuclease Site A (Mg :371)";
+        else if (targetId.includes("tem1") || targetId.includes("1fqg")) titleEl.innerText = "TEM-1 β-lactamase + Benzylpenicillin (PDB 1FQG)";
+        else if (targetId.includes("abl") || targetId.includes("2hyy")) titleEl.innerText = "ABL Kinase + Imatinib (PDB 2HYY)";
+        else titleEl.innerText = "EGFR Kinase + Erlotinib (PDB 1M17)";
+      }
+
+      try {
+        if (loading) {
+          loading.style.display = "flex";
+          loading.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-cyan-400"></i> Fetching molecular coordinates…`;
+        }
+        const resp = await fetch("/api/structure/" + encodeURIComponent(targetId));
+        if (!resp.ok) throw new Error("Could not fetch structure: " + resp.statusText);
+        const pdbText = await resp.text();
+        loadedPdbData = pdbText;
+
+        if (!window.$3Dmol) throw new Error("3Dmol.js WebGL library not loaded yet.");
+
+        if (!molViewerInstance) {
+          molViewerInstance = $3Dmol.createViewer(container, { backgroundColor: "0x0b0f19" });
+        }
+
+        molViewerInstance.clear();
+        molViewerInstance.addModel(pdbText, "pdb");
+        applyRepresentation(currentRepresentation);
+        molViewerInstance.zoomTo();
+        molViewerInstance.render();
+
+        if (loading) loading.style.display = "none";
+        const atomCount = (pdbText.match(/^(ATOM|HETATM)/gm) || []).length;
+        document.getElementById("molAtomCount").innerText = `${atomCount} atoms rendered in 3D WebGL`;
+      } catch (err) {
+        console.error("3Dmol load error:", err);
+        if (loading) {
+          loading.style.display = "flex";
+          loading.innerHTML = `<span class="text-rose-400">3D view error: ${escapeHtml(err.message)}</span>`;
+        }
+      }
+    }
+
+    function applyRepresentation(mode) {
+      if (!molViewerInstance) return;
+      currentRepresentation = mode;
+      molViewerInstance.setStyle({}, {});
+
+      if (mode === "cartoon") {
+        molViewerInstance.setStyle({ hetero: false }, { cartoon: { color: "spectrum", opacity: 0.88 } });
+        molViewerInstance.setStyle({ hetero: true }, { stick: { colorscheme: "cyanCarbon", radius: 0.28 } });
+        molViewerInstance.setStyle({ resn: "MG" }, { sphere: { color: "green", radius: 1.2 } });
+      } else if (mode === "stick") {
+        molViewerInstance.setStyle({}, { stick: { colorscheme: "default", radius: 0.18 } });
+        molViewerInstance.setStyle({ resn: "MG" }, { sphere: { color: "green", radius: 1.2 } });
+      } else if (mode === "surface") {
+        molViewerInstance.setStyle({ hetero: false }, { cartoon: { color: "slate", opacity: 0.6 } });
+        molViewerInstance.setStyle({ hetero: true }, { stick: { colorscheme: "cyanCarbon", radius: 0.3 } });
+        molViewerInstance.addSurface($3Dmol.SurfaceType.VDW, { opacity: 0.65, color: "teal" }, { hetero: false });
+      }
+      molViewerInstance.render();
+    }
+
+    function setRepresentation(mode) {
+      applyRepresentation(mode);
+    }
+
+    function toggleSpin() {
+      if (!molViewerInstance) return;
+      isSpinning = !isSpinning;
+      molViewerInstance.spin(isSpinning);
+      const btn = document.getElementById("spinBtn");
+      if (btn) btn.classList.toggle("ring-1", isSpinning);
+    }
+
+    function resetView() {
+      if (!molViewerInstance) return;
+      molViewerInstance.zoomTo();
+      molViewerInstance.render();
     }
 
     async function loadMemory() {

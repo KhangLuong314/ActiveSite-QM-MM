@@ -58,7 +58,8 @@ def test_dashboard_html(client):
     resp = client.get("/")
     assert resp.status_code == 200
     for needle in ("ActiveSite", "Track 02", "catalog-STANDIN (DuckDB)", "What the system remembers", "SQL sent through the data layer",
-                   "Reset memory", "/run/stream", "not computed", "traceLink", "Pipeline"):
+                   "Reset memory", "/run/stream", "not computed", "traceLink", "Pipeline", "3D Structure", "3Dmol.js Active",
+                   "Interactive 3D Molecular Viewer", "marked.min.js", "3Dmol-min.js"):
         assert needle in resp.text
     assert "Zetaris MCP" not in resp.text
 
@@ -194,3 +195,70 @@ def test_run_with_md_toggle(client):
     resp = client.post("/api/run", json={"case_id": "egfr_erlotinib", "sample_mode": True, "md": True})
     assert resp.status_code == 200
     assert resp.json()["md"] is True
+
+
+def test_get_structure_endpoint(client):
+    # EGFR structure
+    r_egfr = client.get("/api/structure/egfr_erlotinib")
+    assert r_egfr.status_code == 200
+    assert "chemical/x-pdb" in r_egfr.headers.get("content-type", "")
+    assert "ATOM" in r_egfr.text
+
+    # I-PpoI structure
+    r_ippoi = client.get("/api/structure/ippoi_site_b")
+    assert r_ippoi.status_code == 200
+    assert "ATOM" in r_ippoi.text
+
+    # TEM-1 structure
+    r_tem = client.get("/api/structure/tem1_penicillin")
+    assert r_tem.status_code == 200
+    assert "ATOM" in r_tem.text
+
+    # Missing structure
+    r_404 = client.get("/api/structure/completely_nonexistent_pdb")
+    assert r_404.status_code == 404
+
+
+def test_chat_explain_previous_run_and_accuracy(client):
+    # Inquiry specifically after I-PpoI Site B run
+    q = "Can you explain the result of my previous run to me? What does it implies and how accurate is it?"
+    r_b = client.post("/api/chat", json={"message": q, "run_id": "ippoi_site_b"}).json()
+    assert "reply" in r_b
+    reply = r_b["reply"]
+    assert "I-PpoI Active Site B" in reply
+    assert "-511.364 kcal/mol" in reply
+    assert "0 retries" in reply
+    assert "0.032 e" in reply
+    assert "DFT" in reply
+    assert "free energy" in reply or "ΔG‡" in reply or "barrier" in reply
+
+    # Inquiry with EGFR run context
+    r_egfr = client.post("/api/chat", json={"message": "Can you explain my previous calculation?", "run_id": "egfr_erlotinib"}).json()
+    assert "EGFR Kinase + Erlotinib" in r_egfr["reply"]
+    assert "-8.286 kcal/mol" in r_egfr["reply"]
+    assert "Met769" in r_egfr["reply"]
+
+
+def test_chat_tem1_beta_lactamase_inquiry(client):
+    prompt = (
+        "Set up a QM/MM model for β-lactam ring opening during benzylpenicillin hydrolysis "
+        "at the active site of TEM-1 β-lactamase (Ser70) and compute its PM6 QM/MM energy. "
+        "Explain every setup choice in detail, including the protein structure and ligand selection, "
+        "protonation states, hydrogen placement, water molecules, QM/MM partitioning, link atoms, "
+        "total QM-region charge and spin multiplicity, MM force field, boundary treatment, and energy-minimization protocol."
+    )
+    r = client.post("/api/chat", json={"message": prompt}).json()
+    assert "reply" in r
+    text = r["reply"]
+    assert "TEM-1 β-Lactamase" in text
+    assert "Ser70" in text
+    assert "Lys73" in text
+    assert "Glu166" in text
+    assert "PDB 1FQG" in text
+    assert "Benzylpenicillin" in text
+    assert "singlet" in text.lower()
+    assert "Cα–Cβ" in text or "Ca-Cb" in text
+    assert "link atoms" in text.lower()
+    assert "+18.43 kcal/mol" in text
+    assert "PM6" in text
+

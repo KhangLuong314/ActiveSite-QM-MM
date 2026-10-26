@@ -84,3 +84,5 @@ Thumbs.db
 
 # pytest temp dir inside the repo: Colima only mounts $HOME into containers, so /var/folders tmp paths fail
 .pytest_tmp/
+
+*.pdf
