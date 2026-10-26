@@ -30,6 +30,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 
+from activesite.server.provenance import guard
 from activesite.adapters.scout import DataScout as CaseLoader
 from activesite.agent.orchestrator import public_stats, resolve_case_id, run_case
 from activesite.llm import ModelClient
@@ -310,6 +311,49 @@ class ChatRequest(BaseModel):
     history: Optional[List[Dict[str, Any]]] = None
 
 
+CASE_SYSTEMS = {
+    "ippoi_site_a": "I-PpoI endonuclease site A (Mg :371)",
+    "ippoi_site_b": "I-PpoI endonuclease site B (Mg :372)",
+    "egfr_erlotinib": "EGFR kinase + erlotinib (PDB 1M17)",
+    "abl_imatinib_a": "ABL kinase + imatinib (PDB 2HYY)",
+    "abl_imatinib_b": "ABL kinase + imatinib (PDB 2HYY, chain A)",
+}
+# Systems people ask about that have no case file and were never run: no numbers may be reported for them.
+UNSUPPORTED_SYSTEMS = {
+    "ecorv_endonuclease": "EcoRV endonuclease (PDB 1RVA), not a supported case",
+    "tem1_penicillin": "TEM-1 beta-lactamase (PDB 1FQG), not a supported case",
+}
+
+
+def _resolve_case_alias(text: str) -> Optional[str]:
+    t = text.lower()
+    table = (("ecorv_endonuclease", ("ecorv", "1rva", "1b95")),
+             ("tem1_penicillin", ("tem1", "tem-1", "penicillin", "1fqg", "lactamase")),
+             ("abl_imatinib_b", ("abl_imatinib_b",)), ("abl_imatinib_a", ("abl", "2hyy", "imatinib")),
+             ("ippoi_site_b", ("site_b", "372")), ("ippoi_site_a", ("site_a", "371", "ippoi")),
+             ("egfr_erlotinib", ("egfr", "1m17", "erlotinib")))
+    for key, aliases in table:
+        if any(alias in t for alias in aliases):
+            return key
+    return None
+
+
+def _sample_context(case_id: str) -> Dict[str, Any]:
+    """Recorded real run for a case (samples/<case>/stats.json, cards.json); empty if none was recorded."""
+    out: Dict[str, Any] = {}
+    for key, name in (("stats", "stats.json"), ("cards", "cards.json")):
+        f = Path("samples") / case_id / name
+        if f.exists():
+            try:
+                out[key] = json.loads(f.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+    if out.get("stats"):
+        out["result"] = out["stats"]
+        out["md_stability"] = out["stats"].get("md_stability")
+    return out
+
+
 def get_current_simulation_context(run_id: Optional[str] = None) -> Dict[str, Any]:
     """Retrieve full simulation context for AI Biochemist, falling back to pre-cached EGFR benchmark if no live run."""
     ctx: Dict[str, Any] = {}
@@ -346,56 +390,16 @@ def get_current_simulation_context(run_id: Optional[str] = None) -> Dict[str, An
             except Exception:
                 pass
         c_id = str(ctx.get("stats", {}).get("case") or clean_id).lower()
-        prep_str = str(ctx.get("prep", {})).lower()
-        if "abl" in c_id or "2hyy" in c_id or "sti" in prep_str or "361" in prep_str:
-            ctx["case_id"] = "abl_imatinib_a"
-            ctx["system"] = "ABL kinase + Imatinib (PDB 2HYY)"
-            if not ctx.get("result"):
-                ctx["result"] = {"qm_escf_kcal": 105.68, "total_energy_kcal": -8403.00, "gmax": "1.244 kcal/mol/Å"}
+        case_id = _resolve_case_alias(c_id + " " + str(ctx.get("prep", {})).lower())
+        if case_id in UNSUPPORTED_SYSTEMS:
+            return {"case_id": case_id, "system": UNSUPPORTED_SYSTEMS[case_id], "supported": False}
+        if case_id:
+            ctx["case_id"] = case_id
+            ctx["system"] = CASE_SYSTEMS[case_id]
             if not ctx.get("stats"):
-                ctx["stats"] = {"case": "abl_imatinib_a", "qmcharge": 1, "qm_escf_kcal": 105.68, "total_energy_kcal": -8403.00}
+                ctx.update(_sample_context(case_id))
             return ctx
-        elif "ecorv" in c_id or "1rva" in c_id:
-            ctx["case_id"] = "ecorv_endonuclease"
-            ctx["system"] = "EcoRV Endonuclease + DNA + Mg2+ (PDB 1RVA)"
-            if not ctx.get("result"):
-                ctx["result"] = {"qm_escf_kcal": -480.35, "total_energy_kcal": -124520.40, "gmax": "0.912 kcal/mol/Å"}
-            if not ctx.get("stats"):
-                ctx["stats"] = {"case": "ecorv_endonuclease", "qmcharge": -1, "qm_escf_kcal": -480.35, "total_energy_kcal": -124520.40}
-            return ctx
-        elif "tem" in c_id or "penicillin" in c_id or "1fqg" in c_id:
-            ctx["case_id"] = "tem1_penicillin"
-            ctx["system"] = "TEM-1 beta-lactamase + Benzylpenicillin (PDB 1FQG)"
-            if not ctx.get("result"):
-                ctx["result"] = {"qm_escf_kcal": -32.18, "total_energy_kcal": -1842.34, "gmax": "0.785 kcal/mol/Å"}
-            if not ctx.get("stats"):
-                ctx["stats"] = {"case": "tem1_penicillin", "qmcharge": 0, "qm_escf_kcal": -32.18, "total_energy_kcal": -1842.34}
-            return ctx
-        elif "372" in c_id or "site_b" in c_id:
-            ctx["case_id"] = "ippoi_site_b"
-            ctx["system"] = "I-PpoI Endonuclease Site B (Mg :372)"
-            if not ctx.get("result"):
-                ctx["result"] = {"qm_escf_kcal": -511.364, "total_energy_kcal": -145120.2}
-            if not ctx.get("stats"):
-                ctx["stats"] = {"case": "ippoi_site_b", "qmcharge": -1, "qm_escf_kcal": -511.364, "total_energy_kcal": -145120.2}
-            return ctx
-        elif "371" in c_id or "site_a" in c_id:
-            ctx["case_id"] = "ippoi_site_a"
-            ctx["system"] = "I-PpoI Endonuclease Site A (Mg :371)"
-            if not ctx.get("result"):
-                ctx["result"] = {"qm_escf_kcal": -508.12, "total_energy_kcal": -144980.0}
-            if not ctx.get("stats"):
-                ctx["stats"] = {"case": "ippoi_site_a", "qmcharge": -1, "qm_escf_kcal": -508.12, "total_energy_kcal": -144980.0}
-            return ctx
-        elif "egfr" in c_id or "1m17" in c_id or "erlotinib" in c_id:
-            ctx["case_id"] = "egfr_erlotinib"
-            ctx["system"] = "EGFR kinase + Erlotinib (PDB 1M17)"
-            if not ctx.get("result"):
-                ctx["result"] = {"qm_escf_kcal": -8.286, "total_energy_kcal": -9861.8, "gmax": "0.855 kcal/mol/Å"}
-            if not ctx.get("stats"):
-                ctx["stats"] = {"case": "egfr_erlotinib", "qmcharge": 0, "qm_escf_kcal": -8.286, "total_energy_kcal": -9861.8}
-            return ctx
-        elif ctx.get("cards") or ctx.get("stats") or ctx.get("prep"):
+        if ctx.get("cards") or ctx.get("stats") or ctx.get("prep"):
             ctx["case_id"] = c_id
             return ctx
 
@@ -414,43 +418,8 @@ def get_current_simulation_context(run_id: Optional[str] = None) -> Dict[str, An
         if r.result:
             return r.result
 
-    # Real pre-cached EGFR Erlotinib benchmark sample
-    sample_cards_path = Path("samples/egfr_erlotinib/cards.json")
-    sample_stats_path = Path("samples/egfr_erlotinib/stats.json")
-    sample_cards = []
-    sample_stats = {}
-    if sample_cards_path.exists():
-        try:
-            sample_cards = json.loads(sample_cards_path.read_text(encoding="utf-8"))
-        except Exception:
-            pass
-    if sample_stats_path.exists():
-        try:
-            sample_stats = json.loads(sample_stats_path.read_text(encoding="utf-8"))
-        except Exception:
-            pass
-
-    return {
-        "case_id": "egfr_erlotinib",
-        "system": "EGFR kinase + Erlotinib (PDB 1M17)",
-        "stats": sample_stats,
-        "cards": sample_cards,
-        "result": {
-            "qm_escf_kcal": sample_stats.get("qm_escf_kcal", -8.2856),
-            "total_energy_kcal": sample_stats.get("total_energy_kcal", -9861.8),
-            "gmax": "0.855 kcal/mol/Å",
-        },
-        "md_stability": {
-            "available": True,
-            "ligand_retained": True,
-            "mean_distance": 2.45,
-            "std_distance": 0.29,
-            "temperature_k": 286.1,
-            "steps": 1000,
-            "dt_ps": 0.001,
-            "hinge_contact": "Met769 NH -- Erlotinib N1",
-        },
-    }
+    # No run selected: the recorded EGFR sample exactly as stored (no typed-in fallback values)
+    return {"case_id": "egfr_erlotinib", "system": CASE_SYSTEMS["egfr_erlotinib"], **_sample_context("egfr_erlotinib")}
 
 
 def format_chat_system_prompt(ctx: Dict[str, Any]) -> str:
@@ -488,6 +457,15 @@ def format_chat_system_prompt(ctx: Dict[str, Any]) -> str:
     else:
         cards_text = "No cards produced yet."
 
+    if stab and stab.get("mean_distance") is not None:
+        md_text = ("### QM/MM MD (from this run's trajectory analysis):\n"
+                   f"• Ligand retained: {stab.get('ligand_retained')}; mean contact distance {stab.get('mean_distance'):.2f} Å"
+                   + (f" ± {stab.get('std_distance'):.2f} Å" if stab.get("std_distance") is not None else "")
+                   + (f"; mean temperature {stab.get('temperature_k'):.1f} K" if stab.get("temperature_k") is not None else ""))
+    else:
+        md_text = "### QM/MM MD: not run for this case (no trajectory analysis available)."
+    if ctx.get("supported") is False:
+        md_text += "\n### NOTE: this system is not a supported case and was never run. Report no energies or results for it."
     prompt = (
         "You are ActiveSite's AI Biochemist & Computational Chemistry Expert "
         "(Open Agent Hackathon Track 02: 'The Agent That Can Explain Why').\n\n"
@@ -498,17 +476,14 @@ def format_chat_system_prompt(ctx: Dict[str, Any]) -> str:
         f"• QM Energy (ESCF): {f'{qm_escf:.4f} kcal/mol' if qm_escf is not None else 'not computed'}\n"
         f"• Total Energy: {f'{total_e:.2f} kcal/mol' if total_e is not None else 'not computed'}\n"
         f"• QM Net Formal Charge: {qm_charge:+d}\n"
-        f"• Minimization Pocket GMAX: 0.855 kcal/mol/Å (limit: 10.0 kcal/mol/Å, converged)\n\n"
-        "### 1 ps QM/MM MOLECULAR DYNAMICS (100 FRAMES, 1.0 fs STEP, 300 K LANGEVIN):\n"
-        f"• Trajectory Status: Converged 1,000 steps (1.0 ps total), ntwx=10 producing 100 NetCDF frames.\n"
-        f"• Mean Temperature: {stab.get('temperature_k', 286.1):.1f} K (Langevin gamma_ln=2.0 ps⁻¹).\n"
-        f"• Erlotinib-Met769 Hinge H-Bond: quinazoline N1 to Met769 backbone amide NH distance is 2.45 ± 0.29 Å.\n"
-        f"• Ligand Retention: {stab.get('ligand_retained', True)} (100% stable in the ATP binding pocket).\n\n"
+        "\n"
+        f"{md_text}\n\n"
         "### METERLESS H-MEM EPISODIC MEMORY STATUS:\n"
         f"• {mem_summary}\n\n"
         "### AUDITABLE DECISION CARDS:\n"
         f"{cards_text}\n\n"
         "### CONVERSATIONAL GUIDELINES:\n"
+        "0. Only state numbers that appear in this context. If a value is not here, say it was not computed. Never invent energies, distances or statistics.\n"
         "1. Warmly greet users when greeted and introduce your capabilities.\n"
         "2. Answer open questions like 'what did you find?' by giving an executive summary of the QM energy, "
         "minimized pocket, all Decision Cards, and 1 ps MD stability.\n"
@@ -517,6 +492,65 @@ def format_chat_system_prompt(ctx: Dict[str, Any]) -> str:
         "4. Always cite exact numbers and specific Decision Card numbers where appropriate."
     )
     return prompt
+
+
+def _escf_txt(ctx: Optional[Dict[str, Any]]) -> str:
+    v = ((ctx or {}).get("stats") or {}).get("qm_escf_kcal")
+    return "not computed" if v is None else f"{v:+.4f} kcal/mol"
+
+
+def _total_txt(ctx: Optional[Dict[str, Any]]) -> str:
+    v = ((ctx or {}).get("stats") or {}).get("total_energy_kcal")
+    return "not computed" if v is None else f"{v:.2f} kcal/mol"
+
+
+def _his_override_txt(ctx: Optional[Dict[str, Any]]) -> str:
+    for c in (ctx or {}).get("cards") or []:
+        if "his" in str(c.get("target", "")).lower() and c.get("category") in ("protonation", "protonation_override", "override"):
+            return str(c.get("rationale") or c.get("evidence"))
+    return "not in the active run (run the ABL case to see the measured distances)"
+
+
+def _md_txt(ctx: Optional[Dict[str, Any]]) -> str:
+    s = (ctx or {}).get("md_stability") or {}
+    if s.get("mean_distance") is None:
+        return "no MD was run for the active case"
+    sd = f" ± {s['std_distance']:.2f}" if s.get("std_distance") is not None else ""
+    return f"{s['mean_distance']:.2f}{sd} Å (ligand retained: {s.get('ligand_retained')})"
+
+
+def explain_run_from_context(ctx: Dict[str, Any]) -> str:
+    """Explain a run using only what that run recorded: stats, Critic checks, validation and decision cards."""
+    if ctx.get("supported") is False:
+        return f"**{ctx.get('system')}**: no run exists for this system, so there is nothing to explain."
+    st = ctx.get("stats") or {}
+    if not st:
+        return "No run has been recorded for this case yet. Press Run, then ask again."
+
+    def fmt(v: Any, spec: str) -> str:
+        return "not computed" if v is None else format(v, spec)
+
+    lines = [f"**What this run did: {ctx.get('system') or st.get('case')}**", "",
+             f"- **Engine:** {st.get('engine_label', 'unknown')}",
+             f"- **QM energy (PM6 ESCF):** {fmt(st.get('qm_escf_kcal'), '.4f')} kcal/mol; total {fmt(st.get('total_energy_kcal'), '.2f')} kcal/mol",
+             f"- **QM charge:** {st.get('qmcharge', 'not set'):+} ({st.get('charge_rule', 'rule not recorded')}); retries {st.get('retries', 0)}; "
+             f"memory used {st.get('memory_used')}"]
+    checks = st.get("checks") or []
+    if checks:
+        lines += ["", "**Critic checks before the engine ran:**"]
+        lines += [f"- {'PASS' if c.get('passed') else 'FLAG'} {c.get('name')}: {c.get('detail')}" for c in checks]
+    v = st.get("validation") or {}
+    if v.get("jaccard") is not None:
+        lines += ["", f"**Against the expert record:** atom Jaccard {v['jaccard']}, expert QM atoms {v.get('expert_atoms')}, "
+                      f"charge match {v.get('charge_match')}"]
+    cards = ctx.get("cards") or []
+    if cards:
+        lines += ["", f"**Decisions ({len(cards)} cards), first five:**"]
+        for c in cards[:5]:
+            lines.append(f"- {c.get('choice')} (confidence {c.get('confidence')}): {c.get('rationale')}")
+    lines += ["", "**What this does not show:** a PM6 single point is not a reaction barrier or a binding free energy; "
+                  "those need sampling (umbrella sampling, free-energy methods) that this run did not do."]
+    return "\n".join(lines)
 
 
 def biochemist_domain_reply(message: str, run_id: Optional[str] = None, run_context: Optional[Dict[str, Any]] = None) -> str:
@@ -558,81 +592,25 @@ def biochemist_domain_reply(message: str, run_id: Optional[str] = None, run_cont
             "I'm here to explain the computational biochemistry, quantum physical principles, and autonomous decisions behind your simulation:\n\n"
             "• **Protonation states:** How PDB2PQR + PROPKA determine His tautomers (HID/HIE), why Erlotinib is neutral (+0), and why His361 is kept as HIE to prevent clash with imatinib's piperazinium cation.\n"
             "• **Active site partitioning:** Why specific residues are selected for the QM region and how Cα–Cβ link-atom cuts are placed with zero charge leakage.\n"
-            "• **Energy decomposition:** Why semi-empirical PM6 ESCF represents gas-phase standard heat of formation (ΔHf°) and can be positive (+105.68 kcal/mol), while total QM/MM energy is -8403.00 kcal/mol due to Generalized Born solvation.\n"
+            "• **Energy decomposition:** Why semi-empirical PM6 ESCF represents gas-phase standard heat of formation (ΔHf°) and can be positive, while the total QM/MM energy is large and negative, due to Generalized Born solvation.\n"
             "• **Convergence criteria:** Physical distinction between coordinate force relaxation (GMAX <= 10.0 kcal/mol/Å) and SCF electronic density matrix convergence (ΔE < 10^-7 kcal/mol).\n"
             "• **Metalloenzyme catalysis:** Complete catalytic setup for DNA phosphodiester cleavage at EcoRV and I-PpoI endonuclease sites with catalytic Mg²⁺.\n"
             "• **Audit Trail:** Detailed inspection of all 15 auditable Decision Cards.\n\n"
             "Click one of the suggested query chips above, or ask me any question about your simulation!"
         )
 
-    # 2. EcoRV Restriction Endonuclease Catalytic Setup (7-Section Publication Protocol)
+    # 2. EcoRV: not a supported case (no case file, never run), so no numbers
     if any(k in msg for k in ["ecorv", "eco-rv", "1rva", "1b95"]) or (
         "endonuclease" in msg and any(k in msg for k in ["phosphodiester", "cleavage", "mg", "magnesium", "scissile", "gatatc"])
     ):
+        name = "EcoRV endonuclease (PDB 1RVA)"
         return (
-            "🧬 **ActiveSite QM/MM Model Setup: DNA Phosphodiester Cleavage at EcoRV Endonuclease Active Site (Mg²⁺)**\n\n"
-            "Here is the complete publication-grade computational biochemistry setup, quantum mechanical region partitioning, force field parameters, and reaction pathway analysis for DNA phosphodiester cleavage catalyzed by EcoRV restriction endonuclease:\n\n"
-            "---\n\n"
-            "### 1. Structure Preparation & Crystallographic Substrate Setup\n"
-            "• **Starting Coordinates:** High-resolution crystal structure of the cognate EcoRV–DNA complex with bound catalytic Mg²⁺ (e.g., **PDB 1RVA** at 2.00 Å resolution, or **PDB 1B95** at 1.80 Å).\n"
-            "• **DNA Substrate & Scissile Bond:** Palindromic cognate sequence 5′-d(AAAGAT|ATCTTT)-3′. EcoRV catalyzes phosphodiester bond cleavage at the central **GAT|ATC** step between Thymine (Thy5) and Adenine (Ade6), generating blunt ends with 5′-phosphate and 3′-hydroxyl termini.\n"
-            "• **Water Molecules:** Retain structurally conserved crystallographic waters in the active cleft, specifically the **catalytic attacking water** positioned in-line opposite the leaving 3′-oxygen (`O3'`), and coordinating waters completing the octahedral coordination shell of the catalytic Mg²⁺ ion.\n"
-            "• **Protonation States (PROPKA 3.5.1 at pH 7.5):**\n"
-            "  - **Asp74 & Asp90:** Negatively charged carboxylates (-COO⁻), forming bidentate coordination to Mg²⁺.\n"
-            "  - **Glu45:** Negatively charged carboxylate (-COO⁻), acting as the catalytic general base (or positioning the water general base Lys92).\n"
-            "  - **Lys92:** Positively charged ammonium (-NH3⁺), hydrogen-bonded to Glu45 and the nucleophilic water to facilitate proton abstraction.\n"
-            "  - **Surrounding histidines:** His117 HID (neutral, pKa 6.2), His224 HIE (neutral, pKa 6.5).\n\n"
-            "### 2. QM Region Definition & Link-Atom Boundary Treatment\n"
-            "• **QM Region Composition (62 atoms total):**\n"
-            "  - **Catalytic Core:** One divalent magnesium ion (Mg²⁺) and its directly coordinating catalytic water (nucleophile).\n"
-            "  - **Scissile DNA Fragment:** The phosphodiester linkage of Thy5 (phosphorus atom P, non-bridging oxygens O1P, O2P, bridging ester oxygens O5′ and O3′), plus the adjacent C3′/C4′/C5′ deoxyribose sugar rings of Thy5 and Ade6.\n"
-            "  - **Catalytic Protein Side Chains:** Side chain carboxylates of **Asp74** (-CH2-COO⁻), **Asp90** (-CH2-COO⁻), and **Glu45** (-(CH2)2-COO⁻).\n"
-            "• **Boundary Cuts & Link Atoms:**\n"
-            "  - **Protein boundaries:** Non-polar single **Cα–Cβ σ-bonds** cut for Asp74, Asp90, and Glu45. Three monovalent hydrogen link atoms (`HL`) placed along the original Cα–Cβ vectors at standard bond length (1.09 Å).\n"
-            "  - **DNA boundaries:** Covalent single bonds cut at the non-polar sugar backbones: C3′–C4′ of Thy5 and C4′–C5′ of Ade6, capped with hydrogen link atoms. Phosphate oxygens and bridging ester bonds are strictly kept inside the QM boundary to eliminate frontier electron leakage.\n"
-            "  - Boundary charge leakage: Verified at **0.028 e** (well below the 0.10 e threshold).\n\n"
-            "### 3. MM Region, Boundary Treatment & Biomolecular Force Fields\n"
-            "• **Protein & DNA Parameters:**\n"
-            "  - Protein: Amber **ff14SB**\n"
-            "  - DNA Nucleic Acids: Amber **OL15** (optimized glycosidic and backbone torsions)\n"
-            "  - Solvent: Generalized Born neck2 implicit solvent ($igb=5$, mbondi2) for single points / pocket relaxation, or TIP3P explicit water box with 10.0 Å buffer for free-energy dynamics.\n"
-            "• **Mg²⁺ Parameterization:**\n"
-            "  - In the MM region, divalent ions are represented using the **Li–Merz 12-6-4 Lennard-Jones parameters**, which incorporate an $r^{-4}$ term to capture charge-induced dipole polarization.\n"
-            "  - *Limitation:* Classical MM point charges cannot model d-orbital polarization or direct metal-to-ligand charge transfer; hence the inner catalytic coordination sphere is strictly placed in the QM region.\n\n"
-            "### 4. QM Method, Multiplicity & Electrostatic Embedding\n"
-            "• **Quantum Hamiltonian:** Semi-empirical **PM6** method in Amber `sander`.\n"
-            "• **Spin Multiplicity & Net Charge:**\n"
-            "  - Ground State: Closed-shell singlet ground state ($M = 2S + 1 = 1$, zero unpaired electrons).\n"
-            "  - QM Formal Net Charge: **-2** (Mg²⁺ [+2] + scissile phosphodiester monoanion [-1] + Asp74 [-1] + Asp90 [-1] + Glu45 [-1] = -2; or neutral 0 if Lys92 side chain is included).\n"
-            "• **Electrostatic Embedding:** Surrounding MM partial atomic charges are incorporated as one-electron terms in the semi-empirical core Hamiltonian. Link atoms experience zero electrostatic interaction with immediate MM frontier atoms to prevent double-counting.\n"
-            "• **Suitability & Limitations of PM6 for Metalloenzymes:**\n"
-            "  - PM6 accurately maintains octahedral Mg²⁺ coordination geometry (2.05–2.18 Å coordination bonds) and steric packing.\n"
-            "  - *Limitation:* PM6 lacks explicit d-orbital polarization for transition states and underestimates the nucleophilic attack barrier by 4–8 kcal/mol. Quantitative barriers require single-point DFT (B3LYP-D3/6-31G* or ωB97X-D) along the minimum energy path.\n\n"
-            "### 5. Chemically Consistent Reaction-State Definition\n"
-            "• **Reactant Michaelis Complex (ES):**\n"
-            "  - Catalytic water is coordinated to Mg²⁺ and positioned directly opposite the leaving O3′ oxygen atom with an attack angle $\\angle(\\text{O}_\\text{nuc}\\text{–P–O}_{3'}) = 168.4^\\circ$.\n"
-            "  - Distance $d(\\text{P} - \\text{O}_\\text{nuc}) = 3.05\\text{ \\AA}$; distance $d(\\text{P} - \\text{O}_{3'}) = 1.62\\text{ \\AA}$.\n"
-            "• **Reaction Coordinate (RC):**\n"
-            "  - Symmetric SN2-type phosphoryl transfer coordinate: $\\xi = d(\\text{P} - \\text{O}_{3'}) - d(\\text{P} - \\text{O}_\\text{nuc})$.\n"
-            "• **Transition State / Phosphorane Intermediate:**\n"
-            "  - Forms a pentacoordinated, trigonal bipyramidal phosphorane species where the non-bridging oxygens (O1P, O2P) occupy the equatorial plane and the nucleophile (O_nuc) and leaving group (O3′) occupy axial positions.\n"
-            "  - Glu45 abstracts a proton from the nucleophilic water, generating the attacking hydroxide, while a proton from Lys92 or a second water is transferred to the departing 3′-hydroxyl leaving group.\n\n"
-            "### 6. Energy Calculation Protocol & Software Versions\n"
-            "• **Software:** AmberTools 26 `sander` (PM6 QM/MM) with Generalized Born solvent ($igb=5$).\n"
-            "• **Geometry Optimization:** Two-stage conjugate gradient pocket relaxation converged to **GMAX = 0.912 kcal/mol/Å** (convergence criterion: $\\text{GMAX} \\le 10.0\\text{ kcal/mol/\\AA}$).\n"
-            "• **Energy Values (Reactant Complex):**\n"
-            "  - **PM6 ESCF (Gas-Phase Heat of Formation):** **-480.35 kcal/mol**\n"
-            "  - **Total QM/MM Energy (E_total):** **-124,520.40 kcal/mol** (includes classical MM protein terms, QM/MM cross-terms, and GB solvation free energy).\n"
-            "  - **SCF Convergence:** Electronic density matrix convergence achieved with $\\Delta E < 10^{-7}\\text{ kcal/mol}$ in 28 SCF iterations.\n\n"
-            "### 7. Validation, Controls & Scientific Limitations\n"
-            "• **Validation Checks:**\n"
-            "  - Mg²⁺ coordination: 6-coordinate octahedral geometry intact ($d(\\text{Mg–O}) = 2.08 \\pm 0.06\\text{ \\AA}$).\n"
-            "  - Radical check: Even electron count (242 valence electrons), singlet $M=1$ confirmed.\n"
-            "  - Charge leakage: Partial atomic charge leakage at boundary link atoms = 0.028 e (passed, tolerance < 0.10 e).\n"
-            "• **Single-Point vs Reaction Barrier (ΔG‡) Limitation:**\n"
-            "  - A single-point energy calculation represents **static 0 K electronic potential energy** on a single coordinate surface.\n"
-            "  - It does **not** include Zero-Point Vibrational Energy (ΔZPE), thermal activation entropy ($-T\\Delta S^\\ddagger$), or solvent free-energy reorganization ($\\Delta G_\\text{solv}$).\n"
-            "  - True enzymatic activation barriers (experimental $k_\\text{cat} \\approx 10\\text{–}20\\text{ s}^{-1}$, corresponding to $\\Delta G^\\ddagger \\approx 15\\text{–}16\\text{ kcal/mol}$) require **QM/MM Umbrella Sampling or String Method free energy perturbation (FEP)** with high-level DFT (B3LYP-D3/6-31G*) integration."
+            f"**{name} is not one of ActiveSite's supported cases, and no calculation has been run for it.** "
+            "I won't quote energies or results for a system the agents never prepared.\n\n"
+            "To add it, the pipeline needs: a case file in `cases/` (PDB id, chain, metal or ligand, pH, question), "
+            "the structure under `data/reference/`, a ligand SMILES if there is one, and a reference to validate against "
+            "(an expert QM mask, published contacts, or a measured rate). The supported cases today are I-PpoI site A and B, "
+            "EGFR + erlotinib and ABL + imatinib."
         )
 
     # 3. Positive ESCF & Energy Decomposition vs Total Energy
@@ -641,14 +619,14 @@ def biochemist_domain_reply(message: str, run_id: Optional[str] = None, run_cont
     ) or ("heat of formation" in msg) or ("positive energy" in msg):
         return (
             "⚡ **Scientific Energy Decomposition: PM6 ESCF vs. Total QM/MM Energy**\n\n"
-            "Regarding why Amber's reported QM energy (ESCF) can be positive (e.g. **+105.68 kcal/mol** in ABL-imatinib) while the Total QM/MM Energy is large and negative (**-8403.00 kcal/mol**):\n\n"
+            f"Regarding why Amber's reported QM energy (ESCF) can be positive (in the active run: **{_escf_txt(run_context)}**) while the Total QM/MM Energy is large and negative (active run: **{_total_txt(run_context)}**):\n\n"
             "---\n\n"
             "### 1. What ESCF Represents (Semi-Empirical Standard Heat of Formation ΔHf°)\n"
             "• In Amber's implementation of semi-empirical quantum mechanics (`sander PM6`), the printed **`PM6 ESCF`** is not the absolute electronic Hamiltonian energy from bare nuclei; rather, it is parameterized to directly evaluate the **standard gas-phase heat of formation ($\\Delta H_f^\\circ$) at 298.15 K** relative to standard isolated neutral atoms in their standard states.\n"
             "• **Why it is Positive:** Large, highly conjugated polyaromatic molecules with multiple heteroatoms and formal positive charges (such as the protonated imatinib cation, $\\text{C}_{29}\\text{H}_{32}\\text{N}_7\\text{O}^+$, net charge +1) naturally have a **positive standard heat of formation** ($\\Delta H_f^\\circ > 0$) in the gas phase. This reflects the energy required to assemble the polycyclic cation from standard elements (graphite, $\\text{H}_2$, $\\text{N}_2$, $\\text{O}_2$) with an ionized charge center.\n\n"
             "---\n\n"
             "### 2. What Total QM/MM Energy (E_total) Represents\n"
-            "• The total energy **$E_\\text{total} = -8403.00\\text{ kcal/mol}$** represents the complete multiscale Hamiltonian of the solvated macromolecular system:\n"
+            f"• The total energy (active run: **{_total_txt(run_context)}**) represents the complete multiscale Hamiltonian of the solvated macromolecular system:\n"
             "  $$E_\\text{total} = E_\\text{QM} + E_\\text{MM} + E_\\text{QM-MM} + E_\\text{solv}$$\n"
             "  - **$E_\\text{MM}$:** Sum of classical bonded terms (bonds, angles, dihedrals) and non-bonded Lennard-Jones van der Waals contacts across thousands of protein atoms.\n"
             "  - **$E_\\text{QM-MM}$:** Favorable electrostatic polarization between MM point charges and the semi-empirical electron density.\n"
@@ -723,8 +701,7 @@ def biochemist_domain_reply(message: str, run_id: Optional[str] = None, run_cont
             "   PROPKA calculated a pKa of **7.59** for His361. At physiological pH 7.4, $\\text{pH} \\approx \\text{pKa}$ (within 0.19 units), indicating an equilibrium population (~60% doubly protonated HIP, ~40% singly protonated neutral HIE).\n\n"
             "2. **Spatial Geometry Relative to the Ligand Cation:**\n"
             "   - Imatinib's terminal N-methylpiperazine nitrogen (N51) is protonated (+1 formal charge at physiological pH).\n"
-            "   - Distance to His361 Nδ1: **5.96 Å**\n"
-            "   - Distance to His361 Nε2: **6.74 Å**\n"
+            f"   - Ring-N distance to the ligand cation: {_his_override_txt(run_context)}\n"
             "   - His361 Nδ1 directly faces the cationic N51 center.\n\n"
             "3. **Electrostatic Repulsion Prevention:**\n"
             "   Protonating Nδ1 (forming doubly protonated $\\text{HIP}^{2+}$) places two formal positive charges in close spatial proximity across a low-dielectric protein cleft, creating unphysical electrostatic repulsion. Leaving Nδ1 unprotonated (the **HIE** tautomer) eliminates cation–cation clash and allows Nδ1 to accept favorable polar interactions.\n\n"
@@ -746,65 +723,16 @@ def biochemist_domain_reply(message: str, run_id: Optional[str] = None, run_cont
             "   Crucially, ActiveSite uses the catalog entry solely for **cross-system comparative reference**; the actual QM/MM simulation pipeline strictly executed on the target **ABL kinase coordinates from PDB 2HYY**."
         )
 
-    # 9. TEM-1 β-lactamase & Benzylpenicillin Catalytic Modeling
+    # 9. TEM-1: not a supported case (no case file, never run), so no numbers
     if any(k in msg for k in ["tem-1", "tem1", "beta-lactam", "lactamase", "penicillin", "ser70", "benzylpenicillin", "ring opening"]):
+        name = "TEM-1 beta-lactamase (PDB 1FQG)"
         return (
-            "🧪 **ActiveSite QM/MM Model Setup: β-Lactam Ring Opening in TEM-1 β-Lactamase (Ser70)**\n\n"
-            "Here is the complete computational biochemistry setup, partitioning rationale, and energetic analysis for benzylpenicillin hydrolysis catalyzed by TEM-1 β-lactamase:\n\n"
-            "---\n\n"
-            "### 1. Protein Structure & Substrate Selection\n"
-            "• **Starting Coordinates:** Crystal structure of TEM-1 β-lactamase at high resolution (e.g., **PDB 1FQG** at 1.50 Å for the acyl-enzyme intermediate complex, or **PDB 1BTL** at 1.80 Å for apo wild-type enzyme).\n"
-            "• **Substrate Selection:** Benzylpenicillin (Penicillin G, ChemComp `PNN`). The strained 4-membered β-lactam ring fused to the 5-membered thiazolidine ring represents the core reactive pharmacophore.\n"
-            "• **Water Molecules:** Retain structurally conserved active-site waters, notably the hydrolytic deacylation water bridging Glu166 and Ser70/Lys73. Surrounding solvent is modeled with Generalized Born implicit solvent (GB-neck2, $igb=5$).\n\n"
-            "### 2. Catalytic Residues & Protonation States (pH 7.0)\n"
-            "Calculated via PROPKA 3.5.1 and active-site pKa equilibria:\n"
-            "• **Ser70 (Nucleophile):** Neutral side chain (-CH2-OH). In the reactant complex, Ser70 Oγ is positioned 2.8 Å from the β-lactam carbonyl carbon (C7) for in-line nucleophilic attack.\n"
-            "• **Lys73 (General Base):** Neutral ε-amino group (-NH2, unprotonated). In Class A β-lactamases, Lys73 acts as the immediate general base abstracting the proton from Ser70 Oγ during nucleophilic attack, shuttled via its hydrogen-bonding network with Glu166.\n"
-            "• **Glu166 (Catalytic Shuttle):** Negatively charged carboxylate (-COO⁻). Pre-positioned to coordinate the catalytic hydrolytic water and stabilize the protonated Lys73 during intermediate formation.\n"
-            "• **Lys234 & Arg244:** Positively charged (-NH3⁺ / guanidinium), forming tight salt bridges with the penicillin C3 carboxylate group to anchor the substrate in the cleft.\n"
-            "• **Oxyanion Hole (Ser70 & Ala237):** Backbone amide NH groups of Ser70 and Ala237 form hydrogen bonds to the β-lactam carbonyl oxygen (O8), polarizing the carbonyl bond and stabilizing the developing negative charge in the tetrahedral transition state.\n\n"
-            "### 3. QM/MM Partitioning & Boundary Link Atoms\n"
-            "• **QM Region Composition (46 atoms total):**\n"
-            "  - **Ser70 Sidechain:** -CH2-OH (nucleophile)\n"
-            "  - **Lys73 Sidechain:** -(CH2)3-NH2 (general base)\n"
-            "  - **Benzylpenicillin Core:** The 4-membered β-lactam ring, thiazolidine ring, and exocyclic carbonyl (C7=O8)\n"
-            "  - **Catalytic Water (WAT):** Active-site water participating in proton shuttling\n"
-            "• **Boundary Cuts & Link Atoms:**\n"
-            "  - Non-polar single **Cα–Cβ σ-bonds** cut for Ser70 and Lys73. Two monovalent hydrogen link atoms (`HL`) are placed along the original Cα–Cβ vectors at standard bond length (1.09 Å).\n"
-            "  - Covalent peptide backbone bonds (C–N) are never cut to prevent unphysical frontier charge polarization.\n"
-            "• **Surrounding MM Region:**\n"
-            "  - Remaining 261 amino acid residues and non-catalytic solvent treated with classical molecular mechanics.\n\n"
-            "### 4. QM Net Charge, Spin Multiplicity & MM Force Field\n"
-            "• **Spin Multiplicity:** Closed-shell singlet ground state ($M = 2S + 1 = 1$). All valence electrons paired.\n"
-            "• **QM Formal Charge:**\n"
-            "  - Net Charge = **0** (neutral) when the penicillin C3 carboxylate (-COO⁻) is retained in the MM region and anchored by the Lys234 salt bridge.\n"
-            "  - Net Charge = **-1** if the penicillin C3 carboxylate is included in the QM boundary.\n"
-            "• **MM Force Field Parameters:**\n"
-            "  - Protein: Amber **ff14SB**\n"
-            "  - Benzylpenicillin: **GAFF2** (General Amber Force Field 2) with **AM1-BCC** partial atomic charges derived via Antechamber.\n"
-            "  - Electrostatic Embedding: MM point charges polarize the semi-empirical QM electron density; link atoms experience zero interaction with immediate boundary MM atoms to prevent charge duplication.\n\n"
-            "### 5. Minimization & Reaction Energy Protocol\n"
-            "1. **Geometry Relaxation:** Two-stage minimization: 500 steps steepest descent followed by 500 steps conjugate gradient until pocket GMAX converges below 1.0 kcal/mol/Å.\n"
-            "2. **Reactant Complex Energy (PM6 QM/MM):**\n"
-            "   E_reactant = -1842.34 kcal/mol (ESCF = -32.18 kcal/mol)\n"
-            "3. **Tetrahedral Intermediate (TI1):**\n"
-            "   Constructed with covalent Ser70 Oγ–C7 bond formed (1.45 Å) and proton transferred to Lys73:\n"
-            "   E_tetrahedral = -1823.91 kcal/mol (ESCF = -13.75 kcal/mol)\n"
-            "4. **Calculated Energy Difference:**\n"
-            "   ΔE = E_tetrahedral - E_reactant = **+18.43 kcal/mol**\n\n"
-            "### 6. Physical Meaning: ΔE vs. Free Energy Barrier (ΔG‡)\n"
-            "• **Single-Point ΔE Physical Meaning:**\n"
-            "  ΔE is strictly the **static electronic potential energy difference at 0 K** on a fixed coordinate surface. It represents the electronic penalty for forming the high-energy tetrahedral intermediate before β-lactam C–N bond cleavage.\n"
-            "• **Distinction from Reaction Activation Barrier (ΔG‡):**\n"
-            "  - ΔE **lacks Zero-Point Vibrational Energy (ZPE)** correction (ΔZPE).\n"
-            "  - ΔE **lacks Thermal Entropy** (-TΔS‡), including conformational entropy of active-site loops and substrate mobility.\n"
-            "  - ΔE **lacks Solvent Free Energy of Reorganization** (ΔG_solv).\n"
-            "  - An experimental or computational activation barrier (ΔG‡ ≈ 14–16 kcal/mol for TEM-1 penicillin hydrolysis) requires **transition state optimization** and **QM/MM Umbrella Sampling / Free Energy Perturbation (FEP)** with potential of mean force (PMF) integration across the reaction coordinate.\n\n"
-            "### 7. Limitations of PM6 Semi-Empirical Theory\n"
-            "1. **Underestimated Lactam Ring Strain:** PM6 uses parameterized core-core repulsions that struggle to capture the non-planar pyramidal geometry of the 4-membered strained β-lactam ring, underestimating ground-state destabilization.\n"
-            "2. **Proton Transfer Barriers:** PM6 overestimates barriers for proton transfer between neutral oxygen (Ser70) and nitrogen (Lys73) by ~4–8 kcal/mol due to inadequate hydrogen bond polarization.\n"
-            "3. **Lack of Dispersion:** PM6 lacks London dispersion forces (DFT-D3 corrections), underestimating van der Waals stabilization between the phenylacetyl group and hydrophobic cleft residues.\n"
-            "4. **Recommendation:** Use PM6 QM/MM for rapid conformational relaxation and active-site boundary verification, followed by single-point **DFT QM/MM (B3LYP-D3/6-31G* or ωB97X-D)** along the minimum energy path (MEP) for publication-quality activation barriers."
+            f"**{name} is not one of ActiveSite's supported cases, and no calculation has been run for it.** "
+            "I won't quote energies or results for a system the agents never prepared.\n\n"
+            "To add it, the pipeline needs: a case file in `cases/` (PDB id, chain, metal or ligand, pH, question), "
+            "the structure under `data/reference/`, a ligand SMILES if there is one, and a reference to validate against "
+            "(an expert QM mask, published contacts, or a measured rate). The supported cases today are I-PpoI site A and B, "
+            "EGFR + erlotinib and ABL + imatinib."
         )
 
     # 10. Explain Previous Run / Results & Accuracy & Implications
@@ -819,180 +747,7 @@ def biochemist_domain_reply(message: str, run_id: Optional[str] = None, run_cont
         )
     )
     if is_explain_run:
-        active_case = ""
-        if run_id:
-            r_str = run_id.lower()
-            if "abl" in r_str or "2hyy" in r_str or "sti" in r_str:
-                active_case = "abl_imatinib_a"
-            elif "ecorv" in r_str or "1rva" in r_str:
-                active_case = "ecorv_endonuclease"
-            elif "372" in r_str or "site_b" in r_str or "site-b" in r_str:
-                active_case = "ippoi_site_b"
-            elif "371" in r_str or "site_a" in r_str or "site-a" in r_str:
-                active_case = "ippoi_site_a"
-            elif "tem" in r_str or "penicillin" in r_str or "1fqg" in r_str:
-                active_case = "tem1_penicillin"
-            elif "egfr" in r_str or "erlotinib" in r_str or "1m17" in r_str:
-                active_case = "egfr_erlotinib"
-
-        if not active_case and run_context:
-            active_case = run_context.get("case_id") or run_context.get("stats", {}).get("case") or ""
-            if not active_case:
-                ctx_str = json.dumps(run_context, default=str).lower()
-                if "abl" in ctx_str or "2hyy" in ctx_str or "sti" in ctx_str or "361" in ctx_str:
-                    active_case = "abl_imatinib_a"
-                elif "ecorv" in ctx_str or "1rva" in ctx_str:
-                    active_case = "ecorv_endonuclease"
-                elif "372" in ctx_str or "mg372" in ctx_str or "ippoi_site_b" in ctx_str:
-                    active_case = "ippoi_site_b"
-                elif "371" in ctx_str or "mg371" in ctx_str or "ippoi_site_a" in ctx_str:
-                    active_case = "ippoi_site_a"
-                elif "tem" in ctx_str or "penicillin" in ctx_str or "1fqg" in ctx_str:
-                    active_case = "tem1_penicillin"
-                elif "egfr" in ctx_str or "erlotinib" in ctx_str or "1m17" in ctx_str:
-                    active_case = "egfr_erlotinib"
-
-        if not active_case:
-            if "2hyy" in msg or "imatinib" in msg or re.search(r"\babl\b", msg):
-                active_case = "abl_imatinib_a"
-            elif "ecorv" in msg or "1rva" in msg:
-                active_case = "ecorv_endonuclease"
-            elif "site b" in msg or "372" in msg:
-                active_case = "ippoi_site_b"
-            elif "site a" in msg or "371" in msg:
-                active_case = "ippoi_site_a"
-            elif "tem" in msg or "penicillin" in msg:
-                active_case = "tem1_penicillin"
-            elif "egfr" in msg or "erlotinib" in msg or "1m17" in msg:
-                active_case = "egfr_erlotinib"
-            else:
-                active_case = "ippoi_site_b"
-
-        # ABL Kinase + Imatinib
-        if active_case in ("abl_imatinib_a", "abl_imatinib_b") or "2hyy" in str(active_case):
-            return (
-                "🔬 **ActiveSite Analysis of Previous Run: ABL Kinase + Imatinib (PDB 2HYY)**\n\n"
-                "Regarding your inquiry into the numerical results, biological implications, and computational accuracy of this calculation:\n\n"
-                "---\n\n"
-                "### 1. What the Results Show (The Data)\n"
-                "• **Quantum Electronic Energy:** PM6 QM/MM single point converged to **ESCF = +105.68 kcal/mol** (Total QM/MM energy = **-8403.00 kcal/mol**).\n"
-                "• **Why ESCF is Positive (+105.68 kcal/mol):**\n"
-                "  Amber's `PM6ESCF` output is the semi-empirical gas-phase **standard heat of formation (ΔHf° at 298.15 K)** relative to standard isolated neutral atoms in their ground states. "
-                "For large, highly conjugated polyaromatics with formal positive charge (protonated Imatinib cation C29H32N7O+, net charge +1), ΔHf° is naturally positive (+105.68 kcal/mol). "
-                "In contrast, the total QM/MM energy E_total = E_QM + E_MM + E_QM-MM + E_GB is -8403.00 kcal/mol, reflecting thousands of classical protein covalent bonds, "
-                "van der Waals attractions, salt bridges, and favorable Generalized Born electrostatic solvation free energy (ΔG_GB << 0).\n"
-                "• **Pocket Minimization Convergence (GMAX):** Two-stage conjugate gradient minimization converged to **GMAX = 1.244 kcal/mol/Å** (well below the 10.0 kcal/mol/Å limit).\n"
-                "• **Chain Selection (Chain B over Chain A):**\n"
-                "  Chain B was chosen over Chain A because Chain B has only **2 missing pocket atoms** (Lys285, Met294) and 8 missing residues overall, whereas Chain A has **5 missing pocket atoms** (Arg246, Lys285, Met294, Glu357, Tyr387) and 10 missing residues overall according to REMARK 465/470 tables.\n"
-                "• **His361 Protonation Override (HIE):**\n"
-                "  PROPKA predicted pKa 7.59 at pH 7.4. ND1 (5.96 Å) directly faces the cationic N51 piperazinium nitrogen (+1). Leaving ND1 unprotonated (HIE tautomer) prevents artificial cation-cation electrostatic repulsion.\n\n"
-                "---\n\n"
-                "### 2. Biological & Mechanistic Implications\n"
-                "• **DFG-Out Inactive Conformation:** Confirms the classic Type II kinase inhibitor binding mode where imatinib induces the DFG motif (Asp381-Phe382-Gly383) to flip out, locking ABL kinase into an autoinhibited, enzymatically inactive state.\n"
-                "• **Key Hydrogen-Bonding Network Recovered:**\n"
-                "  - Met318 hinge backbone NH to pyridine N (2.85 Å)\n"
-                "  - Thr315 gatekeeper OG1 to aminopyrimidine NH (2.78 Å)\n"
-                "  - Glu286 carboxylate to amide NH (2.72 Å)\n"
-                "  - Asp381 DFG backbone NH to amide C=O (2.88 Å)\n\n"
-                "---\n\n"
-                "### 3. Computational Accuracy & Limitations\n"
-                "• **Pocket Proximity Check:** Closest heavy atom distance is 2.72 Å, passing the <= 4.0 Å contact upper bound (verifying ligand is bound in the pocket, not dissociated in solvent).\n"
-                "• **Catalog Analog Stand-in (DDR1 / 4BKJ):** The DuckDB catalog retrieved DDR1 kinase (PDB 4BKJ) as a structural analog sharing the DFG-out conformation and imatinib pharmacophore. The actual simulation executed on genuine ABL kinase (2HYY) coordinates."
-            )
-
-        # EcoRV Endonuclease
-        if active_case == "ecorv_endonuclease" or "ecorv" in str(active_case) or "1rva" in str(active_case) or "ecorv" in msg:
-            return (
-                "🔬 **ActiveSite Analysis of Previous Run: EcoRV Endonuclease + DNA (Mg²⁺)**\n\n"
-                "Regarding your inquiry into the numerical results, biological implications, and computational accuracy of this calculation:\n\n"
-                "---\n\n"
-                "### 1. What the Results Show (The Data)\n"
-                "• **Quantum Electronic Energy:** PM6 QM/MM single point converged to **ESCF = -480.35 kcal/mol** (Total QM/MM energy = **-124,520.40 kcal/mol**).\n"
-                "• **Pocket Minimization Convergence (GMAX):** Two-stage conjugate gradient minimization converged to **GMAX = 0.912 kcal/mol/Å** (well below the 10.0 kcal/mol/Å convergence threshold).\n"
-                "• **Active Site Partitioning & Charge Conservation:**\n"
-                "  - **62 QM atoms** encompassing the catalytic Mg²⁺ ion, scissile phosphodiester group (Thy5/Ade6), attacking nucleophilic water, and catalytic residues (Asp74, Asp90, Glu45).\n"
-                "  - **3 non-polar Cα–Cβ link-atom cuts** capped with monovalent hydrogens along original bond vectors (partial-charge leakage = **0.028 e**, well within the 0.10 e threshold).\n\n"
-                "---\n\n"
-                "### 2. Biological & Mechanistic Implications\n"
-                "• **SN2 Phosphoryl-Transfer Readiness:** In-line attack geometry is fully pre-formed with attack angle ∠(Onuc–P–O3′) = 168.4° and nucleophile distance 3.05 Å, poised to form the pentacoordinated trigonal bipyramidal phosphorane intermediate.\n"
-                "• **Octahedral Mg²⁺ Coordination Intact:** Hexacoordinated Mg²⁺ maintains coordination distances of 2.08 ± 0.06 Å to Asp74, Asp90, and non-bridging phosphate oxygens, stabilizing negative charge build-up during bond cleavage.\n\n"
-                "---\n\n"
-                "### 3. Computational Accuracy & Physical Limitations\n"
-                "• **Static 0 K Energy vs Free Energy Barrier (ΔG‡):** Single-point ΔE is a static electronic potential energy. True enzymatic activation barriers (experimental kcat ≈ 10–20 s⁻¹, ΔG‡ ≈ 15–16 kcal/mol) require QM/MM Umbrella Sampling / Free Energy Perturbation with high-level DFT (B3LYP-D3/6-31G*)."
-            )
-
-        if active_case == "ippoi_site_b" or ("site_b" in str(active_case) and "site_a" not in str(active_case)) or "site b" in msg or "mg :372" in msg or "372" in str(active_case):
-            return (
-                "🔬 **ActiveSite Analysis of Previous Run: I-PpoI Active Site B (Mg :372)**\n\n"
-                "Regarding your inquiry into the numerical results, biological implications, and computational accuracy of this calculation:\n\n"
-                "---\n\n"
-                "### 1. What the Results Show (The Data)\n"
-                "• **Quantum Electronic Energy:** Semi-empirical PM6 QM/MM single point converged to **ESCF = -511.364 kcal/mol** (Total QM/MM energy = **-302,070.0 kcal/mol**).\n"
-                "• **Partitioning & Boundary Cuts:**\n"
-                "  - **67 QM atoms** encompassing the catalytic Mg²⁺ ion (`:372`), scissile nucleic acid base/sugar fragment (`DG35`, cut level: `sugar`), His98, and 4 catalytic first-shell waters (`WAT402`, `WAT403`, `WAT404`, `WAT18332`).\n"
-                "  - **4 non-polar link-atom boundaries** with capping hydrogens along Cα–Cβ / C–C σ-bonds.\n"
-                "• **Meterless H-MEM Episodic Memory Recall (Warm Run):**\n"
-                "  - **0 retries (Retries = 0)**! Unlike Site A (which initially failed cold with an odd 203-electron radical mismatch and required Critic self-correction), Site B queried Meterless H-MEM, recalled rule `mem_64166b1a0f` (`qmcharge = +1`), and converged on Attempt 0 with 0 retries without human intervention.\n\n"
-                "---\n\n"
-                "### 2. Biological & Mechanistic Implications\n"
-                "• **Active Site Dimeric Symmetry:**\n"
-                "  I-PpoI is a homodimeric intron-encoded homing endonuclease that generates a 4-nucleotide 3' overhang. The fact that Site B successfully converges with the identical net formal charge (`+1`) and coordination geometry as Site A proves **electronic parity and functional symmetry** across both active sites of the homodimer.\n"
-                "• **Scissile Phosphate Activation:**\n"
-                "  The `+1` QM net formal charge balances the divalent Mg²⁺ core against the monovalent scissile phosphodiester backbone monoanion. This charge state maintains a closed-shell singlet electronic ground state ($M=1, 2S+1=1$).\n"
-                "• **In-Line Nucleophilic Attack Geometry:**\n"
-                "  All 6 heavy atoms coordinating within 2.8 Å of Mg :372 remain intact. The nucleophilic water (`WAT404`) is held directly opposite the 3'-leaving group oxygen of DG35, establishing the trigonal bipyramidal transition state geometry required for SN2-type phosphodiester cleavage.\n\n"
-                "---\n\n"
-                "### 3. Computational Accuracy & Physical Limitations\n"
-                "• **QM/MM Boundary Integrity:**\n"
-                "  The boundary partial-charge leakage is **0.032 e** (well below the 0.10 e tolerance limit), confirming that cutting at the sugar level rather than the phosphate prevents artificial dipole polarization or electron leakage.\n"
-                "• **PM6 Semi-Empirical Level of Theory:**\n"
-                "  PM6 incorporates NDDO approximations with parameterized core-core repulsions. It accurately captures relative electrostatic coordination and steric stabilization of the Mg²⁺ inner sphere (~5–10 kcal/mol typical error margin).\n"
-                "• **Critical Limitations vs DFT:**\n"
-                "  PM6 lacks explicit London dispersion forces and can slightly overestimate metal-ligand coordination bond lengths by ~0.05–0.10 Å. For phosphate cleavage reactions, PM6 typically underestimates transition-state activation barriers (ΔG‡) by 4–8 kcal/mol compared to high-level DFT (B3LYP-D3/6-31G*)."
-            )
-
-        if active_case == "ippoi_site_a" or ("site_a" in str(active_case) and "site_b" not in str(active_case)) or "site a" in msg or "mg :371" in msg or "371" in str(active_case):
-            return (
-                "🔬 **ActiveSite Analysis of Previous Run: I-PpoI Active Site A (Mg :371)**\n\n"
-                "Regarding your inquiry into the numerical results, biological implications, and computational accuracy of this calculation:\n\n"
-                "---\n\n"
-                "### 1. What the Results Show (The Data)\n"
-                "• **Quantum Electronic Energy:** Semi-empirical PM6 QM/MM single point converged to **ESCF = -456.563 kcal/mol** (Total QM/MM energy = **-302,060.0 kcal/mol**).\n"
-                "• **Cold Run Autonomous Self-Correction (Critic):**\n"
-                "  - **Attempt 0 Failure:** The initial geometry-based active site partition produced **203 valence electrons** (an odd electron count) under a singlet `spin=1` specification, causing sander PM6 SCF divergence.\n"
-                "  - **Critic Diagnosis:** The Critic detected the parity violation (`odd_electrons = 203`), determined that the link-atom frontier boundary left an unpaired radical electron, and prescribed `qmcharge = +1` (restoring 204 valence electrons).\n"
-                "  - **Attempt 1 Convergence:** Re-run converged cleanly with **1 retry**, and the rule was committed to Meterless H-MEM (`mem_64166b1a0f`).\n\n"
-                "---\n\n"
-                "### 2. Biological & Mechanistic Implications\n"
-                "• **Radical Parity Proof:** Proves that geometric active site cuts on metalloenzymes cannot assume charge neutrality; the scissile phosphate and divalent Mg :371 require net `+1` compensation to preserve a closed-shell singlet ground state.\n"
-                "• **Catalytic Readiness:** Hexacoordinated Mg :371 holds the catalytic nucleophilic water in position for attack on the 1CZ0 DNA cleavage site.\n\n"
-                "---\n\n"
-                "### 3. Computational Accuracy & Limitations\n"
-                "• **Boundary Integrity:** Boundary partial-charge fraction leakage is **0.038 e** (limit 0.10 e).\n"
-                "• **PM6 vs DFT Accuracy:** PM6 semi-empirical theory accurately establishes the electronic ground state and coordination shell, but DFT (B3LYP/6-31G*) is required to calculate quantitative transition-state free energy barriers (ΔG‡) for bond cleavage."
-            )
-
-        # Default to EGFR + Erlotinib
-        return (
-            "🔬 **ActiveSite Analysis of Previous Run: EGFR Kinase + Erlotinib (PDB 1M17)**\n\n"
-            "Regarding your inquiry into the numerical results, biological implications, and computational accuracy of this calculation:\n\n"
-            "---\n\n"
-            "### 1. What the Results Show (The Data)\n"
-            "• **Quantum Electronic Energy:** PM6 QM/MM single point converged to **ESCF = -8.286 kcal/mol** (Total QM/MM energy = **-9861.80 kcal/mol**).\n"
-            "• **Pocket Minimization:** Two-stage conjugate gradient minimization converged to a pocket GMAX of **0.855 kcal/mol/Å** (well below the 10.0 kcal/mol/Å limit).\n"
-            "• **1 ps QM/MM MD Trajectory (100 Frames at 300 K Langevin):**\n"
-            "  - **Hinge Anchor Stability:** Erlotinib quinazoline N1 to Met769 backbone amide NH distance was maintained at **2.45 ± 0.29 Å** (crystal contact 2.90 Å).\n"
-            "  - **Ligand Retention:** 100% retained in the ATP-binding cleft (`ligand_retained = True`).\n"
-            "  - **Mean Temperature:** 286.1 K without numerical divergence.\n\n"
-            "---\n\n"
-            "### 2. Biological & Mechanistic Implications\n"
-            "• **Neutral Erlotinib Pharmacophore:** Confirms that Erlotinib is uncharged (+0) at physiological pH 7.4. The aniline secondary amine lone pair is delocalized into the heteroaromatic ring, lowering its pKa to < 4.0. Keeping N1 unprotonated allows it to accept the crucial Met769 hinge H-bond without electrostatic clash.\n"
-            "• **Kinase Selectivity:** Preserving the deep hydrophobic pocket interactions (Leu718, Val726, Ala743) confirms high-affinity ATP-competitive inhibition.\n\n"
-            "---\n\n"
-            "### 3. Computational Accuracy & Limitations\n"
-            "• **Structural Accuracy:** The 2.45 Å hinge H-bond closely matches the 2.60 Å crystal structure (PDB 1M17) within thermal fluctuation margins.\n"
-            "• **PM6 vs Ab Initio:** PM6 accurately models hydrogen bonding and steric packing in the binding cleft. However, calculating absolute binding free energy (ΔG_bind) requires MMPBSA or alchemical Free Energy Perturbation (FEP) to incorporate solvent entropy and polarization effects."
-        )
+        return explain_run_from_context(run_context)
 
     # 11. What did you find / Summary / Results overview
     if any(k in msg for k in ["what did you find", "what did you learn", "summary", "findings", "what happened", "overview of results"]):
@@ -1009,9 +764,8 @@ def biochemist_domain_reply(message: str, run_id: Optional[str] = None, run_cont
             "   • **Boundary Partitioning:** Full ligand in QM region (:LIG), zero link-atom orbital distortion.\n\n"
             "3. **1 ps QM/MM Molecular Dynamics (100 Frames):**\n"
             "   • 1,000 steps at dt=0.001 ps (1.0 fs) with 300 K Langevin thermostat under GB implicit solvent (igb=5).\n"
-            "   • Reached final temperature of **286.1 K** without numerical divergence.\n"
             "   • **Ligand Retention:** 100% retained in the ATP-binding pocket (`ligand_retained = True`).\n"
-            "   • **Hinge Stability:** Quinazoline N1 to Met769 backbone NH distance maintained at **2.45 ± 0.29 Å**.\n\n"
+            f"   • **Hinge stability in this run:** {_md_txt(run_context)}\n\n"
             "4. **Validation:**\n"
             "   • Published crystallographic Met769 hinge contact recovered; expected absent solvent clashes verified.\n\n"
             "Inspect the **Cards** tab for every Decision Card or click **Launch ChimeraX (3D)** to watch the 100-frame trajectory!"
@@ -1026,8 +780,7 @@ def biochemist_domain_reply(message: str, run_id: Optional[str] = None, run_cont
             "   The heteroaromatic quinazoline N1 atom serves as a hydrogen-bond acceptor to the backbone amide proton (NH) of Met769. In the crystal structure, this distance is 2.90 Å.\n\n"
             "2. **1 ps QM/MM MD Trajectory Performance:**\n"
             "   Across the 1,000-step (1 ps) QM/MM MD simulation (100 NetCDF coordinate frames sampled at ntwx=10):\n"
-            "   • **Mean Distance:** The N1···HN(Met769) distance averaged **2.45 ± 0.29 Å**.\n"
-            "   • **Thermal Fluctuations:** The Langevin thermostat maintained a stable mean temperature of **286.1 K** without thermal disruption of the pocket.\n"
+            f"   • **Mean distance in this run:** {_md_txt(run_context)}\n"
             "   • **Ligand Retention:** `ligand_retained = True`. Erlotinib did not drift, tumble, or dissociate from the ATP-binding cleft.\n\n"
             "3. **Biochemical Significance:**\n"
             "   Preserving this sub-2.8 Å hydrogen bond confirms that our neutral protonation model (+0) and PM6 semi-empirical QM description accurately maintain the pharmacophore without artificial repulsive artifacts.\n\n"
@@ -1202,20 +955,24 @@ async def chat_endpoint(req: ChatRequest):
 
         reply = client.chat(messages, max_tokens=800)
         if reply:
+            reply, unverified = guard(reply, run_context)
             return {
                 "reply": reply,
                 "model": client.model,
                 "source": "nemotron",
                 "run_id": req.run_id,
+                "unverified_numbers": unverified,
             }
 
     # Offline domain expert fallback
     reply = biochemist_domain_reply(req.message, run_id=req.run_id, run_context=run_context)
+    reply, unverified = guard(reply, run_context)
     return {
         "reply": reply,
-        "model": "nvidia/nemotron-3.5-lightning-30b-a3b (domain expert)",
-        "source": "biochemist_domain_expert",
+        "model": "none (rule-based offline answers; set MODEL_API_KEY for Nemotron)",
+        "source": "rule_based_fallback",
         "run_id": req.run_id,
+        "unverified_numbers": unverified,
     }
 
 
