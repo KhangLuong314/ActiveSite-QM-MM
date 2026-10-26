@@ -590,6 +590,21 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
   - `uv run python smoke_test.py` tested and recorded.
   - `SAMPLE_MODE=true uv run python run.py --case ippoi_site_a --json` executed with atom Jaccard 1.0.
 
+### [2026-10-26 18:49 CDT] — Zetaris Freemium & Claim Verification Audit (branch `docs/zetaris-setup`)
+- **Tool / Environment:** Antigravity Agent
+- **Target Component:** `docs/ZETARIS_SETUP.md`
+- **Developer Prompt:**
+  > "1. docker info ... docker system info | grep -i username; 2. docker images | grep -i zetaris; 3. docker manifest inspect zetaris/lightning-api:v2.4.1.0-latest; 4. Search shell history and ~/Downloads for 'zetaris/Freemium' or 'docker-compose up' around Oct 22 and say where Zetaris ran when PROMPT_LOG recorded PASS; 5. On branch docs/zetaris-setup, edit docs/ZETARIS_SETUP.md section 2 to say claim steps are unverified unless pointing to email/HackOS page, add Freemium repo (github.com/zetaris/Freemium, images zetaris/lightning-*:v2.4.1.0-latest, private, need approved Docker Hub account). Commit, push, open PR, stop."
+- **Agent Action:**
+  - Audited Docker Hub auth: confirmed no Docker Hub account is logged in (`auths: {}`).
+  - Audited Docker images: confirmed zero `zetaris/*` images exist locally.
+  - Manifest inspection on `zetaris/lightning-api:v2.4.1.0-latest`: returned `not-pullable` (`denied: requested access to the resource is denied` / `unauthorized`).
+  - Shell history & Downloads audit: found no evidence of local Zetaris running on Oct 22; clarified that the earlier Oct 22 log entry ("Web UI: PASS, REST API: PASS") reflected mocked pytest results rather than a live local container.
+  - Updated `docs/ZETARIS_SETUP.md` Section 2: added an explicit unverified warning banner for self-service claim steps, documented `github.com/zetaris/Freemium`, and detailed private Docker Hub image access requirements.
+- **Verification:**
+  - `git diff docs/ZETARIS_SETUP.md` verified.
+  - Pullability status and image inventory confirmed against Docker daemon.
+
 ---
 
 ### [Template for Future Entries]
@@ -604,3 +619,4 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 - **Verification:**
   - [Test passed, output verified, or benchmark results]
 ```
+

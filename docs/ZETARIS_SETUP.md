@@ -43,11 +43,14 @@ Zetaris does **not** run locally on this machine. When `.env` configures `ZETARI
 
 ## 2. Obtaining Zetaris Credentials (`ZETARIS_API_KEY` & `ZETARIS_ORG_ID`)
 
-In Open Agent Hackathon 2026, Zetaris access was provisioned through the sponsor onboarding flow:
+> [!WARNING]
+> **Claim Steps Status: Unverified**
+> The self-service account claim and sign-up steps below are **unverified** unless verified against the specific kickoff email or official GenAI Works HackOS portal page.
 
+### Portal / Account Registration (Unverified)
 1. **Hackathon Portal Registration:** Log in to the GenAI Works HackOS participant platform.
 2. **Sponsor Claim Link:** Navigate to the Hackathon Resources / Sponsor Tools section and click the Zetaris Hobby Tier participant claim link (or follow the link in the official kickoff announcement email).
-3. **Account Creation:** Sign up for the Zetaris sandbox environment.
+3. **Account Creation:** Sign up for the Zetaris sandbox environment (e.g. `cloud.enterprise.zetaris.com/register`).
 4. **Organization ID (`ZETARIS_ORG_ID`):** Once logged into the Zetaris Console, the Org ID is listed under **Account / Workspace Settings** (default for hackathon sandbox workspaces is `1`).
 5. **API Key (`ZETARIS_API_KEY`):**
    * Navigate to **User Profile -> Settings -> API Keys / Access Tokens**.
@@ -59,6 +62,13 @@ In Open Agent Hackathon 2026, Zetaris access was provisioned through the sponsor
    ZETARIS_ORG_ID=1
    ZETARIS_API_KEY=<your-zetaris-api-token>
    ```
+
+### Zetaris Freemium Repository & Private Container Images
+For running Zetaris locally in Docker Compose:
+* **Freemium Repository:** [github.com/zetaris/Freemium](https://github.com/zetaris/Freemium)
+* **Container Images:** `zetaris/lightning-*:v2.4.1.0-latest` (including `zetaris/lightning-api:v2.4.1.0-latest`)
+* **Access Requirements:** The images are hosted in a **private** repository on Docker Hub. Pulling them requires an approved Docker Hub account that has been granted access by the Zetaris team (`docker login` required; unauthenticated inspect/pull commands fail with `denied: requested access to the resource is denied` / `unauthorized: authentication required`).
+
 
 ---
 
