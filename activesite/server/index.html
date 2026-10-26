@@ -91,7 +91,7 @@
           </label>
           <label class="flex items-center gap-2 cursor-pointer select-none">
             <input type="checkbox" id="mdToggle" class="w-4 h-4 rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-cyan-500">
-            <span class="font-medium text-cyan-300"><i class="fa-solid fa-play-circle"></i> Run 1 ps QM/MM MD</span>
+            <span class="font-medium text-cyan-300"><i class="fa-solid fa-play-circle"></i> Run 1 ps QM/MM MD (100 frames)</span>
           </label>
         </div>
         <div class="flex items-center gap-3">
@@ -158,12 +158,12 @@
       <!-- Tabs -->
       <div class="flex items-center gap-2 border-b border-slate-800 pb-2 flex-wrap">
         <button onclick="switchTab('cards')" id="tabBtnCards" class="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-cyan-400 border border-slate-700 flex items-center gap-2"><i class="fa-solid fa-address-card"></i> Decision Cards (<span id="cardsCount">0</span>)</button>
-        <button onclick="switchTab('report')" id="tabBtnReport" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2"><i class="fa-solid fa-file-lines"></i> Report</button>
         <button onclick="switchTab('chat')" id="tabBtnChat" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2"><i class="fa-solid fa-comments text-cyan-400"></i> AI Biochemist Chat</button>
+        <button onclick="switchTab('report')" id="tabBtnReport" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2"><i class="fa-solid fa-file-lines"></i> Report</button>
         <button onclick="switchTab('memory')" id="tabBtnMemory" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2"><i class="fa-solid fa-brain"></i> What the system remembers</button>
         <button onclick="switchTab('sql')" id="tabBtnSql" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white flex items-center gap-2"><i class="fa-solid fa-database"></i> SQL sent through the data layer</button>
-        <button id="launchChimeraXBtn" onclick="launchChimeraX()" class="hidden px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold text-xs shadow-md shadow-purple-500/20 transition flex items-center gap-1.5 ml-auto">
-          🚀 Launch ChimeraX (3D)
+        <button id="launchChimeraXBtn" onclick="launchChimeraX()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold text-xs shadow-md shadow-purple-500/25 transition flex items-center gap-2 ml-auto">
+          <i class="fa-solid fa-cube"></i> Launch ChimeraX (3D)
         </button>
       </div>
 
@@ -172,7 +172,6 @@
           <div class="glass-card p-6 rounded-2xl text-center text-slate-500"><i class="fa-solid fa-layer-group text-3xl mb-2 text-slate-600"></i><p>No run yet. Decision Cards appear when the Explainer finishes.</p></div>
         </div>
       </div>
-      <div id="tabReport" class="hidden glass-card p-6 rounded-2xl"><pre id="reportContent" class="text-xs text-slate-300 whitespace-pre-wrap font-mono"></pre></div>
       <div id="tabChat" class="hidden glass-card p-5 rounded-2xl flex flex-col gap-4 min-h-[500px]">
         <!-- Chat Header & Badges -->
         <div class="flex items-center justify-between pb-3 border-b border-slate-800/80 flex-wrap gap-2">
@@ -197,17 +196,20 @@
         <div class="flex flex-col gap-1.5">
           <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">Quick inquiries:</span>
           <div class="flex flex-wrap gap-2">
-            <button onclick="sendQuickQuery('Why was erlotinib kept neutral?')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
-              💡 <span>Why was erlotinib kept neutral?</span>
+            <button onclick="sendQuickQuery('Why is Erlotinib neutral?')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
+              💡 <span>Why is Erlotinib neutral?</span>
             </button>
-            <button onclick="sendQuickQuery('Explain the QM/MM MD 1.0 fs time step & thermostat')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
-              ⏱️ <span>Explain the QM/MM MD 1.0 fs time step & thermostat</span>
+            <button onclick="sendQuickQuery('Explain MD 1.0 fs time step')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
+              ⏱️ <span>Explain MD 1.0 fs time step</span>
             </button>
-            <button onclick="sendQuickQuery('How did Critic diagnose and fix the I-PpoI radical mismatch?')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
-              🛡️ <span>How did Critic diagnose and fix the I-PpoI radical mismatch?</span>
+            <button onclick="sendQuickQuery('How did Critic fix I-PpoI?')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
+              🛡️ <span>How did Critic fix I-PpoI?</span>
             </button>
             <button onclick="sendQuickQuery('What does the H-MEM memory ledger store?')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
               🧠 <span>What does the H-MEM memory ledger store?</span>
+            </button>
+            <button onclick="sendQuickQuery('What happened to Met769 hinge contact?')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
+              🔗 <span>What happened to Met769 hinge contact?</span>
             </button>
           </div>
         </div>
@@ -230,6 +232,7 @@
           </button>
         </div>
       </div>
+      <div id="tabReport" class="hidden glass-card p-6 rounded-2xl"><pre id="reportContent" class="text-xs text-slate-300 whitespace-pre-wrap font-mono"></pre></div>
       <div id="tabMemory" class="hidden glass-card p-6 rounded-2xl flex flex-col gap-3">
         <h3 class="text-sm font-semibold text-white">Meterless H-MEM memories and ledger</h3>
         <p class="text-xs text-slate-400">The store starts empty. A row appears only after the Critic learns something from a converged retry; the ledger below is append-only.</p>
@@ -277,7 +280,7 @@
     renderPipeline(null, null);
 
     function switchTab(tab) {
-      for (const t of ["Cards", "Report", "Chat", "Memory", "Sql"]) {
+      for (const t of ["Cards", "Chat", "Report", "Memory", "Sql"]) {
         const el = document.getElementById("tab" + t);
         const btn = document.getElementById("tabBtn" + t);
         if (el) el.classList.add("hidden");
@@ -327,13 +330,6 @@
       const res = payload.result || {};
       currentRunId = st.run_id || currentRunId;
       currentScriptPath = payload.chimerax_script || st.chimerax_script || null;
-
-      const launchBtn = document.getElementById("launchChimeraXBtn");
-      if (currentScriptPath) {
-        launchBtn.classList.remove("hidden");
-      } else {
-        launchBtn.classList.add("hidden");
-      }
 
       document.getElementById("metricEnergy").innerText = res.qm_escf_kcal === null || res.qm_escf_kcal === undefined ? "not computed" : `${fmt(res.qm_escf_kcal, 3)} kcal/mol`;
       document.getElementById("metricTotal").innerText = "total: " + (res.total_energy_kcal === null || res.total_energy_kcal === undefined ? "not computed" : `${fmt(res.total_energy_kcal, 2)} kcal/mol`);
@@ -424,11 +420,12 @@
       const orig = btn.innerHTML;
       btn.disabled = true;
       btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Launching…`;
+      const scriptToLaunch = currentScriptPath || (currentRunId ? ("data/runs/" + currentRunId + "/md/trajectory.cxc") : "data/sample/egfr_erlotinib/md/trajectory.cxc");
       try {
         const resp = await fetch("/api/chimerax/launch", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ run_id: currentRunId, script_path: currentScriptPath })
+          body: JSON.stringify({ run_id: currentRunId, script_path: scriptToLaunch })
         });
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.detail || resp.statusText);

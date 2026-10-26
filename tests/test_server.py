@@ -33,6 +33,8 @@ def fake_run_case(case_id, store=None, on_event=None, sample_mode=None, echo=Fal
 def client(tmp_path, monkeypatch):
     monkeypatch.setattr(server, "run_case", fake_run_case)
     monkeypatch.setattr(server, "hmem", MeterlessHMEM(db_path=tmp_path / "h.sqlite", ledger_path=tmp_path / "l.jsonl"))
+    monkeypatch.delenv("MODEL_API_KEY", raising=False)
+    monkeypatch.delenv("NVIDIA_API_KEY", raising=False)
     server.runs.clear()
     return TestClient(server.app)
 
@@ -134,6 +136,33 @@ def test_chat_endpoint_validation_and_explanations(client):
     r4 = client.post("/api/chat", json={"message": "What does the H-MEM memory ledger store?"}).json()
     assert "H-MEM" in r4["reply"] and "ledger" in r4["reply"]
 
+    # Casual greeting
+    r_hello = client.post("/api/chat", json={"message": "hello"}).json()
+    assert "AI Biochemist" in r_hello["reply"] and "Protonation" in r_hello["reply"]
+
+    # Open inquiry: "what did you find?"
+    r_findings = client.post("/api/chat", json={"message": "what did you find?"}).json()
+    assert "Summary" in r_findings["reply"] and "ESCF" in r_findings["reply"] and "Met769" in r_findings["reply"]
+
+    # Specific biochemical inquiry: Met769 contact
+    r_met = client.post("/api/chat", json={"message": "what happened to Met769?"}).json()
+    assert "Met769" in r_met["reply"] and "2.45" in r_met["reply"] and "ligand_retained" in r_met["reply"]
+
+    # Multi-turn history support
+    r_hist = client.post("/api/chat", json={
+        "message": "can you elaborate?",
+        "history": [{"role": "user", "content": "hello"}, {"role": "assistant", "content": "hi"}]
+    }).json()
+    assert "reply" in r_hist and len(r_hist["reply"]) > 20
+
+
+def test_chat_endpoint_nemotron_mode(client, monkeypatch):
+    monkeypatch.setattr(server.ModelClient, "available", True)
+    monkeypatch.setattr(server.ModelClient, "chat", lambda self, msgs, **kw: "Mocked Nemotron: neutral Erlotinib and Met769 contact verified.")
+    r = client.post("/api/chat", json={"message": "Why was erlotinib kept neutral?"}).json()
+    assert r["source"] == "nemotron"
+    assert "Mocked Nemotron" in r["reply"]
+
 
 def test_chimerax_launch_endpoint(client, tmp_path, monkeypatch):
     # 404 for missing file
@@ -153,6 +182,12 @@ def test_chimerax_launch_endpoint(client, tmp_path, monkeypatch):
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "launched" and data["pid"] == 12345
+
+    # Instant 1-click fallback launch when no run has completed yet
+    fallback_resp = client.post("/api/chimerax/launch", json={})
+    assert fallback_resp.status_code == 200
+    assert fallback_resp.json()["status"] == "launched"
+    assert "trajectory.cxc" in fallback_resp.json()["script_path"]
 
 
 def test_run_with_md_toggle(client):

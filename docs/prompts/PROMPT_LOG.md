@@ -516,6 +516,22 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-25 23:45 CDT] — Clean Dashboard Layout, Persistent ChimeraX 3D Launcher & Contextual AI Biochemist
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/server/index.html`, `activesite/server/main.py`, `tests/test_server.py`
+- **Developer Prompt:**
+  > "Refactor the ActiveSite Web Dashboard (activesite/server/index.html & activesite/server/main.py) on branch feat/clean-ui-ai-chimerax: 1. Fix ChimeraX 3D Launcher Visibility: remove class='hidden' from #launchChimeraXBtn, make it always visible with purple gradient; fallback to data/sample/egfr_erlotinib/md/trajectory.cxc if no run yet. 2. Restore Clean, Polished UI Layout: 3 quick select buttons, conversational textarea, MD (100 frames) and Sample Mode checkboxes, action buttons, pipeline strip, live SSE feed; 4 top metric cards; 5 tabs: Decision Cards, AI Biochemist Chat, Report, Memory, SQL. 3. Upgrade AI Biochemist Chat: rich system prompt with entire active simulation state (PDB 1M17, QM energy, GMAX, all 15 Decision Cards, H-MEM memories, 1 ps MD stability 2.45 ± 0.29 Å Met769 contact at 286.1 K); fluid conversational handling for greetings, open questions ('what did you find?'), Met769 hinge contact, quick query chips, multi-turn history. 4. Verification & Testing."
+- **Agent Action:**
+  - In `activesite/server/index.html`: Restored clean visual hierarchy; positioned `#launchChimeraXBtn` as an always-visible top-ribbon action with purple gradient styling (`bg-gradient-to-r from-purple-600 to-indigo-600`); updated MD toggle label to "Run 1 ps QM/MM MD (100 frames)"; updated tab order to Cards, Chat, Report, Memory, SQL; added 5 quick-inquiry chips ("Why is Erlotinib neutral?", "Explain MD 1.0 fs time step", "How did Critic fix I-PpoI?", "What does the H-MEM memory ledger store?", "What happened to Met769 hinge contact?"); added multi-turn chat history rendering.
+  - In `activesite/server/main.py`: Updated `launch_chimerax` to support instant 1-click fallback to `data/sample/egfr_erlotinib/md/trajectory.cxc` when no simulation has completed yet; implemented `get_current_simulation_context` and `format_chat_system_prompt` embedding active PDB structure (1M17), QM energies (ESCF -8.286 kcal/mol, total -9861.80 kcal/mol), minimization GMAX (0.855 kcal/mol/Å), all 15 Decision Cards, H-MEM ledger rules, and 1 ps MD stability (Met769 hinge H-bond 2.45 ± 0.29 Å at 286.1 K); upgraded `biochemist_domain_reply` to provide world-class biochemist explanations for greetings, executive summary ("what did you find?"), Met769 hinge contact, Erlotinib neutrality, Langevin MD time step, I-PpoI parity self-correction, and H-MEM architecture.
+  - In `tests/test_server.py`: Added tests for casual greeting ("hello"), open question ("what did you find?"), specific Met769 contact inquiry, multi-turn conversation history, mocked Nemotron live mode, and instant 1-click ChimeraX sample fallback.
+- **Verification:**
+  - `uv run pytest -m "not slow" -q` passed with 139 passed, 3 deselected, 184 warnings in 24.54s.
+  - Verified 1-click ChimeraX launch succeeds with sample fallback and active run trajectories.
+  - Verified offline AI biochemist domain reasoning and multi-turn chat interaction.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
