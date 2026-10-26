@@ -1,5 +1,4 @@
 """Unit tests for ProtonationAgent and Track 02 protonation Decision Cards."""
-import pytest
 from activesite.chem.protonation import ProtonationAgent
 
 

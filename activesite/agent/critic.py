@@ -8,11 +8,10 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
-from activesite.chem.partitioning import ELEMENT_VALENCE
-from activesite.memory.meterless import EpisodicMemoryRecord, MeterlessHMEM, TrustLedgerEntry
+from activesite.memory.meterless import MeterlessHMEM, TrustLedgerEntry
 from activesite.models import (
     AlternativeChoice,
     DecisionCard,

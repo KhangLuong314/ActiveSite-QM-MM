@@ -1,5 +1,4 @@
 """Unit tests for ActiveSite data models and Decision Cards."""
-import pytest
 from activesite.models import (
     AlternativeChoice,
     DecisionCard,

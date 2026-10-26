@@ -37,3 +37,9 @@ addopts = "--basetemp=.pytest_tmp"
 markers = [
     "slow: needs the Docker engine image or large reference files",
 ]
+
+[tool.ruff]
+# data/reference holds the team's original Amber/QM-MM scripts, kept byte-for-byte as delivered.
+# force-exclude makes the pre-commit hook (which passes file names) respect this too.
+extend-exclude = ["data/reference", ".claude"]
+force-exclude = true

@@ -13,7 +13,7 @@ def test_trace_writes_jsonl_and_calls_on_event(tmp_path, capsys):
     assert t.path == tmp_path / "trace-20261022-120000-abc123.jsonl"
     lines = t.path.read_text().splitlines()
     assert len(lines) == 2
-    rows = [json.loads(l) for l in lines]
+    rows = [json.loads(line) for line in lines]
     keys = ["ts", "run_id", "agent_name", "action", "input_summary", "output_summary", "target_agent", "confidence",
             "retry_count", "status", "molecule", "data"]
     assert all(list(r.keys()) == keys for r in rows)
