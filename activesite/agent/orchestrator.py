@@ -96,14 +96,21 @@ def public_stats(stats: Dict[str, Any]) -> Dict[str, Any]:
 
 def resolve_case_id(query: str) -> str:
     """Map a free-text request to a benchmark case id (raises when nothing matches)."""
+    q_lower = query.lower()
     plan = PlannerAgent().plan_from_prompt(query)
     if plan.metal_resid is not None and "ippoi" in plan.system_name:
         return "ippoi_site_b" if plan.metal_resid == 372 else "ippoi_site_a"
-    if "ecorv" in plan.system_name or "ecorv" in query.lower() or "eco-rv" in query.lower():
+    if "site b" in q_lower or "372" in q_lower:
+        return "ippoi_site_b"
+    if "site a" in q_lower or "371" in q_lower:
+        return "ippoi_site_a"
+    if "ecorv" in plan.system_name or "ecorv" in q_lower or "eco-rv" in q_lower or "1rva" in q_lower or "1b95" in q_lower:
         return "ecorv_endonuclease"
-    if plan.system_name == "egfr_erlotinib":
+    if "tem1" in plan.system_name or "tem" in q_lower or "penicillin" in q_lower or "1fqg" in q_lower:
+        return "tem1_penicillin"
+    if plan.system_name == "egfr_erlotinib" or "egfr" in q_lower or "erlotinib" in q_lower or "1m17" in q_lower:
         return "egfr_erlotinib"
-    if plan.system_name == "abl_imatinib":
+    if plan.system_name == "abl_imatinib" or "abl" in q_lower or "imatinib" in q_lower or "2hyy" in q_lower:
         return "abl_imatinib_a"
     raise ValueError(f"no benchmark case matches the query (system {plan.system_name!r}); try --case")
 
@@ -153,6 +160,13 @@ def run_metal_case(case: Dict[str, Any] | str, adapter: Any = None, hmem_db: Pat
     runner = Runner(trace, Path(workroot) / run_id, sample_mode=sample_mode, timeout_s=timeout_s)
 
     setup = setup_agent.build(system, case)
+    try:
+        run_work = Path(workroot) / run_id
+        run_work.mkdir(parents=True, exist_ok=True)
+        system.s[setup["mask"]].save(str(run_work / "qmmm_region.pdb"), overwrite=True)
+        system.s.save(str(run_work / "complex.pdb"), overwrite=True)
+    except Exception:
+        pass
     checks = critic.precheck(system, case, setup, data)
 
     attempts: List[Dict[str, Any]] = []
@@ -227,6 +241,15 @@ def run_ligand_case(case: Dict[str, Any] | str, adapter: Any = None, hmem_db: Pa
     plan = planner.plan(case)
     data = DataScout(adapter, trace).gather(case)
     setup = LigandSetup(retrieval, trace, run_id, work, sample_mode=sample_mode).build(case)
+    try:
+        if setup.get("complex", {}).get("parm7"):
+            parm7 = setup["complex"]["parm7"]
+            rst7 = setup.get("minimisation", {}).get("rst7") or setup.get("complex", {}).get("rst7")
+            if parm7 and rst7 and Path(parm7).exists() and Path(rst7).exists():
+                import parmed
+                parmed.load_file(str(parm7), str(rst7)).save(str(work / "complex.pdb"), overwrite=True)
+    except Exception:
+        pass
     if not setup.get("prep_skipped") and not setup.get("prep_cached"):
         (work / "prep.json").write_text(json.dumps(serialisable_setup(setup), indent=1), encoding="utf-8")
     critic = LigandCritic(store, trace, run_id)

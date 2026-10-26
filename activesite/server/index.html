@@ -609,8 +609,10 @@
       if (titleEl) {
         if (targetId.includes("ippoi_site_b") || targetId.includes("372")) titleEl.innerText = "I-PpoI Endonuclease Site B (Mg :372)";
         else if (targetId.includes("ippoi")) titleEl.innerText = "I-PpoI Endonuclease Site A (Mg :371)";
+        else if (targetId.includes("ecorv") || targetId.includes("1rva")) titleEl.innerText = "EcoRV Endonuclease + DNA + Mg²⁺ (PDB 1RVA)";
         else if (targetId.includes("tem1") || targetId.includes("1fqg")) titleEl.innerText = "TEM-1 β-lactamase + Benzylpenicillin (PDB 1FQG)";
         else if (targetId.includes("abl") || targetId.includes("2hyy")) titleEl.innerText = "ABL Kinase + Imatinib (PDB 2HYY)";
+        else if (targetId.length === 4) titleEl.innerText = "Macromolecular Structure (PDB " + targetId.toUpperCase() + ")";
         else titleEl.innerText = "EGFR Kinase + Erlotinib (PDB 1M17)";
       }
 

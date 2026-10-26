@@ -561,6 +561,28 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-26 16:45 CDT] — Fix Scout Structure Retrieval, Zetaris Fallback, and Agentic Setup
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/llm.py`, `activesite/adapters/zetaris.py`, `activesite/adapters/catalog_standin.py`, `activesite/server/main.py`, `activesite/server/index.html`, `activesite/agent/orchestrator.py`, `run.py`, `cases/tem1_penicillin.json`
+- **Developer Prompt:**
+  > "Implement those remediation steps. Let me know if any action need to be taken from meterless and zetaris or nvida api"
+- **Agent Action:**
+  - In `activesite/llm.py`: Upgraded `ModelClient` to resolve `NEMOTRON_MODEL` from environment, resolving `HTTP 410 Gone` caused by deprecated 49b model; added `reasoning_content` extraction support for reasoning models; increased `plan_json` max tokens to 1000 so Nemotron 3.5 Lightning completes chain-of-thought and outputs allow-listed plan JSON (`mode: "model"`).
+  - In `activesite/adapters/zetaris.py`: Added fail-soft fallback to `CatalogStandin` (DuckDB + Postgres + RCSB) when Zetaris REST endpoint is unreachable (`Connection refused`), mapping table queries gracefully.
+  - In `activesite/adapters/catalog_standin.py`: Added MinIO parquet candidate resolution supporting both `eda_synthetic.parquet` and `cas9_hnh_eda.parquet`, with in-memory fallback.
+  - In `activesite/server/main.py`: Connected `/api/structure/{identifier}` to `DataScout.resolve_pdb` for dynamic structure downloads from RCSB PDB (e.g. `4BKJ`, `1RVA`, `1FQG`); resolved actual EcoRV PDB `1RVA` instead of I-PpoI; added post-run structure fallbacks.
+  - In `activesite/server/index.html`: Enhanced 3D structure viewer subtitle to display EcoRV Endonuclease and general PDB IDs.
+  - In `activesite/agent/orchestrator.py`: Saved `complex.pdb` and `qmmm_region.pdb` to `data/runs/{run_id}/` for all metal and ligand runs so 3D viewer displays immediately; expanded `resolve_case_id` to recognize TEM-1 (`tem1_penicillin`), EcoRV (`ecorv_endonuclease`), and prompt keywords.
+  - In `cases/tem1_penicillin.json`: Created benchmark case for TEM-1 β-lactamase complexed with benzylpenicillin (`1FQG`).
+  - In `run.py`: Added `load_dotenv()` and made `--sample-mode` respect `SAMPLE_MODE` in `.env` via `argparse.BooleanOptionalAction`.
+- **Verification:**
+  - `uv run pytest -q` passed with **153 passed, 3 skipped**.
+  - Verified live NVIDIA Nemotron 3.5 Lightning agentic plan execution produces `mode: "model"`.
+  - Verified `/api/structure/{identifier}` returns HTTP 200 for `tem1_penicillin`, `1rva`, and `1fqg`.
+  - Verified `run.py` natural language query resolution with `--query` executes cleanly.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name

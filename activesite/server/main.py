@@ -280,6 +280,8 @@ async def get_structure(identifier: str):
         ]
     elif clean_id in ("ecorv_endonuclease", "1rva", "1b95"):
         candidates = [
+            Path("data/cache/1rva.pdb"),
+            Path("data/cache/1b95.pdb"),
             Path("data/runs/ippoi_active_site_371/qmmm_region.pdb"),
             Path("data/reference/egfr/1m17.pdb"),
         ]
@@ -293,13 +295,25 @@ async def get_structure(identifier: str):
         candidates = [
             Path("data/runs") / clean_id / "md" / "complex.pdb",
             Path("data/runs") / clean_id / "complex.pdb",
+            Path("data/runs") / clean_id / "protein_final.pdb",
             Path("data/runs") / clean_id / "protein.pdb",
             Path("data/runs") / clean_id / "qmmm_region.pdb",
+            Path("data/runs") / clean_id / "attempt0" / "qmmm_region.pdb",
+            Path("data/runs") / clean_id / "attempt1" / "qmmm_region.pdb",
+            Path("data/cache") / f"{clean_id.lower()}.pdb",
         ]
 
     for cand in candidates:
         if cand.exists() and cand.is_file():
             return FileResponse(cand, media_type="chemical/x-pdb")
+
+    # If still not found, attempt to resolve via DataScout (handles 4-character PDB IDs like 1M17, 4BKJ, 1RVA)
+    try:
+        meta = loader.resolve_pdb(clean_id)
+        if meta and meta.local_pdb_path and Path(meta.local_pdb_path).exists():
+            return FileResponse(meta.local_pdb_path, media_type="chemical/x-pdb")
+    except Exception as exc:
+        logger.debug("DataScout.resolve_pdb could not resolve %s: %s", clean_id, exc)
 
     raise HTTPException(status_code=404, detail=f"No structure found for {identifier!r}")
 

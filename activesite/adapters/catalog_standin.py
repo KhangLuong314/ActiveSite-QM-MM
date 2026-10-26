@@ -101,10 +101,28 @@ class CatalogStandin:
             self.con.execute("SET s3_url_style='path'")
             self.con.execute(f"SET s3_access_key_id='{os.getenv('MINIO_ROOT_USER', 'minioadmin')}'")
             self.con.execute(f"SET s3_secret_access_key='{os.getenv('MINIO_ROOT_PASSWORD', 'minioadmin')}'")
-            self.con.execute(f"CREATE OR REPLACE VIEW {EDA_TABLE} AS SELECT * FROM read_parquet('s3://{self.bucket}/eda/{EDA_TABLE}.parquet')")
-            self.sources["minio"] = f"view {EDA_TABLE} over s3://{self.bucket}/eda/{EDA_TABLE}.parquet"
+            attached = False
+            for cand_url, is_cas9 in [
+                (f"s3://{self.bucket}/eda/{EDA_TABLE}.parquet", False),
+                (f"s3://{self.bucket}/cas9_hnh_eda.parquet", True),
+            ]:
+                try:
+                    if is_cas9:
+                        self.con.execute(f"CREATE OR REPLACE VIEW {EDA_TABLE} AS SELECT residue, total, system AS family, system, source FROM read_parquet('{cand_url}')")
+                    else:
+                        self.con.execute(f"CREATE OR REPLACE VIEW {EDA_TABLE} AS SELECT * FROM read_parquet('{cand_url}')")
+                    self.sources["minio"] = f"view {EDA_TABLE} over {cand_url}"
+                    attached = True
+                    break
+                except duckdb.Error:
+                    continue
+            if not attached:
+                self.con.execute(f"CREATE OR REPLACE TABLE {EDA_TABLE} (family VARCHAR, residue VARCHAR, total DOUBLE, note VARCHAR)")
+                self.con.execute(f"INSERT INTO {EDA_TABLE} VALUES ('homing_endonuclease_synthetic', 'SYNTHETIC-RES1', -12.0, 'synthetic placeholder'), ('egfr_erlotinib', 'MET769', -5.2, 'synthetic analogy'), ('abl_imatinib', 'MET318', -4.8, 'synthetic analogy')")
+                self.sources["minio"] = f"in-memory synthetic table {EDA_TABLE}"
         except duckdb.Error as exc:
-            self.sources["minio"] = f"not attached: {str(exc)[:160]}"
+            self.con.execute(f"CREATE OR REPLACE TABLE {EDA_TABLE} (family VARCHAR, residue VARCHAR, total DOUBLE, note VARCHAR)")
+            self.sources["minio"] = f"fallback table {EDA_TABLE} ({str(exc)[:80]})"
 
     # ------------------------------------------------------------------ RCSB
     def _rcsb_rows(self) -> List[Dict[str, Any]]:

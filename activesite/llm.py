@@ -34,16 +34,17 @@ class ModelClient:
         self.api_key = api_key if api_key is not None else (
             os.getenv("MODEL_API_KEY") or os.getenv("NVIDIA_API_KEY") or os.getenv("OPENAI_API_KEY") or ""
         )
+        resolved_model = model or os.getenv("MODEL_NAME") or os.getenv("NEMOTRON_MODEL") or DEFAULT_MODEL
         if not base_url and not os.getenv("MODEL_BASE_URL"):
             if self.api_key.startswith("sk-"):
                 self.base_url = "https://api.openai.com/v1"
                 self.model = model or os.getenv("MODEL_NAME") or "gpt-4o"
             else:
                 self.base_url = DEFAULT_BASE_URL
-                self.model = model or os.getenv("MODEL_NAME") or DEFAULT_MODEL
+                self.model = resolved_model
         else:
             self.base_url = (base_url or os.getenv("MODEL_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
-            self.model = model or os.getenv("MODEL_NAME") or DEFAULT_MODEL
+            self.model = resolved_model
         self.timeout = timeout
         self.calls = 0
         self.last_error: Optional[str] = None
@@ -68,7 +69,8 @@ class ModelClient:
                            timeout=self.timeout)
             r.raise_for_status()
             data = r.json()
-            content = data["choices"][0]["message"]["content"]
+            msg = data["choices"][0]["message"]
+            content = msg.get("content") or msg.get("reasoning_content")
             return content if isinstance(content, str) else None
         except Exception as exc:  # network, schema, auth: the caller falls back
             self.last_error = f"{type(exc).__name__}: {exc}"[:300]
@@ -92,7 +94,8 @@ class ModelClient:
                            timeout=self.timeout)
             r.raise_for_status()
             data = r.json()
-            content = data["choices"][0]["message"]["content"]
+            msg = data["choices"][0]["message"]
+            content = msg.get("content") or msg.get("reasoning_content")
             return content if isinstance(content, str) else None
         except Exception as exc:
             self.last_error = f"{type(exc).__name__}: {exc}"[:300]
@@ -101,7 +104,7 @@ class ModelClient:
     def plan_json(self, case: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Ask for a plan and parse the first JSON object defensively. The Planner allow-lists the result."""
         prompt = f"Case id: {case.get('id')}. Question: {case.get('question', '')[:500]}"
-        text = self.generate(PLANNER_SYSTEM, prompt, max_tokens=200)
+        text = self.generate(PLANNER_SYSTEM, prompt, max_tokens=1000)
         if not text:
             return None
         m = re.search(r"\{.*\}", text, re.S)

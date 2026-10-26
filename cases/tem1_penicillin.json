@@ -1,0 +1,20 @@
+{
+  "id": "tem1_penicillin",
+  "kind": "ligand",
+  "system": "tem1_penicillin",
+  "site": "A",
+  "chain": "A",
+  "question": "Prepare TEM-1 beta-lactamase complexed with benzylpenicillin from the 1FQG crystal structure and compute the PM6 QM/MM energy in its active site. Explain Ser70, protonation, and setup choices.",
+  "pdb": "data/cache/1fqg.pdb",
+  "pdb_query": "TEM-1 beta-lactamase penicillin",
+  "ligand": "PNM",
+  "ligand_smiles": "CC1(C)SC2C(NC(=O)Cc3ccccc3)C(=O)N2C1C(=O)O",
+  "smiles_source": "RCSB chemcomp PNM (PDB 1FQG)",
+  "literature_contacts": {
+    "SER70": "catalytic nucleophile Ser70 OG attacking beta-lactam carbonyl",
+    "LYS73": "catalytic general base Lys73 NZ"
+  },
+  "literature_source": "Strynadka et al. 2000, PDB 1FQG, acyl-enzyme intermediate in TEM-1 beta-lactamase",
+  "ph": 7.4,
+  "min_steps": 500
+}
