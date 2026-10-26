@@ -79,7 +79,7 @@ def test_routing_and_cards_egfr(tmp_path, fake_prep):
     assert cards["DEC_NEGATIVE_CONTROL_THR766"].choice.endswith("True")
     assert not any(k.startswith("DEC_HIS_OVERRIDE") for k in cards) and "DEC_STRUCTURE_SOURCE" not in cards
     assert st["validation"]["recovered"] == {"MET769": 2.95} and st["validation"]["expected_absent"] == {"THR766": True}
-    agents = {json.loads(l)["agent_name"] for l in Path(st["trace"]).read_text().splitlines()}
+    agents = {json.loads(line)["agent_name"] for line in Path(st["trace"]).read_text().splitlines()}
     assert {"Planner", "DataScout", "LigandSetup", "LigandCritic", "Runner", "Explainer", "Orchestrator"} <= agents
     assert "converged" in Path(st["report"]).read_text()
     assert MemoryStoreService(tmp_path / "h.sqlite", tmp_path / "l.jsonl").all() == []   # no overrides -> nothing to remember
@@ -90,7 +90,7 @@ def test_pocket_failure_blocks_qmmm(tmp_path, fake_prep):
     st = _run(tmp_path, "egfr_erlotinib")
     assert st["blocked"] == ["pocket_min"] and st["qm_ok"] is False and fake_prep["qm_calls"] == 0
     assert st["qm_escf_kcal"] is None and "blocked by pocket_min" in st["errors"][0]
-    rows = [json.loads(l) for l in Path(st["trace"]).read_text().splitlines()]
+    rows = [json.loads(line) for line in Path(st["trace"]).read_text().splitlines()]
     assert any(r["action"] == "blocked" and r["status"] == "error" for r in rows)
     assert "FAILED" in Path(st["report"]).read_text() and "`null`" in Path(st["report"]).read_text()
     cards = {c.decision_id: c for c in st["_cards"]}

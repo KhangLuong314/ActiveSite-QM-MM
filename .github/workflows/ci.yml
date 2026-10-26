@@ -25,7 +25,7 @@ jobs:
       - name: Tests (no Docker; slow tests skip themselves)
         run: uv run pytest -q
       - name: Ruff
-        run: uv run --with "ruff>=0.8,<1" ruff check activesite tests run.py seed scripts || true
+        run: uv run --with "ruff==0.8.4" ruff check .
   gitleaks:
     runs-on: ubuntu-latest
     steps:

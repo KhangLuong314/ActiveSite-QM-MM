@@ -1,5 +1,4 @@
 """Unit tests for CriticAgent and episodic self-correction loop."""
-import pytest
 from pathlib import Path
 from activesite.agent.critic import CriticAgent
 from activesite.memory.meterless import EpisodicMemoryRecord, MeterlessHMEM
