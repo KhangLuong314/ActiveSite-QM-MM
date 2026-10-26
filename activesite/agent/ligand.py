@@ -26,8 +26,29 @@ POCKET_CONTACT_MAX = 4.0  # Å
 GMAX_MAX = 10.0
 
 
+PURE_STAGE_KEYS = ("chain", "chain_source", "chain_table", "extract", "crystal_contacts", "ligand_site")
+
+
 def _clamp(x: float, lo: float = 0.0, hi: float = 1.0) -> float:
     return max(lo, min(hi, float(x)))
+
+
+def _site_atom(site: Optional[Dict[str, Any]]) -> Optional[str]:
+    return site["atom"] if site else None
+
+
+def _cache_mismatch(fresh: Dict[str, Any], cached: Dict[str, Any]) -> Optional[str]:
+    """Why a cached preparation does not match this run's pure-stage decisions (None when it does).
+
+    Only decisions the cache records are compared; a cache without a ``chain`` or ``ligand_site`` key makes no claim.
+    """
+    why = []
+    if "chain" in cached and cached["chain"] != fresh["chain"]:
+        why.append(f"this run chose chain {fresh['chain']}, cache has chain {cached['chain']}")
+    if "ligand_site" in cached and _site_atom(cached["ligand_site"]) != _site_atom(fresh["ligand_site"]):
+        why.append(f"this run protonates {_site_atom(fresh['ligand_site']) or 'nothing (neutral)'}, "
+                   f"cache protonates {_site_atom(cached.get('ligand_site')) or 'nothing (neutral)'}")
+    return "; ".join(why) or None
 
 
 # ---------------------------------------------------------------- LigandSetup
@@ -82,9 +103,20 @@ class LigandSetup:
         # container stages
         if self.sample_mode or not prep.prep_available():
             cached = cached_prep(case.get("id", ""), self.work)
+            # The cache is keyed by case id, not by input content. The pure stages above were just recomputed from
+            # this run's PDB; keep them (so the cards cite this run's evidence) and refuse the cache when they lead to
+            # a different chain or ligand protonation site than the one the cached complex was built for.
+            fresh = {k: setup[k] for k in PURE_STAGE_KEYS}
+            mismatch = _cache_mismatch(fresh, cached) if cached is not None else None
+            if mismatch:
+                setup["prep_skipped"] = (f"cached preparation for {case.get('id')} not used: {mismatch}; "
+                                         f"the cached complex was built for different setup decisions")
+                self._log("prep", "pdb2pqr/antechamber/tleap/sander", setup["prep_skipped"], status="skipped")
+                return setup
             if cached is not None:
                 recalled, hits_seen = setup["recalled"], setup["memory_hits"]
                 setup.update(cached)
+                setup.update(fresh)
                 setup["recalled"], setup["memory_hits"] = recalled, hits_seen
                 setup["prep_skipped"] = None
                 self._log("prep", "pdb2pqr/antechamber/tleap/sander",
