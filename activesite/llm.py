@@ -31,9 +31,19 @@ PLANNER_SYSTEM = (
 class ModelClient:
     def __init__(self, base_url: Optional[str] = None, model: Optional[str] = None, api_key: Optional[str] = None,
                  timeout: float = 60.0):
-        self.base_url = (base_url or os.getenv("MODEL_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
-        self.model = model or os.getenv("MODEL_NAME") or DEFAULT_MODEL
-        self.api_key = api_key if api_key is not None else (os.getenv("MODEL_API_KEY") or os.getenv("NVIDIA_API_KEY") or "")
+        self.api_key = api_key if api_key is not None else (
+            os.getenv("MODEL_API_KEY") or os.getenv("NVIDIA_API_KEY") or os.getenv("OPENAI_API_KEY") or ""
+        )
+        if not base_url and not os.getenv("MODEL_BASE_URL"):
+            if self.api_key.startswith("sk-"):
+                self.base_url = "https://api.openai.com/v1"
+                self.model = model or os.getenv("MODEL_NAME") or "gpt-4o"
+            else:
+                self.base_url = DEFAULT_BASE_URL
+                self.model = model or os.getenv("MODEL_NAME") or DEFAULT_MODEL
+        else:
+            self.base_url = (base_url or os.getenv("MODEL_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
+            self.model = model or os.getenv("MODEL_NAME") or DEFAULT_MODEL
         self.timeout = timeout
         self.calls = 0
         self.last_error: Optional[str] = None

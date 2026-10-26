@@ -343,7 +343,9 @@
     const PROMPTS = {
       "ippoi_site_a": "Set up a QM/MM model for DNA phosphodiester cleavage at I-PpoI active site A (Mg :371) and compute its PM6 QM/MM energy. Explain every setup choice.",
       "ippoi_site_b": "Set up a QM/MM model for DNA phosphodiester cleavage at I-PpoI active site B (Mg :372) and compute its PM6 QM/MM energy. Explain every setup choice.",
-      "egfr_erlotinib": "Prepare EGFR kinase with erlotinib from the 1M17 crystal structure at pH 7.4 and compute the PM6 QM/MM energy. Explain every protonation and setup choice."
+      "egfr_erlotinib": "Prepare EGFR kinase with erlotinib from the 1M17 crystal structure at pH 7.4 and compute the PM6 QM/MM energy. Explain every protonation and setup choice.",
+      "abl_imatinib_a": "Prepare ABL kinase complexed with imatinib from the 2HYY crystal structure and compute the PM6 QM/MM energy. Explain chain choice, protonation, and energy terms.",
+      "ecorv_endonuclease": "Set up a QM/MM model for DNA phosphodiester bond cleavage at the active site of the EcoRV restriction endonuclease with catalytic Mg2+ and compute its PM6 QM/MM energy."
     };
 
     function selectCase(caseId) {
@@ -567,7 +569,7 @@
         const resp = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: msg, run_id: currentRunId, history: chatHistoryList })
+          body: JSON.stringify({ message: msg, run_id: currentRunId || activeCaseId, history: chatHistoryList })
         });
         const data = await resp.json();
         loadingMsg.remove();

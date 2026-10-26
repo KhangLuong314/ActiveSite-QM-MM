@@ -350,3 +350,31 @@ def test_get_structure_abl_and_ecorv(client):
     assert "ATOM" in r_ecorv.text
 
 
+def test_chat_conversational_greetings_and_how_are_you(client):
+    r = client.post("/api/chat", json={"message": "how are you?"}).json()
+    assert "reply" in r
+    assert "doing well" in r["reply"].lower()
+    assert "computational biochemistry" in r["reply"].lower()
+
+
+def test_chat_sample_mode_inquiry(client):
+    r = client.post("/api/chat", json={"message": "Why am I in sample mode? Is AI enabled in sample mode?"}).json()
+    assert "reply" in r
+    text = r["reply"]
+    assert "YES! Absolutely" in text or "always 100% enabled" in text
+    assert "Judge" in text
+    assert "1.5 seconds" in text or "Amber" in text
+
+
+def test_chat_explain_previous_run_ecorv(client):
+    q = "Can you explain the result of my previous run to me? What does it implies and how accurate is it?"
+    r = client.post("/api/chat", json={"message": q, "run_id": "ecorv_endonuclease"}).json()
+    assert "reply" in r
+    text = r["reply"]
+    assert "EcoRV Endonuclease" in text
+    assert "-480.35 kcal/mol" in text
+    assert "GMAX" in text
+    assert "SN2" in text or "phosphoryl" in text
+
+
+
