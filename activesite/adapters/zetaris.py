@@ -72,7 +72,72 @@ class ZetarisAdapter:
         return _rows(r.json())
 
 
+class ResilientCatalog:
+    """Zetaris when it answers, the DuckDB stand-in when it does not; the label always says which.
+
+    Sponsor guidance: a service outage during judging must degrade the run, not break it. On first use the
+    wrapper probes Zetaris with ``SELECT 1`` (short timeout). If the probe fails, or a later query hits a
+    connection error or timeout, every query goes to the stand-in, with table names translated, and the label
+    reads e.g. ``catalog-STANDIN (DuckDB) (Zetaris unreachable: ConnectError)``.
+    """
+
+    def __init__(self, primary: Optional[Any] = None, fallback_factory: Any = CatalogStandin, probe_timeout: float = 3.0):
+        self.primary = primary if primary is not None else ZetarisAdapter()
+        self._fallback_factory = fallback_factory
+        self.probe_timeout = probe_timeout
+        self.active: Optional[Any] = None
+        self.reason: Optional[str] = None
+        self._case: Optional[Dict[str, Any]] = None
+
+    def _switch(self, exc: BaseException) -> None:
+        self.reason = type(exc).__name__
+        self.active = self._fallback_factory()
+        if self._case is not None and hasattr(self.active, "prepare"):
+            self.active.prepare(self._case)
+
+    def _resolve(self) -> Any:
+        if self.active is None:
+            saved = self.primary.timeout
+            self.primary.timeout = self.probe_timeout
+            try:
+                self.primary.run_sql("SELECT 1")
+                self.active = self.primary
+            except Exception as exc:  # unreachable, refused, timed out, auth or HTTP error
+                self._switch(exc)
+            finally:
+                self.primary.timeout = saved
+        return self.active
+
+    @property
+    def label(self) -> str:
+        active = self._resolve()
+        return active.label if self.reason is None else f"{active.label} (Zetaris unreachable: {self.reason})"
+
+    @property
+    def tables(self) -> Dict[str, str]:
+        return self._resolve().tables
+
+    def prepare(self, case: Dict[str, Any]) -> None:
+        self._case = case
+        active = self._resolve()
+        if hasattr(active, "prepare"):
+            active.prepare(case)
+
+    def run_sql(self, sql: str) -> List[Dict[str, Any]]:
+        active = self._resolve()
+        if active is not self.primary:
+            return active.run_sql(sql)
+        try:
+            return active.run_sql(sql)
+        except (httpx.ConnectError, httpx.TimeoutException, httpx.RemoteProtocolError) as exc:
+            primary_tables = dict(self.primary.tables)
+            self._switch(exc)
+            for key, name in primary_tables.items():   # the query was written for Zetaris's table names
+                sql = sql.replace(name, self.active.tables.get(key, name))
+            return self.active.run_sql(sql)
+
+
 def get_adapter() -> Any:
     if os.getenv("ZETARIS_REST_URL") and os.getenv("ZETARIS_API_KEY"):
-        return ZetarisAdapter()
+        return ResilientCatalog()
     return CatalogStandin()
