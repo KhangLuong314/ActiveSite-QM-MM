@@ -561,6 +561,21 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-26 18:30 CDT] — P15 to P18: faithfulness, Meterless conformance, clean room, chat provenance
+- **Tool / Environment:** Claude Code (Opus 5.5), two sub-agents in isolated worktrees for P15 and P16
+- **Target Component:** `activesite/memory/hmem.py`, `tests/test_hmem_conformance.py`, `tests/test_counterfactual_cards.py`, `activesite/agent/ligand.py`, `Dockerfile`, `.dockerignore`, `README.md`, `docs/PRE_EXISTING.md`, `activesite/server/provenance.py`, `activesite/server/main.py`, `activesite/server/index.html`
+- **Developer Prompt:**
+  > "Finish the submission tonight. Start from raw sources (Official Rules, run traces, the Meterless H-MEM spec and conformance vectors). Counterfactual tests for every decision card; Meterless conformance; clean-room run from a fresh clone; honesty pass with PRE_EXISTING diff and gitleaks over full history; state every gap."
+- **Agent Action:**
+  - P15: 13/13 Meterless H-MEM conformance vectors pass against `hmem.py` (vectors copied byte-identical, Apache-2.0 NOTICE). Mutation check: breaking deltas, clamping or the derived-record guardrail makes the matching vectors fail; ro-001 cannot catch a missing superseded penalty, so an extra test does.
+  - P16: 7 counterfactual tests; every card changes with its evidence. Found and fixed a real bug: in sample mode the cached prep overwrote freshly computed chain and protonation evidence.
+  - P17: app Docker image (sample mode, keys only via `--env-file`); fresh clone plus README reproduces -456.5628 kcal/mol and Jaccard 1.0; gitleaks over all history and a direct search for the shared key formats found nothing; the Oct 17 to 19 prototype declared (1 to 17 percent line overlap).
+  - P18: the chat stated invented results (EcoRV, TEM-1, wrong I-PpoI charge and energy, fixed MD statistics). Removed; context comes only from real runs; a provenance guard marks any number not from the run; the rule-based fallback is no longer labelled as a model.
+- **Verification:**
+  - All four branches merged locally: `uv run pytest -q -m "not slow"` 188 passed. Docker image: three sample cases via `POST /run` in 2.3 s or less, labelled cached engine output.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
