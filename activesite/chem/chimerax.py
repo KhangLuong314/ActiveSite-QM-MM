@@ -14,6 +14,11 @@ from activesite.models import QMMMPartition, ResidueRole
 logger = logging.getLogger(__name__)
 
 
+def _quote_path(p: Path | str) -> str:
+    s = str(p)
+    return f'"{s}"' if not (s.startswith('"') and s.endswith('"')) else s
+
+
 class ChimeraXGenerator:
     """Generates UCSF ChimeraX command scripts (.cxc) for QM/MM simulation partitions."""
 
@@ -54,12 +59,12 @@ class ChimeraXGenerator:
             f"# Total QM Residues: {len(partition.qm_residues)} | QM Charge: {partition.qm_charge:+d} | Spin: {partition.spin_multiplicity}",
             "",
             "# 1. Load molecular structure",
-            f"open {struct_path}",
+            f'open {_quote_path(struct_path)}',
         ]
 
         if traj_path:
             lines.extend([
-                f"open {Path(traj_path).resolve()} format amber structureModel #1",
+                f'open {_quote_path(Path(traj_path).resolve())} format amber structureModel #1',
                 "coordset slider #1",
             ])
 
@@ -184,8 +189,8 @@ class ChimeraXGenerator:
 
         lines = [
             "# ActiveSite UCSF ChimeraX Trajectory Visualization Script",
-            f"open {Path(pdb_path).resolve()}",
-            f"open {Path(traj_path).resolve()} format amber structureModel #1",
+            f'open {_quote_path(Path(pdb_path).resolve())}',
+            f'open {_quote_path(Path(traj_path).resolve())} format amber structureModel #1',
             "coordset slider #1",
             "",
             "# Styling: ribbon for protein, magenta ball/stick for ligand, yellow pseudobonds for hbonds",

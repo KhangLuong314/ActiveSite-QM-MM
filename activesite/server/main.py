@@ -1214,10 +1214,22 @@ async def chat_endpoint(req: ChatRequest):
                     messages.append({"role": str(h["role"]), "content": str(h["content"])})
         messages.append({"role": "user", "content": req.message})
 
-        reply = client.chat(messages, max_tokens=800)
+        reply = None
+        thinking = None
+        try:
+            detailed = client.chat_detailed(messages, max_tokens=1500)
+            reply = detailed.get("reply")
+            thinking = detailed.get("thinking")
+        except Exception:
+            reply = None
+
+        if not reply:
+            reply = client.chat(messages, max_tokens=800)
+
         if reply:
             return {
                 "reply": reply,
+                "thinking": thinking,
                 "model": client.model,
                 "source": "nemotron",
                 "run_id": req.run_id,

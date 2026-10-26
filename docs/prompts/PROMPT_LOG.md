@@ -583,6 +583,27 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-26 17:45 CDT] — Fix ChimeraX Path Quoting, 3Dmol.js Secondary Structure Styling, AI Thinking Grouping, and TEM-1 Penicillin Setup
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/chem/chimerax.py`, `activesite/server/index.html`, `activesite/server/main.py`, `activesite/llm.py`, `cases/tem1_penicillin.json`, `activesite/chem/ligand_rdkit.py`, `tests/test_chimerax.py`, `tests/test_sander.py`
+- **Developer Prompt:**
+  > "1. The QM energy result is -8.286 kcal/mol and here is the report...
+  2. The 3D molecular viewer does not work. Picture attached and failed to be open in chimerax with error: 'Failed opening file .../md/trajectory.cxc: '/Users/.../GenAI' has no suffix'
+  3. For the AI agent, the thinking process is shown, but the final answer cannot be seen. Maybe blocked by the size of the chatbox window. Is it possible to group the thinking and if the user want to see it they can click it. Display the response only.
+  4. RDKit failure on TEM-1 setup: RuntimeError: ligand_rdkit.py failed (exit 1): AllChem.AssignBondOrdersFromTemplate(template, mol) -> ValueError: No matching found"
+- **Agent Action:**
+  - In `activesite/chem/chimerax.py`: Added `_quote_path` helper to enclose paths in double quotes in `.cxc` scripts (`open "{path}"`), resolving ChimeraX whitespace argument splitting on directories with spaces (e.g., `GenAI Hackathon`). Updated `tests/test_chimerax.py` and `tests/test_sander.py` to match.
+  - In `activesite/server/index.html`: Fixed 3Dmol.js black canvas: removed layout-squishing flex classes from `#molViewer`, made `#molViewerLoading` an absolute overlay, passed valid hex string `#0b0f19` for background color, added `m.computeSecondaryStructure()` after `addModel`, and updated representation selectors to `hetflag: false` (protein cartoon), `hetflag: true` (ligand stick), explicit ligand highlight (`resn: ["AQ4", "LIG", "STI", "PNM", "UNL"]`), and catalytic metals (`resn: ["MG", "MN", "ZN", "FE", "CA"]`).
+  - In `activesite/llm.py` & `activesite/server/main.py`: Added `chat_detailed` to `ModelClient` separating `reasoning_content` and `content` (and extracting embedded `<thought>` / `<think>` tags); in `activesite/server/index.html`, rendered agent thinking inside a sleek, collapsible `<details><summary>💭 Thinking Process (click to expand)</summary>` element while displaying the formatted markdown response directly. Expanded chatbox max height.
+  - In `cases/tem1_penicillin.json` & `activesite/chem/ligand_rdkit.py`: Updated ligand SMILES for PNM to the official RCSB open-form acyl-enzyme intermediate (`CC1(C)S[C@@H](N[C@H]1C(O)=O)[C@H](NC(=O)Cc2ccccc2)C=O`, formula C16H20N2O4S, 43 atoms with H) instead of the closed intact beta-lactam; added non-isomeric fallback in `ligand_rdkit.py` for template bond assignment.
+- **Verification:**
+  - `uv run pytest -q`: **153 passed, 3 skipped**.
+  - Verified live TEM-1 β-lactamase setup in Docker (`run.py --case tem1_penicillin --no-sample-mode`) completed and converged: ESCF = -139.261 kcal/mol, total = -9606.30 kcal/mol, Ser70 contact recovered at 2.84 Å, 13 Decision Cards generated.
+  - Verified `complex.pdb` generated and served via `/api/structure/20261026-224349-82a2a2` (HTTP 200, 332 kB).
+  - Verified ChimeraX script quotation works without suffix errors.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name

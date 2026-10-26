@@ -253,7 +253,7 @@
         </div>
 
         <!-- Chat History Area -->
-        <div id="chatHistory" class="flex-1 bg-slate-950/80 rounded-xl p-4 border border-slate-800/80 flex flex-col gap-3 overflow-y-auto max-h-[420px] min-h-[260px]">
+        <div id="chatHistory" class="flex-1 bg-slate-950/80 rounded-xl p-4 border border-slate-800/80 flex flex-col gap-3 overflow-y-auto max-h-[520px] min-h-[280px]">
           <div class="flex items-start gap-2.5">
             <div class="w-7 h-7 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center text-cyan-300 text-xs shrink-0">🔬</div>
             <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-200 leading-relaxed max-w-[85%]">
@@ -306,8 +306,8 @@
           </div>
         </div>
 
-        <div id="molViewer" class="w-full h-[480px] rounded-xl bg-slate-950 border border-slate-800 relative overflow-hidden flex items-center justify-center">
-          <div id="molViewerLoading" class="text-xs text-slate-400 flex items-center gap-2">
+        <div id="molViewer" class="w-full h-[480px] rounded-xl bg-slate-950 border border-slate-800 relative overflow-hidden">
+          <div id="molViewerLoading" class="absolute inset-0 flex items-center justify-center bg-slate-950/80 z-10 text-xs text-slate-400 gap-2">
             <i class="fa-solid fa-spinner fa-spin text-cyan-400"></i> Initializing 3D molecular coordinates…
           </div>
         </div>
@@ -579,8 +579,31 @@
 
         const aiMsg = document.createElement("div");
         aiMsg.className = "flex items-start gap-2.5";
-        const formattedReply = window.marked ? marked.parse(data.reply) : `<div class="whitespace-pre-wrap">${escapeHtml(data.reply)}</div>`;
-        aiMsg.innerHTML = `<div class="w-7 h-7 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center text-cyan-300 text-xs shrink-0">🔬</div><div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-200 leading-relaxed max-w-[85%] flex flex-col gap-1.5"><div class="chat-markdown">${formattedReply}</div><div class="text-[10px] text-slate-500 font-mono border-t border-slate-800/80 pt-1 flex items-center justify-between"><span>${escapeHtml(data.model || "nemotron")}</span><span class="text-cyan-400">${escapeHtml(data.source || "")}</span></div></div>`;
+
+        let replyText = data.reply || "";
+        let thinkingText = data.thinking || "";
+        const thinkMatch = replyText.match(/<(?:thought|think)>([\s\S]*?)<\/(?:thought|think)>/i);
+        if (thinkMatch) {
+          if (!thinkingText) thinkingText = thinkMatch[1].trim();
+          replyText = replyText.replace(/<(?:thought|think)>[\s\S]*?<\/(?:thought|think)>/gi, "").trim();
+        }
+
+        let thinkingBlock = "";
+        if (thinkingText && thinkingText.trim()) {
+          thinkingBlock = `
+            <details class="mb-2 group border border-slate-800 rounded-xl bg-slate-950/70 overflow-hidden">
+              <summary class="cursor-pointer text-[11px] font-medium text-cyan-400/90 hover:text-cyan-300 px-3 py-1.5 flex items-center gap-1.5 select-none bg-slate-900/60 transition">
+                <i class="fa-solid fa-brain text-cyan-400 text-xs transition-transform group-open:rotate-90"></i>
+                <span>Thinking Process</span>
+                <span class="text-[10px] text-slate-500 ml-auto font-mono">click to expand</span>
+              </summary>
+              <div class="p-3 text-[11px] font-mono text-slate-400 bg-slate-950 border-t border-slate-800/80 max-h-56 overflow-y-auto whitespace-pre-wrap leading-relaxed select-text">${escapeHtml(thinkingText)}</div>
+            </details>
+          `;
+        }
+
+        const formattedReply = window.marked ? marked.parse(replyText) : `<div class="whitespace-pre-wrap">${escapeHtml(replyText)}</div>`;
+        aiMsg.innerHTML = `<div class="w-7 h-7 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center text-cyan-300 text-xs shrink-0">🔬</div><div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-200 leading-relaxed max-w-[85%] flex flex-col gap-1.5">${thinkingBlock}<div class="chat-markdown">${formattedReply}</div><div class="text-[10px] text-slate-500 font-mono border-t border-slate-800/80 pt-1 flex items-center justify-between"><span>${escapeHtml(data.model || "nemotron")}</span><span class="text-cyan-400">${escapeHtml(data.source || "")}</span></div></div>`;
         historyEl.appendChild(aiMsg);
       } catch (err) {
         if (loadingMsg) loadingMsg.remove();
@@ -629,11 +652,16 @@
         if (!window.$3Dmol) throw new Error("3Dmol.js WebGL library not loaded yet.");
 
         if (!molViewerInstance) {
-          molViewerInstance = $3Dmol.createViewer(container, { backgroundColor: "0x0b0f19" });
+          molViewerInstance = $3Dmol.createViewer(container, { backgroundColor: "#0b0f19" });
         }
         molViewerInstance.resize();
         molViewerInstance.clear();
-        molViewerInstance.addModel(pdbText, "pdb");
+        const m = molViewerInstance.addModel(pdbText, "pdb");
+        if (m && typeof m.computeSecondaryStructure === "function") {
+          m.computeSecondaryStructure();
+        } else if (typeof molViewerInstance.computeSecondaryStructure === "function") {
+          molViewerInstance.computeSecondaryStructure();
+        }
         applyRepresentation(currentRepresentation);
         molViewerInstance.zoomTo();
         molViewerInstance.render();
@@ -656,16 +684,21 @@
       molViewerInstance.setStyle({}, {});
 
       if (mode === "cartoon") {
-        molViewerInstance.setStyle({ hetero: false }, { cartoon: { color: "spectrum", opacity: 0.88 } });
-        molViewerInstance.setStyle({ hetero: true }, { stick: { colorscheme: "cyanCarbon", radius: 0.28 } });
-        molViewerInstance.setStyle({ resn: "MG" }, { sphere: { color: "green", radius: 1.2 } });
+        molViewerInstance.setStyle({ hetflag: false }, { cartoon: { color: "spectrum", opacity: 0.9 } });
+        molViewerInstance.setStyle({ hetflag: true }, { stick: { colorscheme: "cyanCarbon", radius: 0.28 } });
+        molViewerInstance.setStyle({ resn: ["AQ4", "LIG", "STI", "PNM", "UNL"] }, { stick: { colorscheme: "magentaCarbon", radius: 0.35 } });
+        molViewerInstance.setStyle({ resn: ["MG", "MN", "ZN", "FE", "CA"] }, { sphere: { color: "green", radius: 1.2 } });
       } else if (mode === "stick") {
         molViewerInstance.setStyle({}, { stick: { colorscheme: "default", radius: 0.18 } });
-        molViewerInstance.setStyle({ resn: "MG" }, { sphere: { color: "green", radius: 1.2 } });
+        molViewerInstance.setStyle({ hetflag: true }, { stick: { colorscheme: "cyanCarbon", radius: 0.28 } });
+        molViewerInstance.setStyle({ resn: ["AQ4", "LIG", "STI", "PNM", "UNL"] }, { stick: { colorscheme: "magentaCarbon", radius: 0.35 } });
+        molViewerInstance.setStyle({ resn: ["MG", "MN", "ZN", "FE", "CA"] }, { sphere: { color: "green", radius: 1.2 } });
       } else if (mode === "surface") {
-        molViewerInstance.setStyle({ hetero: false }, { cartoon: { color: "slate", opacity: 0.6 } });
-        molViewerInstance.setStyle({ hetero: true }, { stick: { colorscheme: "cyanCarbon", radius: 0.3 } });
-        molViewerInstance.addSurface($3Dmol.SurfaceType.VDW, { opacity: 0.65, color: "teal" }, { hetero: false });
+        molViewerInstance.setStyle({ hetflag: false }, { cartoon: { color: "slate", opacity: 0.6 } });
+        molViewerInstance.setStyle({ hetflag: true }, { stick: { colorscheme: "cyanCarbon", radius: 0.3 } });
+        molViewerInstance.setStyle({ resn: ["AQ4", "LIG", "STI", "PNM", "UNL"] }, { stick: { colorscheme: "magentaCarbon", radius: 0.35 } });
+        molViewerInstance.setStyle({ resn: ["MG", "MN", "ZN", "FE", "CA"] }, { sphere: { color: "green", radius: 1.2 } });
+        molViewerInstance.addSurface($3Dmol.SurfaceType.VDW, { opacity: 0.65, color: "teal" }, { hetflag: false });
       }
       molViewerInstance.render();
     }
