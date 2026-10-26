@@ -210,10 +210,8 @@ def test_get_structure_endpoint(client):
     assert r_ippoi.status_code == 200
     assert "ATOM" in r_ippoi.text
 
-    # TEM-1 structure
-    r_tem = client.get("/api/structure/tem1_penicillin")
-    assert r_tem.status_code == 200
-    assert "ATOM" in r_tem.text
+    # TEM-1 is an unsupported case with no structure in the repo: 404, never another protein instead
+    assert client.get("/api/structure/tem1_penicillin").status_code == 404
 
     # Missing structure
     r_404 = client.get("/api/structure/completely_nonexistent_pdb")
@@ -299,9 +297,8 @@ def test_get_structure_abl_and_ecorv(client):
     assert r_abl.status_code == 200
     assert "ATOM" in r_abl.text
 
-    r_ecorv = client.get("/api/structure/ecorv_endonuclease")
-    assert r_ecorv.status_code == 200
-    assert "ATOM" in r_ecorv.text
+    # EcoRV is unsupported: no structure exists, so the endpoint must not serve a different protein
+    assert client.get("/api/structure/ecorv_endonuclease").status_code == 404
 
 
 def test_chat_conversational_greetings_and_how_are_you(client):

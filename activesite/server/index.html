@@ -879,9 +879,10 @@
 
   function parsePDB(text) {
     const atoms = [];
-    let idcode = null, klass = null;
+    let idcode = null, klass = null, serialsTopology = false;
     for (const line of text.split(/\r?\n/)) {
       if (line.startsWith("HEADER")) { klass = line.slice(10, 50).trim() || null; idcode = line.slice(62, 66).trim() || null; continue; }
+      if (line.startsWith("REMARK 900 ACTIVESITE SERIALS=TOPOLOGY")) { serialsTopology = true; continue; }
       if (!(line.startsWith("ATOM") || line.startsWith("HETATM"))) continue;
       const name = line.slice(12, 16).trim();
       let el = line.slice(76, 78).trim();
@@ -891,7 +892,7 @@
                   chain: line.slice(21, 22).trim(), resi: parseInt(line.slice(22, 26), 10),
                   x: parseFloat(line.slice(30, 38)), y: parseFloat(line.slice(38, 46)), z: parseFloat(line.slice(46, 54)), el});
     }
-    return {atoms, idcode, klass};
+    return {atoms, idcode, klass, serialsTopology};
   }
 
   const WATERS = new Set(["HOH", "WAT", "TIP", "TIP3", "SOL", "DOD"]);
@@ -904,6 +905,13 @@
     return m ? m[1].split(",").map(s => s.toUpperCase()) : null;
   }
 
+  // "@385-416,5256-5266,6229" -> [[385,416],[5256,5266],[6229,6229]]; anything else -> null
+  function maskSerialRanges(mask) {
+    const m = String(mask || "").trim();
+    if (!/^@\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*$/.test(m)) return null;
+    return m.slice(1).split(",").map(p => { const [a, b] = p.split("-").map(Number); return [a, b === undefined ? a : b]; });
+  }
+
   function buildScene(pdb, stats, caseId) {
     const atoms = pdb.atoms.filter(a => isFinite(a.x));
     let focus = [], mode = "none", note = "";
@@ -912,6 +920,12 @@
       focus = atoms.filter(a => names.includes(a.resn.toUpperCase()));
       if (focus.length) { mode = "qm"; note = `QM = run mask ${stats.mask} (${focus.length} atoms in this file)`; }
       else note = `run mask ${stats.mask} selects no atom in this file`;
+    } else if (stats && pdb.serialsTopology && maskSerialRanges(stats.mask)) {
+      // the server wrote this file with the run topology's own atom numbers, so an "@" mask maps exactly
+      const ranges = maskSerialRanges(stats.mask);
+      focus = atoms.filter(a => ranges.some(([lo, hi]) => a.serial >= lo && a.serial <= hi));
+      if (focus.length) { mode = "qm"; note = `QM = run mask (${focus.length} atoms; atom numbers match the run topology)`; }
+      else note = "run mask selects no atom in this file";
     } else if (stats && stats.mask) {
       note = `run mask ${String(stats.mask).slice(0, 40)}${String(stats.mask).length > 40 ? "…" : ""} indexes topology atoms; not mappable onto this file`;
     }
@@ -959,7 +973,7 @@
     const info = caseInfo[caseId];
     if (!info) return "";
     const resn = new Set(pdb.atoms.map(a => a.resn.toUpperCase()));
-    if (info.kind === "metal" && !pdb.atoms.some(a => METALS.has(a.el))) return `The served file (PDB ${pdb.idcode || "no HEADER"}) contains no metal ion, so it is not the active site of ${caseId}; the server fell back to another structure.`;
+    if (info.kind === "metal" && !pdb.atoms.some(a => METALS.has(a.el))) return `The served file (${pdb.serialsTopology ? "lab topology (atom numbers = run)" : `PDB ${pdb.idcode || "no HEADER"}`}) contains no metal ion, so it is not the active site of ${caseId}; the server fell back to another structure.`;
     if (info.kind === "ligand" && info.ligand && !resn.has(String(info.ligand).toUpperCase()) && !resn.has("LIG")) return `The served file has no ${info.ligand} or LIG residue, so it may not be this case's complex.`;
     return "";
   }
@@ -969,7 +983,7 @@
   function siteTone(t) { withViews(V => { V.live.tone(t); }); }
 
   function describe(served, pdb, scene) {
-    return `/api/structure/${served} · PDB ${pdb.idcode || "no HEADER"}${pdb.klass ? " (" + pdb.klass.toLowerCase() + ")" : ""} · ${pdb.atoms.length} atoms · ${scene.atoms.filter(a => a.qm).length} focus + ${scene.atoms.filter(a => !a.qm).length} pocket shown`;
+    return `/api/structure/${served} · ${pdb.serialsTopology ? "lab topology (atom numbers = run)" : `PDB ${pdb.idcode || "no HEADER"}`}${pdb.klass ? " (" + pdb.klass.toLowerCase() + ")" : ""} · ${pdb.atoms.length} atoms · ${scene.atoms.filter(a => a.qm).length} focus + ${scene.atoms.filter(a => !a.qm).length} pocket shown`;
   }
 
   async function loadSiteScene(ids, caseId, stats, target) {
@@ -1017,7 +1031,7 @@
     if (!got) { $("structureSubTitle").innerText = "No structure available."; return; }
     loadedPdbData = got.text;
     const title = CASE_TITLES[caseId] || caseId;
-    $("structureSubTitle").innerText = `requested: ${title} · served: PDB ${got.pdb.idcode || "no HEADER"}${got.id !== targetId ? ` (via ${got.id})` : ""}`;
+    $("structureSubTitle").innerText = `requested: ${title} · served: ${got.pdb.serialsTopology ? "lab topology" : `PDB ${got.pdb.idcode || "no HEADER"}`}${got.id !== targetId ? ` (via ${got.id})` : ""}`;
     $("molAtomCount").innerText = `${got.pdb.atoms.length} atoms in file`;
     if (currentRepresentation !== "site") render3Dmol();
   }

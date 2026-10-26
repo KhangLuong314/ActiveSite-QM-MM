@@ -31,6 +31,7 @@ from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 
 from activesite.server.provenance import guard
+from activesite.server.structures import metal_site_pdb
 from activesite.adapters.scout import DataScout as CaseLoader
 from activesite.agent.orchestrator import public_stats, resolve_case_id, run_case
 from activesite.llm import ModelClient
@@ -277,19 +278,14 @@ async def get_structure(identifier: str):
     elif clean_id in ("tem1_penicillin", "1fqg"):
         candidates = [
             Path("data/cache/1fqg.pdb"),
-            Path("data/reference/egfr/1m17.pdb"),
         ]
     elif clean_id in ("ecorv_endonuclease", "1rva", "1b95"):
-        candidates = [
-            Path("data/runs/ippoi_active_site_371/qmmm_region.pdb"),
-            Path("data/reference/egfr/1m17.pdb"),
-        ]
+        candidates = []   # unsupported case: no structure exists, never serve another protein instead
     elif "ippoi" in clean_id:
-        candidates = [
-            Path("data/runs/ippoi_active_site_371/qmmm_region.pdb"),
-            Path("data/runs/20261021-193833-4bbb9d/attempt1/qmmm_region.pdb"),
-            Path("data/reference/egfr/1m17.pdb"),
-        ]
+        # the real I-PpoI system (lab topology + production frame) around this site's Mg; atom serials = topology
+        case_id = "ippoi_site_b" if "site_b" in clean_id or "372" in clean_id else "ippoi_site_a"
+        site = metal_site_pdb(case_id)
+        candidates = [site] if site else []
     else:
         candidates = [
             Path("data/runs") / clean_id / "md" / "complex.pdb",
