@@ -74,7 +74,9 @@ def test_cold_then_warm_run(tmp_path, fake_docker):
     assert all(0.0 <= c["confidence"] <= 1.0 for c in cards)
     assert {c["confidence"] for c in cards if c["category"] == "residue_inclusion"} != {0.96}
     report = Path(cold["report"]).read_text()
-    assert "converged" in report and "no expert record" in report and cold["run_id"] in report
+    assert "converged" in report and cold["run_id"] in report
+    # offline catalog still carries the expert record (built from data/reference), so the comparison is reported
+    assert cold["validation"]["expert_mask_present"] and cold["validation"]["jaccard"] == 1.0
 
     warm = orchestrator.run_case("ippoi_site_b", hmem_db=db, ledger_path=ledger, workroot=runs, log_dir=logs,
                                  sample_mode=False, echo=False)

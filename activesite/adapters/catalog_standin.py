@@ -70,7 +70,7 @@ class CatalogStandin:
 
     def _attach_postgres(self) -> None:
         if self.offline:
-            self.sources["postgres"] = "skipped (CATALOG_OFFLINE)"
+            self._local_lab_runs("CATALOG_OFFLINE")
             return
         try:
             self.con.execute("LOAD postgres")
@@ -84,7 +84,31 @@ class CatalogStandin:
             self.con.execute(f"ATTACH '{self.postgres_dsn}' AS pg (TYPE postgres, READ_ONLY)")
             self.sources["postgres"] = f"attached {self.postgres_dsn}"
         except duckdb.Error as exc:
-            self.sources["postgres"] = f"not attached: {str(exc)[:160]}"
+            self._local_lab_runs(f"Postgres not attached: {str(exc)[:120]}")
+
+    def _local_lab_runs(self, reason: str) -> None:
+        """Without Postgres, build the same lab_runs table in memory from the repo's reference files.
+
+        Rows come from seed/seed.py:lab_rows(), the function that seeds Postgres, so the expert comparison
+        (I-PpoI site A mask and qmcharge from data/reference/qmmm_dft/gen_inputs.sh) is identical offline.
+        """
+        import importlib.util
+        seed_path = Path(__file__).resolve().parents[2] / "seed" / "seed.py"
+        try:
+            spec = importlib.util.spec_from_file_location("activesite_seed", seed_path)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            rows = mod.lab_rows()
+            self.con.execute("ATTACH ':memory:' AS pg")
+            self.con.execute("CREATE SCHEMA IF NOT EXISTS pg.public")
+            self.con.execute("""CREATE TABLE pg.public.lab_runs (case_id TEXT, system TEXT, site TEXT, qmmask TEXT,
+                                qmcharge INTEGER, residues TEXT, source TEXT, status TEXT)""")
+            self.con.executemany("INSERT INTO pg.public.lab_runs VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                                 [[r[k] for k in ("case_id", "system", "site", "qmmask", "qmcharge", "residues",
+                                                  "source", "status")] for r in rows])
+            self.sources["postgres"] = f"skipped ({reason}); lab_runs built in memory from data/reference via seed.lab_rows()"
+        except Exception as exc:  # never let the catalog stop a run
+            self.sources["postgres"] = f"skipped ({reason}); local lab_runs unavailable: {str(exc)[:120]}"
 
     def _attach_minio(self) -> None:
         if self.offline:

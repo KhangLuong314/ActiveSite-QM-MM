@@ -6,7 +6,7 @@ import httpx
 
 from activesite.adapters import zetaris as zmod
 from activesite.adapters.catalog_standin import LABEL, CatalogStandin
-from activesite.adapters.zetaris import ZetarisAdapter, get_adapter
+from activesite.adapters.zetaris import ResilientCatalog, ZetarisAdapter, get_adapter
 from activesite.adapters.zetaris_mcp import handle_zetaris_request, validate_select
 from activesite.agent.core import DataScout
 
@@ -20,8 +20,11 @@ def test_standin_builds_three_queries_offline(tmp_path):
     assert "FROM eda_synthetic" in out["sql"]["q2_analogy"] and "ORDER BY abs(total) DESC LIMIT 6" in out["sql"]["q2_analogy"]
     assert out["sql"]["q3_pdb"].startswith("SELECT pdb_id, resolution, title FROM rcsb_entries WHERE system = 'egfr_erlotinib'")
     # offline: Postgres and MinIO are skipped (errors recorded), the RCSB table exists but is empty
-    assert out["expert"] is None and out["analogy"] == [] and out["pdb"] == []
-    assert any(e.startswith("q1_expert") for e in out["errors"]) and any(e.startswith("q2_analogy") for e in out["errors"])
+    # offline: lab_runs is built in memory from data/reference via seed.lab_rows(), so the expert row exists
+    assert out["expert"]["case_id"] == "egfr_erlotinib" and out["expert"]["status"] == "none"
+    assert out["analogy"] == [] and out["pdb"] == []
+    assert not any(e.startswith("q1_expert") for e in out["errors"]) and any(e.startswith("q2_analogy") for e in out["errors"])
+    assert "lab_runs built in memory" in adapter.sources["postgres"]
     assert adapter.sources["postgres"].startswith("skipped") and adapter.sources["minio"].startswith("skipped")
     assert adapter.run_sql("SELECT COUNT(*) AS n FROM rcsb_entries") == [{"n": 0}]
 
@@ -80,4 +83,5 @@ def test_get_adapter_selection(monkeypatch):
     assert get_adapter().label == LABEL
     monkeypatch.setenv("ZETARIS_REST_URL", "https://z.example")
     monkeypatch.setenv("ZETARIS_API_KEY", "k")
-    assert get_adapter().label == "zetaris"
+    adapter = get_adapter()   # wrapped: Zetaris when it answers, labelled stand-in when not (test_zetaris_fallback)
+    assert isinstance(adapter, ResilientCatalog) and adapter.primary.label == "zetaris"
