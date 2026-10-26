@@ -262,3 +262,91 @@ def test_chat_tem1_beta_lactamase_inquiry(client):
     assert "+18.43 kcal/mol" in text
     assert "PM6" in text
 
+
+def test_chat_ecorv_endonuclease_inquiry(client):
+    prompt = (
+        "Set up a QM/MM model for DNA phosphodiester bond cleavage at the active site of the EcoRV restriction endonuclease, "
+        "including its catalytic Mg²⁺ ion, and calculate the QM/MM energy using the PM6 semiempirical method for the QM region. "
+        "Explain every setup choice in detail, including structure preparation, QM region definition, MM region and force field, "
+        "QM method and embedding, reaction-state definition, energy calculation, and validation and limitations."
+    )
+    r = client.post("/api/chat", json={"message": prompt}).json()
+    assert "reply" in r
+    text = r["reply"]
+    assert "EcoRV Endonuclease" in text
+    assert "1RVA" in text
+    assert "GAT|ATC" in text
+    assert "Asp74" in text and "Asp90" in text and "Glu45" in text
+    assert "Mg²⁺" in text or "Mg2+" in text or "magnesium" in text.lower()
+    assert "PM6" in text
+    assert "singlet" in text.lower()
+    assert "phosphorane" in text.lower()
+    assert "Umbrella Sampling" in text or "DFT" in text
+
+
+def test_chat_energy_decomposition_and_positive_escf(client):
+    r = client.post("/api/chat", json={"message": "Why is ESCF positive while total energy is negative? Explain the energy decomposition and units."}).json()
+    assert "reply" in r
+    text = r["reply"]
+    assert "heat of formation" in text.lower() or "δhf°" in text.lower()
+    assert "positive" in text.lower()
+    assert "Generalized Born" in text or "GB" in text
+    assert "kcal/mol" in text
+
+
+def test_chat_gmax_minimization_vs_scf_convergence(client):
+    r = client.post("/api/chat", json={"message": "Explain what GMAX means versus SCF convergence."}).json()
+    assert "reply" in r
+    text = r["reply"]
+    assert "GMAX" in text
+    assert "10.0" in text
+    assert "gradient" in text.lower() or "force" in text.lower()
+    assert "density matrix" in text.lower() or "10^-7" in text
+
+
+def test_chat_pocket_proximity_vs_steric_clash(client):
+    r = client.post("/api/chat", json={"message": "Why did the pocket check pass with 2.72 Å against a limit of 4.0? Is that a clash?"}).json()
+    assert "reply" in r
+    text = r["reply"]
+    assert "proximity" in text.lower() or "upper-bound" in text.lower()
+    assert "4.0" in text
+    assert "clash" in text.lower()
+    assert "1.8" in text
+
+
+def test_chat_abl_chain_and_his361_rationale(client):
+    r_chain = client.post("/api/chat", json={"message": "Why did you choose Chain B over Chain A in 2HYY?"}).json()
+    assert "reply" in r_chain
+    assert "Chain B" in r_chain["reply"]
+    assert "missing" in r_chain["reply"].lower()
+    assert "REMARK 465" in r_chain["reply"]
+
+    r_his = client.post("/api/chat", json={"message": "Explain why His361 was overridden from HIP to HIE in ABL kinase."}).json()
+    assert "reply" in r_his
+    assert "His361" in r_his["reply"]
+    assert "HIE" in r_his["reply"]
+    assert "cation" in r_his["reply"].lower() or "repulsion" in r_his["reply"].lower()
+
+
+def test_chat_explain_previous_run_abl(client):
+    q = "Can you explain the result of my previous run to me? What does it implies and how accurate is it?"
+    r = client.post("/api/chat", json={"message": q, "run_id": "abl_imatinib_a"}).json()
+    assert "reply" in r
+    text = r["reply"]
+    assert "ABL Kinase + Imatinib" in text
+    assert "+105.68 kcal/mol" in text
+    assert "Chain B" in text
+    assert "His361" in text
+    assert "DFG-Out" in text or "DFG-out" in text
+
+
+def test_get_structure_abl_and_ecorv(client):
+    r_abl = client.get("/api/structure/abl_imatinib_a")
+    assert r_abl.status_code == 200
+    assert "ATOM" in r_abl.text
+
+    r_ecorv = client.get("/api/structure/ecorv_endonuclease")
+    assert r_ecorv.status_code == 200
+    assert "ATOM" in r_ecorv.text
+
+

@@ -93,7 +93,7 @@
           </h2>
           <span class="text-xs text-slate-400">Zero-Key Evaluation</span>
         </div>
-        <div class="grid grid-cols-3 gap-2" id="caseButtons">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="caseButtons">
           <button onclick="selectCase('ippoi_site_a')" data-case="ippoi_site_a" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-left transition text-xs flex flex-col gap-1 group">
             <span class="font-semibold text-white group-hover:text-cyan-300">I-PpoI site A</span>
             <span class="text-slate-400 text-[10px]">Mg:371 &bull; cold run</span>
@@ -105,6 +105,10 @@
           <button onclick="selectCase('egfr_erlotinib')" data-case="egfr_erlotinib" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-left transition text-xs flex flex-col gap-1 group">
             <span class="font-semibold text-white group-hover:text-cyan-300">EGFR + Erlotinib</span>
             <span class="text-slate-400 text-[10px]">PDB 1M17 &bull; pH 7.4</span>
+          </button>
+          <button onclick="selectCase('abl_imatinib_a')" data-case="abl_imatinib_a" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-left transition text-xs flex flex-col gap-1 group">
+            <span class="font-semibold text-white group-hover:text-cyan-300">ABL + Imatinib</span>
+            <span class="text-slate-400 text-[10px]">PDB 2HYY &bull; Chain B</span>
           </button>
         </div>
         <div class="flex flex-col gap-2">
@@ -225,25 +229,25 @@
           <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">Quick inquiries:</span>
           <div class="flex flex-wrap gap-2">
             <button onclick="sendQuickQuery('Can you explain the result of my previous run to me? What does it implies and how accurate is it?')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
-              📊 <span>Explain previous run & accuracy</span>
+              📊 <span>Explain previous run</span>
+            </button>
+            <button onclick="sendQuickQuery('Set up a QM/MM model for DNA phosphodiester bond cleavage at the active site of the EcoRV restriction endonuclease, including its catalytic Mg²⁺ ion, and calculate the QM/MM energy using the PM6 semiempirical method for the QM region.')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
+              🧬 <span>Setup EcoRV Endonuclease</span>
+            </button>
+            <button onclick="sendQuickQuery('Why is ESCF positive while total energy is negative? Explain the energy decomposition and units.')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
+              ⚡ <span>Why is ESCF positive?</span>
+            </button>
+            <button onclick="sendQuickQuery('Why did you choose Chain B over Chain A in 2HYY?')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
+              🔗 <span>Why Chain B over Chain A?</span>
+            </button>
+            <button onclick="sendQuickQuery('Explain why His361 was overridden from HIP to HIE in ABL kinase.')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
+              🧪 <span>His361 HIE vs HIP rationale</span>
+            </button>
+            <button onclick="sendQuickQuery('What happened to Met769 hinge contact?')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
+              🎯 <span>Met769 hinge contact</span>
             </button>
             <button onclick="sendQuickQuery('Set up a QM/MM model for β-lactam ring opening during benzylpenicillin hydrolysis at the active site of TEM-1 β-lactamase (Ser70)')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
               💊 <span>TEM-1 β-lactamase setup</span>
-            </button>
-            <button onclick="sendQuickQuery('Why is Erlotinib neutral?')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
-              💡 <span>Why is Erlotinib neutral?</span>
-            </button>
-            <button onclick="sendQuickQuery('Explain MD 1.0 fs time step')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
-              ⏱️ <span>Explain MD 1.0 fs time step</span>
-            </button>
-            <button onclick="sendQuickQuery('How did Critic fix I-PpoI?')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
-              🛡️ <span>How did Critic fix I-PpoI?</span>
-            </button>
-            <button onclick="sendQuickQuery('What does the H-MEM memory ledger store?')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
-              🧠 <span>What does the H-MEM memory ledger store?</span>
-            </button>
-            <button onclick="sendQuickQuery('What happened to Met769 hinge contact?')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
-              🔗 <span>What happened to Met769 hinge contact?</span>
             </button>
           </div>
         </div>
@@ -373,7 +377,15 @@
       if (activeEl) activeEl.classList.remove("hidden");
       if (activeBtn) activeBtn.className = "px-4 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-cyan-400 border border-slate-700 flex items-center gap-2";
       if (tab === "memory") loadMemory();
-      if (tab === "structure") loadStructureViewer(currentRunId || activeCaseId || "egfr_erlotinib");
+      if (tab === "structure") {
+        setTimeout(() => {
+          if (molViewerInstance) {
+            molViewerInstance.resize();
+            molViewerInstance.render();
+          }
+          loadStructureViewer(currentRunId || activeCaseId || "egfr_erlotinib");
+        }, 60);
+      }
     }
 
     function fmt(x, digits) { return (x === null || x === undefined) ? "not computed" : Number(x).toFixed(digits); }
@@ -615,7 +627,7 @@
         if (!molViewerInstance) {
           molViewerInstance = $3Dmol.createViewer(container, { backgroundColor: "0x0b0f19" });
         }
-
+        molViewerInstance.resize();
         molViewerInstance.clear();
         molViewerInstance.addModel(pdbText, "pdb");
         applyRepresentation(currentRepresentation);

@@ -44,6 +44,7 @@ charges.txt
 logs/*.jsonl
 logs/report-*.md
 logs/cards-*.json
+logs/stats-*.json
 !logs/.gitkeep
 
 # Database & Storage

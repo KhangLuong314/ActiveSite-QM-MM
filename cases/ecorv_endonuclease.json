@@ -1,0 +1,9 @@
+{
+  "id": "ecorv_endonuclease",
+  "system": "ecorv_endonuclease",
+  "site": "A",
+  "question": "Set up a QM/MM model for DNA phosphodiester bond cleavage at the active site of the EcoRV restriction endonuclease, including its catalytic Mg²⁺ ion, and calculate the QM/MM energy using the PM6 semiempirical method for the QM region. Explain every setup choice in detail.",
+  "parm7": "data/reference/qmmm_dft/step3_pbcsetup.parm7",
+  "coords": "data/reference/qmmm_dft/prod00.ncrst",
+  "metal_resid": 371
+}

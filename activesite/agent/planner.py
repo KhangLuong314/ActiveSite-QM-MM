@@ -98,6 +98,15 @@ class PlannerAgent:
             system_name = "abl_imatinib"
             if not pdb_id:
                 pdb_id = "2HYY"
+        elif "ecorv" in prompt_lower or "eco-rv" in prompt_lower or "1rva" in prompt_lower or "1b95" in prompt_lower:
+            system_name = "ecorv_endonuclease"
+            if not pdb_id:
+                pdb_id = "1RVA"
+        elif "tem-1" in prompt_lower or "tem1" in prompt_lower or "1fqg" in prompt_lower or "penicillin" in prompt_lower or "ser70" in prompt_lower:
+            ligand_name = "PNN"
+            system_name = "tem1_penicillin"
+            if not pdb_id:
+                pdb_id = "1FQG"
         elif "ippoi" in prompt_lower or "i-ppoi" in prompt_lower:
             system_name = "ippoi_wt"
 
@@ -105,7 +114,7 @@ class PlannerAgent:
         metal_resid = None
         if "site b" in prompt_lower or ":372" in prompt_lower or "372" in prompt_lower:
             metal_resid = 372
-        elif "site a" in prompt_lower or ":371" in prompt_lower or "371" in prompt_lower or "ippoi" in prompt_lower:
+        elif "site a" in prompt_lower or ":371" in prompt_lower or "371" in prompt_lower or "ippoi" in prompt_lower or "ecorv" in prompt_lower or "eco-rv" in prompt_lower:
             metal_resid = 371
 
         # 5. QM theory extraction
