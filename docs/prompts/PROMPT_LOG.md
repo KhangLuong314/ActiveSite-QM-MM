@@ -788,6 +788,23 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-27 00:30 CDT] — P29 bring your own structure: upload, mutate, custom ligand runs (branch `feat/p29-own-structures`)
+- **Tool / Environment:** Claude Code (Opus 5.5) sub-agent in an isolated worktree; own server on port 8094 (stopped at the end); Docker on Colima with `activesite-prep:at26` / `activesite-engine:at26`
+- **Target Component:** `activesite/chem/uploads.py` (new), `activesite/adapters/chemcomp.py` (new), `activesite/agent/custom.py` (new), `activesite/agent/ligand.py`, `activesite/agent/orchestrator.py`, `activesite/server/main.py`, `tests/test_custom_structures.py`, `tests/fixtures/egfr_1m17_pocket.pdb`
+- **Developer Prompt:**
+  > "Build 'bring your own structure' … a computational chemist told us newcomers lose days choosing the QM region and fighting commands, and the systems they care about are often not published (lab mutants, designed proteins, predicted models)." Endpoints: upload / list / file / mutate, and `POST /api/run` with `custom`; never fabricate numbers; untrusted input handling; live checks on 1M17 and A:T766M.
+- **Agent Action:**
+  - Upload: allow-listed .pdb/.cif/.mmcif, 20 MB cap, stored as `data/uploads/<uuid>/{original.*, structure.pdb, meta.json}` (server-chosen names, id regex `^[0-9a-f]{32}$` on every endpoint). First model only; waters excluded; SO4/GOL/EDO/PEG/ACT/CL/NA etc. reported as `additives`; single-atom metals as `metals`; HETATM residues with N/CA/C as modified residues (warning). mmCIF converted by a small `_atom_site` reader (parmed's CIF reader crashes on the repo's predicted model; gemmi is not a dependency).
+  - Mutate: wild type checked (422 if wrong), 20 standard amino acids only, metal-coordinating residues (side-chain N/O/S within 3.0 Å of a metal) refused unless `force`; side chain beyond CB deleted (CB too for X->GLY), backbone kept. Rebuild happens in the normal pipeline (PDB2PQR missing-atom repair, then the tleap ff14SB template). No rotamer search; a Decision Card says so.
+  - Custom run: the case dict is built on the fly and goes through `run_ligand_case`. SMILES from the user or RCSB chemcomp (CACTVS descriptor, the one the shipped cases use; httpx with timeout; disk cache). A custom case never replays cached sample output: in SAMPLE_MODE energies are null and labelled "proposal only: engine not run (sample mode)". Provenance cards: DEC_CUSTOM_STRUCTURE, DEC_MUTATION_*, DEC_LIGAND_SMILES_SOURCE, DEC_CUSTOM_ENGINE, DEC_CUSTOM_CONTACTS (the literature 0/0 binding-mode card is dropped). Metal-only uploads: 422 "metal sites from uploaded files: QM-region proposal not supported yet" (metal rules need an Amber topology).
+- **Verification:**
+  - Live, uploaded `data/reference/egfr/1m17.pdb`, AQ4, sample mode (run `20261027-050134-cde9f7`): ESCF null, label "proposal only", 8 cards.
+  - Live Docker (run `20261027-050157-c4955e`): ESCF -8.2817 kcal/mol, total -9862.4, chain A, charge 0. The built-in `egfr_erlotinib` case run live at the same time (run `20261027-050708-263048`) also gives -8.2817 / -9862.4. The -8.2856 in `data/sample/egfr_erlotinib` comes from an earlier minimisation (same ligand charges, same start energy -7614.1; final GMAX 0.855 there vs 1.60 now), not from the custom path.
+  - Live Docker, A:T766M (run `20261027-050708-5d71ce`): ESCF -2.2077 kcal/mol, total -9812.1; PDB2PQR rebuilt CG/SD/CE of MET766; built pose closest protein heavy atom 1.89 Å (template side chain), 2.85 Å after minimisation; contacts N2-MET769@N 2.90 Å, O4-GLY772@N 3.32 Å (wild type: 2.90 / 3.32 Å).
+  - `uv run pytest -q -m "not slow"`: 213 passed (200 + 13 new); `ruff check .`: all checks passed.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
