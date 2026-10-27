@@ -2105,7 +2105,7 @@
     return out.sort((a, b) => rank(a) - rank(b));
   }
   const caseQ = (id) => { const s = LIB_META.systems.find((x) => x.id === id); return s ? {q: s.q, s: s.title} : customRun ? {q: "Your own structure", s: customRun.name} : {}; };
-  let flowCase = "ippoi_site_a";
+  let flowCase = null;              // nothing is chosen until the user picks: search, an example, or a description
   function libHaystack(s) {
     const g = LIB_META.groups.find((x) => x.id === s.group) || {label: "Other systems", words: ""};
     return [s.title, s.q, s.pdb, s.ligand, s.code, s.source, g.label, g.words, s.id.replace(/_/g, " "), s.status ? LIB_STATUS[s.status](s) : ""].join(" ").toLowerCase();
