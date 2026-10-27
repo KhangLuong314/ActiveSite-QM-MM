@@ -73,7 +73,7 @@ class ChimeraXGenerator:
             "# 2. Styling MM protein background",
             "hide",
             "cartoon",
-            "color /A-Z grey(0.85)",
+            "color #1 lightgray",
             "transparency 50 cartoon",
             "",
             "# 3. Highlight QM Region",
@@ -156,13 +156,21 @@ class ChimeraXGenerator:
         struct_p = Path(parm7_path).resolve()
         pdb_path = None
 
+        def _save_pdb_with_ligand_name(struct, out_path: Path):
+            if ligand_resname and ligand_resname != "LIG":
+                for res in struct.residues:
+                    if res.name == "LIG":
+                        res.name = ligand_resname
+            struct.save(str(out_path), overwrite=True)
+
         if struct_p.suffix.lower() == ".pdb" and struct_p.exists():
             pdb_path = struct_p
         elif rst7_path is not None and struct_p.exists() and Path(rst7_path).exists():
             import parmed
             pdb_out = target_dir / "complex.pdb"
             try:
-                parmed.load_file(str(struct_p), str(rst7_path)).save(str(pdb_out), overwrite=True)
+                parm = parmed.load_file(str(struct_p), str(rst7_path))
+                _save_pdb_with_ligand_name(parm, pdb_out)
                 pdb_path = pdb_out.resolve()
             except Exception:
                 pdb_path = struct_p
@@ -172,13 +180,14 @@ class ChimeraXGenerator:
             elif (struct_p.parent / "complex.pdb").exists():
                 pdb_path = (struct_p.parent / "complex.pdb").resolve()
             elif struct_p.suffix.lower() in (".parm7", ".prmtop"):
-                rst_candidates = [struct_p.parent / "min.rst7", struct_p.parent / "complex.rst7"]
+                rst_candidates = [struct_p.parent / "min.rst7", struct_p.parent / "complex.rst7", target_dir / "min.rst7"]
                 found_rst = next((c for c in rst_candidates if c.exists()), None)
                 if found_rst:
                     import parmed
                     pdb_out = target_dir / "complex.pdb"
                     try:
-                        parmed.load_file(str(struct_p), str(found_rst)).save(str(pdb_out), overwrite=True)
+                        parm = parmed.load_file(str(struct_p), str(found_rst))
+                        _save_pdb_with_ligand_name(parm, pdb_out)
                         pdb_path = pdb_out.resolve()
                     except Exception:
                         pdb_path = struct_p
@@ -186,6 +195,15 @@ class ChimeraXGenerator:
                     pdb_path = struct_p
             else:
                 pdb_path = struct_p
+
+        # If complex.pdb exists but has generic 'LIG' residues, update to ligand_resname
+        if pdb_path and pdb_path.exists() and pdb_path.suffix.lower() == ".pdb":
+            try:
+                content = pdb_path.read_text(encoding="utf-8")
+                if " LIG " in content and ligand_resname and ligand_resname != "LIG":
+                    pdb_path.write_text(content.replace(" LIG ", f" {ligand_resname:3s} "), encoding="utf-8")
+            except Exception as exc:
+                logger.debug("Could not rename LIG in %s: %s", pdb_path, exc)
 
         lines = [
             "# ActiveSite UCSF ChimeraX Trajectory Visualization Script",
@@ -196,7 +214,7 @@ class ChimeraXGenerator:
             "# Styling: ribbon for protein, magenta ball/stick for ligand, yellow pseudobonds for hbonds",
             "hide",
             "cartoon",
-            "color /A-Z grey(0.85)",
+            "color #1 lightgray",
             "transparency 50 cartoon",
             f"show :{ligand_resname} atoms",
             f"color :{ligand_resname} magenta",

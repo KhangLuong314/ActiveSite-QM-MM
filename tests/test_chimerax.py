@@ -31,6 +31,8 @@ def test_chimerax_script_generation(tmp_path: Path):
 
     assert out_file.exists()
     assert "open " in script
+    assert "grey(0.85)" not in script
+    assert "color #1 lightgray" in script
     assert "color :999 magenta" in script
     assert "color :769 cyan" in script
     assert "shape sphere center 12.500,34.200,56.100" in script
@@ -53,6 +55,9 @@ def test_chimerax_trajectory_script_format(tmp_path: Path):
 
     assert out_file.exists()
     assert (tmp_path / "complex.pdb").exists()
+    assert "AQ4" in (tmp_path / "complex.pdb").read_text()
+    assert "grey(0.85)" not in script
+    assert "color #1 lightgray" in script
     assert f'open "{tmp_path / "complex.pdb"}"' in script or f"open {tmp_path / 'complex.pdb'}" in script
     assert f'open "{tmp_path / "traj.nc"}" format amber structureModel #1' in script or f"open {tmp_path / 'traj.nc'} format amber structureModel #1" in script
     assert "coordset slider #1" in script

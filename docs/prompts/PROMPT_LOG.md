@@ -802,6 +802,26 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-27 00:17 CDT] — ChimeraX Trajectory Viewer & Command Script Compatibility
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/chem/chimerax.py`, `activesite/server/main.py`, `tests/test_chimerax.py`, `data/sample/egfr_erlotinib/md/`
+- **Developer Prompt:**
+  > "Can you scan this repo structure to understand the architecture and objectives? After that, I want to fix the ChimeraX viewer. Here, when clicking ChimeraX Launcher button, the MD for EGFR + Erlotinib can be open but I receive this error within the application
+  > Failed opening file /Users/khangluong/Desktop/Projects/ActiveSite-QM-MM/data/runs/20261027-050145-3c9a79/md/trajectory.cxc:
+  > Expected a color or one of 'byatom', 'bychain', 'byelement', 'byhetero', 'byidentity', 'bymodel', 'bynucleotide', 'bypolymer', 'fromatoms', 'fromcartoons', 'fromribbons', or 'random' or a keyword"
+- **Agent Action:**
+  - Scanned repository architecture, agent pipelines, and Track 02 objectives ("The Agent That Can Explain Why").
+  - Diagnosed ChimeraX syntax failure: `color /A-Z grey(0.85)` is invalid in UCSF ChimeraX (causing `Expected a color or one of 'byatom' ...`). Replaced with standard `color #1 lightgray` across `ChimeraXGenerator.generate_script` and `ChimeraXGenerator.generate_trajectory_script`.
+  - Resolved secondary residue mismatch: Amber/antechamber parameterization names the ligand `LIG`, leaving `show :AQ4` and `hbonds :AQ4` unable to match atoms in `complex.pdb`. Updated `generate_trajectory_script` so parmed renames `LIG` to `ligand_resname` (e.g. `AQ4`) when generating `complex.pdb` and ensured column-aligned updates for existing PDBs.
+  - Enhanced desktop binary detection in `activesite/server/main.py` (`launch_chimerax`) to automatically discover versioned app bundles in `/Applications/` (e.g., `/Applications/ChimeraX-1.12.app/Contents/MacOS/ChimeraX`).
+  - Updated legacy `.cxc` files and sample PDBs to remove all invalid `grey(0.85)` occurrences.
+- **Verification:**
+  - Executed script directly inside local `/Applications/ChimeraX-1.12.app/Contents/MacOS/ChimeraX` on the actual run `data/runs/20261027-050145-3c9a79/md/trajectory.cxc`: parsed with exit code 0, 14 hydrogen bonds dynamically detected across 20 trajectory frames.
+  - `pytest tests/test_chimerax.py -v`: 2/2 passed in 0.21s.
+  - `pytest -q -m "not slow"`: **205 passed, 3 deselected, 0 failures**.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name

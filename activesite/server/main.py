@@ -227,7 +227,10 @@ async def launch_chimerax(req: ChimeraXLaunchRequest):
         detail = f"ChimeraX script not found for run_id={req.run_id!r} or script_path={req.script_path!r}"
         raise HTTPException(status_code=404, detail=detail)
 
+    import glob
+    chimerax_apps = sorted(glob.glob("/Applications/ChimeraX*.app/Contents/MacOS/ChimeraX"), reverse=True)
     binaries = [
+        *chimerax_apps,
         "/Applications/ChimeraX.app/Contents/MacOS/ChimeraX",
         "chimerax",
         "chimera",
