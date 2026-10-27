@@ -22,7 +22,7 @@ import pytest  # noqa: E402
 # keys back into the environment after the pops above. Clear them before every test so the suite never
 # talks to live services or spends API credit; tests that need a value set it with monkeypatch.setenv.
 SPONSOR_VARS = ("MODEL_API_KEY", "MODEL_BASE_URL", "MODEL_NAME", "NEMOTRON_MODEL", "NVIDIA_API_KEY", "OPENAI_API_KEY",
-                "ZETARIS_REST_URL", "ZETARIS_API_KEY", "ZETARIS_ORG_ID", "ZETARIS_BASE_URL",
+                "ZETARIS_REST_URL", "ZETARIS_API_KEY", "ZETARIS_ORG_ID", "ZETARIS_BASE_URL", "ZETARIS_USER", "ZETARIS_PASSWORD",
                 "ZETARIS_TABLE_LAB_RUNS", "ZETARIS_TABLE_EDA", "ZETARIS_TABLE_PDB",
                 "METERLESS_API_KEY", "METERLESS_ENDPOINT")
 

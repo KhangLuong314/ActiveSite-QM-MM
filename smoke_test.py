@@ -2,14 +2,14 @@
 
 Validates the Participant Setup Guide's 3-layer architecture:
 - Check 1 (Data): Zetaris web interface (via ZETARIS_BASE_URL)
-- Check 2 (Data): Zetaris REST API query (POST /sql-editor/sqls/run sending 'SELECT 1')
+- Check 2 (Data): Zetaris REST API query through the app's own ZetarisAdapter
+  (POST /query/sql/start sending 'SELECT 1', then counts the lab_runs table DataScout reads)
 - Check 3 (Power): NVIDIA Nemotron / Meterless model response (via openai SDK)
 """
 from __future__ import annotations
 
 import os
 import sys
-import uuid
 from typing import Tuple
 from dotenv import load_dotenv
 import requests
@@ -35,39 +35,23 @@ def check_zetaris_rest(
     api_key: str | None = None,
     org_id: str | None = None,
 ) -> Tuple[bool, str]:
-    """Check 2 (Data): Zetaris REST API query."""
+    """Check 2 (Data): Zetaris REST API query, using the same adapter the agents use."""
+    from activesite.adapters.zetaris import ZetarisAdapter
+
     base = rest_url if rest_url is not None else os.getenv("ZETARIS_REST_URL", "http://localhost:8888/api/v1.0")
-    key = api_key if api_key is not None else os.getenv("ZETARIS_API_KEY", "")
-    org = org_id if org_id is not None else os.getenv("ZETARIS_ORG_ID", "1")
-    req_id = str(uuid.uuid4())
-
-    url = f"{base.rstrip('/')}/sql-editor/sqls/run"
-    headers = {
-        "Authorization": f"Bearer {key}",
-        "X-Org-ID": str(org),
-        "X-Request-ID": req_id,
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "sql": "SELECT 1",
-        "queryId": str(uuid.uuid4()),
-        "source": "SqlEditor",
-    }
-
+    z = ZetarisAdapter(base_url=base, api_key=api_key, org_id=org_id, timeout=15.0)
     try:
-        resp = requests.post(url, headers=headers, json=payload, timeout=15.0)
-        if resp.status_code == 200:
-            return True, "Query successful (HTTP 200)"
-        if resp.status_code == 400:
-            # Fallback attempt with minimal payload {"sql": "SELECT 1"}
-            resp_min = requests.post(
-                url, headers=headers, json={"sql": "SELECT 1"}, timeout=15.0
-            )
-            if resp_min.status_code == 200:
-                return True, "Query successful (HTTP 200)"
-        return False, f"HTTP {resp.status_code} - {resp.text[:150].strip()}"
+        rows = z.run_sql("SELECT 1 AS one")
     except Exception as exc:
-        return False, str(exc)
+        return False, str(exc)[:200]
+    if not rows:
+        return False, "query returned no rows"
+    try:
+        n = z.run_sql(f"SELECT count(*) AS n FROM {z.tables['lab_runs']}")[0].get("n")
+        table = f"{z.tables['lab_runs']}: {n} rows"
+    except Exception as exc:
+        table = f"{z.tables['lab_runs']} not readable ({str(exc)[:80]})"
+    return True, f"Query successful (HTTP 200); {table}"
 
 
 def check_power_model(

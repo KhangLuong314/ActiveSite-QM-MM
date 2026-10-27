@@ -22,16 +22,16 @@ class FakeStandin:
 def _zetaris(monkeypatch, behaviour):
     calls = []
 
-    def fake_post(url, json, headers, timeout):
-        calls.append(json["sql"])
-        return behaviour(json["sql"], len(calls))
+    def fake_request(method, url, json=None, params=None, headers=None, timeout=None):
+        calls.append(json["select"])
+        return behaviour(json["select"], len(calls))
 
-    monkeypatch.setattr(httpx, "post", fake_post)
+    monkeypatch.setattr(httpx, "request", fake_request)
     return ZetarisAdapter(base_url="http://zetaris.test/api", api_key="k", org_id="1"), calls
 
 
 def _ok(rows):
-    return httpx.Response(200, json=rows, request=httpx.Request("POST", "http://zetaris.test"))
+    return httpx.Response(200, json={"records": rows, "totalPages": 1}, request=httpx.Request("POST", "http://zetaris.test"))
 
 
 def test_unreachable_zetaris_falls_back_with_honest_label(monkeypatch):
@@ -61,7 +61,7 @@ def test_zetaris_dropping_mid_run_switches_and_translates_tables(monkeypatch):
     primary, _ = _zetaris(monkeypatch, flaky)
     cat = ResilientCatalog(primary=primary, fallback_factory=FakeStandin)
     assert cat.label == "zetaris"
-    cat.run_sql("SELECT residue FROM eda_residues")
+    cat.run_sql("SELECT residue FROM ACTIVESITE.eda_synthetic")
     assert cat.active.queries == ["SELECT residue FROM eda_synthetic"]
     assert "Zetaris unreachable: ReadTimeout" in cat.label
 
@@ -73,3 +73,7 @@ def test_get_adapter_wraps_zetaris_only_when_configured(monkeypatch):
     monkeypatch.setenv("ZETARIS_REST_URL", "http://127.0.0.1:9/api")
     monkeypatch.setenv("ZETARIS_API_KEY", "k")
     assert isinstance(get_adapter(), ResilientCatalog)
+    monkeypatch.delenv("ZETARIS_API_KEY")
+    monkeypatch.setenv("ZETARIS_USER", "admin@example.com")
+    monkeypatch.setenv("ZETARIS_PASSWORD", "pw")
+    assert isinstance(get_adapter(), ResilientCatalog)      # a login works as well as an API key
