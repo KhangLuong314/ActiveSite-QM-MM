@@ -130,6 +130,20 @@ flowchart LR
 * **NVIDIA:** `activesite/llm.py` talks to `integrate.api.nvidia.com` (OpenAI-compatible) using `nvidia/nemotron-3.5-lightning-30b-a3b` (or `nvidia/llama-3.3-nemotron-super-49b-v1`) only when `MODEL_API_KEY` is set; the Planner allow-lists everything the model returns, and the AI Biochemist chat endpoint contextualizes answers with Decision Cards.
 * **Cursor and Claude Code:** the rebuild started in Cursor (`.cursorrules`, `.cursor/mcp.json`) and continued in Claude Code (`CLAUDE.md` imports the same `AGENTS.md` rules; `.mcp.json` mirrors the MCP servers). `docs/prompts/PROMPT_LOG.md` is the prompt audit trail for both.
 
+## Using Meterless Nightshift as the AI provider
+[Meterless Nightshift](https://meterless.ai) serves local models through one OpenAI-compatible endpoint, so the chat and Planner can run on your own Mac with no cloud key. No code change is needed; set these in `.env` (or in a copy you export before starting the server):
+
+```bash
+MODEL_BASE_URL=http://127.0.0.1:8088/v1          # Nightshift's local /v1 endpoint
+MODEL_API_KEY=<your Nightshift Runtime API key>  # Nightshift ▸ Console; unique to each install
+MODEL_NAME=webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC
+NEMOTRON_MODEL=webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC  # the chat reads this before MODEL_NAME; set both
+```
+
+* `GET /v1/models` (with the key as a Bearer token) lists the models your install serves; local models load on first use.
+* Nightshift listens on **port 8088 by default**, the same port as the dashboard, so start the dashboard on another port: `uv run python run.py --server --port 8089`.
+* Tested on 27 Oct 2026 (Nightshift 0.92.7, Apple M4, 16 GB) with `webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC`: `smoke_test.py` model check PASS, and the dashboard question "Why is the charge +1?" on I-PpoI site A was answered through Nightshift (about 45 s) with 0 unverified numbers from the provenance guard. The answer was only partly right (it named the odd electron count but not the 1.03 partial-charge sum, and wrongly said +1 keeps the system neutral), so the demo uses NVIDIA Nemotron for accuracy. Under memory pressure Nightshift keeps one model loaded; a second model returns "not resident" and the chat falls back to the rule-based answers.
+
 ## How the explanations are checked
 * **Counterfactuals** (`tests/test_counterfactual_cards.py`): for the QM charge, the Mg first shell, the ligand protonation site, the chain choice and the His override, the test changes one piece of evidence and requires the Decision Card's choice and evidence to change with it.
 * **Number provenance** (`activesite/server/provenance.py`, `tests/test_chat_provenance.py`): every energy or distance in a chat reply must come from the active run's stats, cards or report, or be a fixed method setting; anything else is marked `⚠ not from a run`. Every preset question in the UI returns zero unverified numbers. Systems with no case file (EcoRV, TEM-1) get an answer that they are unsupported, with no numbers.
