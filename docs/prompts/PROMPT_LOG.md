@@ -629,6 +629,25 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-26 20:45 CDT] — P26 UI polish: calm colours, ribbon 3D, findable Expert view (branch `feat/p26-ui-polish`)
+- **Tool / Environment:** Claude Code (Opus 5.5) sub-agent in an isolated worktree; app on port 8098 (`run.py --server --port 8098`, `CATALOG_OFFLINE=1 SAMPLE_MODE=true`); Playwright check kept outside the repo
+- **Target Component:** `activesite/server/index.html`, `tests/test_server.py`, `docs/assets/ui/polish/`
+- **Developer Prompt:**
+  > "Improve the single-file UI: (1) calm both themes, colour only for the four provenance chips, errors and 3D atoms, WCAG AA for every text/chip pair; (2) 3D ribbon view from Khang's recipe, default Ribbon with a Ribbon / Atoms toggle, QM atoms as sticks on top, check the I-PpoI cut-out visually; (3) findability: sticky section bar with IntersectionObserver in Expert view, 3D next to the result, prominent View in 3D on the result screen, next section peeks above the fold; (4) Expert two columns at >=1200px, long panels collapsed with counts, order result -> why -> 3D -> raw evidence, no horizontal scroll at 400px. No new dependencies, no push, no PR."
+- **Agent Action:**
+  - Replaced the style block with semantic tokens: neutral paper/ink, one ink-blue accent, run/replay/expert/not-computed chip pairs, error pair, 3D tokens. Dark theme is #1c1d20, not near-black. Confidence borders, readouts, badges, pipeline dots made neutral; the engine readout keeps chip colours because it states provenance.
+  - 3D: 3Dmol.js ribbon by default in both views (Atoms = the existing Three.js scene). QM atoms highlighted by PDB serial with `addStyle`, so the topology-serial mapping still drives it. I-PpoI (12 Å topology cut-out, no HELIX/SHEET) drew as fragments, so cut-outs get a thin faded ribbon and the legend says why; EGFR 1M17 ribbons cleanly. Cartoon selector fixed (`hetflag`, not `hetero`).
+  - Expert view: tabs became sections in two columns (left: result, 3D, report; right: pipeline, decision cards, trace, chat, SQL, memory), with a sticky section bar in the top bar. Decision cards, trace, SQL and memory are `<details>` with counts.
+  - Fixed two layout bugs found by the check: `body { overflow-x: hidden }` stopped the top bar sticking (now `clip`), and the section bar no longer scrolls the page when it updates.
+  - `test_dashboard_html`: the removed badge text "3Dmol.js Active" is now checked as "ribbon · 3Dmol.js".
+  - Rebased onto `origin/main` (PR #18) before the log entry; no overlap with #18.
+- **Verification:**
+  - Playwright, I-PpoI site A and EGFR + erlotinib × simple/Expert × light/dark × 1440/400 (16 runs): 0 page errors, 0 horizontal scroll, every number on the result screen and in the Why dialog has its provenance chip (9 on I-PpoI, 11 on EGFR), ribbon and atoms canvases non-blank, section bar marks the clicked/scrolled section, top bar sticks.
+  - WCAG AA: all 19 token pairs pass in both themes (lowest 5.05:1, dark faint-on-panel); 0 failures across 545-616 visible text elements per Expert page.
+  - `uv run pytest -q -m "not slow"`: 196 passed; `ruff check .`: all checks passed.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
