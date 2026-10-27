@@ -484,6 +484,9 @@
   .checklist li .ic { font-weight: 700; text-align: center; color: var(--muted); }
   .checklist li.c-ok .ic { color: var(--exp-fg); } .checklist li.c-warn .ic { color: var(--rep-fg); }
   .checklist li.c-replay .ic { color: var(--rep-fg); }
+  /* expected information (e.g. a proposal-only stop in sample mode): amber, not an error */
+  .checklist li.c-info { background: var(--rep-bg); color: var(--ink); } .checklist li.c-info .ic { color: var(--rep-fg); }
+  .pill.warn { color: var(--rep-fg); background: var(--rep-bg); border-color: transparent; }
   .checklist li.c-bad { background: var(--err-bg); color: var(--err-fg); } .checklist li.c-bad .ic { color: var(--err-fg); }
   .checklist li.c-work { color: var(--accent); } .checklist li.c-work .ic { color: var(--accent); }
   .feed-head { display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
@@ -998,14 +1001,17 @@
   function appendStep(e) {
     const stream = $("thoughtStream");
     const ph = stream.querySelector(".placeholder"); if (ph) ph.remove();
-    const bad = ["failed", "error", "blocked"].includes(e.status);
+    // an expected sample-mode stop of an uploaded structure is information (amber), not a failure (red)
+    const expected = window.expectedStop ? expectedStop(e) : false;
+    const bad = ["failed", "error", "blocked"].includes(e.status) && !expected;
     const mid = !bad && e.status !== "ok";
     const el = document.createElement("div");
     el.className = "ev" + (bad ? " bad" : mid ? " mid" : "");
     const ts = (e.ts || "").replace("T", " ").slice(11, 19);
     const extra = [e.confidence !== null && e.confidence !== undefined ? `conf ${Number(e.confidence).toFixed(2)}` : null, e.retry_count ? `retry ${e.retry_count}` : null].filter(Boolean).join(" ");
     const badge = bad ? "red" : e.status === "ok" ? "green" : "amber";
-    el.innerHTML = `<span class="t">${escapeHtml(ts)}</span><span class="a">${escapeHtml(e.agent_name)}</span> <span class="act">${escapeHtml(e.action)}</span> <span class="badge ${badge}">${escapeHtml(e.status)}</span> ${extra ? `<span class="x">${escapeHtml(extra)}</span>` : ""}<span class="sum">${escapeHtml(e.output_summary || "")}</span>`;
+    const sum = window.plainInternals ? plainInternals(e.output_summary || "") : (e.output_summary || "");
+    el.innerHTML = `<span class="t">${escapeHtml(ts)}</span><span class="a">${escapeHtml(e.agent_name)}</span> <span class="act">${escapeHtml(e.action)}</span> <span class="badge ${badge}">${escapeHtml(expected ? "expected stop" : e.status)}</span> ${extra ? `<span class="x">${escapeHtml(extra)}</span>` : ""}<span class="sum">${escapeHtml(sum)}</span>`;
     stream.appendChild(el);
     stream.scrollTop = stream.scrollHeight;
     $("eventCount").innerText = `(${++eventCount} event${eventCount === 1 ? "" : "s"})`;
@@ -1014,7 +1020,7 @@
 
     if (nodeOf(e.agent_name) || e.agent_name === "Orchestrator") {
       const prev = stageState.get(e.action);
-      let state = stageFrom(e);
+      let state = expected ? "warn" : stageFrom(e);
       if (prev && prev.state === "error" && state === "ok") state = "warn";   // caught and fixed: amber, not green
       // the lifecycle row says what happened in plain words; the raw summary (masks, file names) stays in the Agent trace
       const plain = window.sentenceFor ? sentenceFor(e) : null;
@@ -1025,7 +1031,7 @@
     if (e.action === "run_qmmm") siteTone("run");
     if (e.action === "qmmm_result") siteTone(e.status === "ok" ? "green" : "amber");
     if (e.action === "diagnose") siteTone("amber");
-    if (e.status === "blocked") siteTone("red");
+    if (e.status === "blocked") siteTone(expected ? "amber" : "red");
     if (e.agent_name === "Orchestrator" && e.action === "done") siteTone(e.status === "ok" ? "green" : "red");
 
     if (e.run_id) {
@@ -2171,7 +2177,32 @@
     complex_integer_charge: "the whole complex has a whole-number charge",
     minimisation_relaxed: "the structure relaxed without large leftover forces",
   };
+  CHECK_PLAIN.prep_available = "the protein preparation is available";
   const plainCheck = (name) => CHECK_PLAIN[name] || String(name || "a check").replace(/_/g, " ");
+  // Generic guard: Python list reprs and marker words from server summaries never reach the reader as-is.
+  // "flagged ['a', 'b']; BLOCKING ['a']" -> "flagged a, b; blocking a"
+  function plainInternals(text) {
+    return String(text ?? "")
+      .replace(/\[\s*((?:'[^']*'|"[^"]*"|[^\[\]'"])*?)\s*\]/g, (m, inner) => inner.replace(/['"]/g, "").replace(/\s*,\s*/g, ", "))
+      .replace(/\bBLOCKING\b/g, "blocking").replace(/\]\s*;\s*/g, "; ").replace(/[\[\]]/g, "");
+  }
+  // "flagged ['x']; BLOCKING ['y']" -> {flagged: ["x"], blocking: ["y"]}
+  function precheckLists(s) {
+    const list = (re) => { const m = re.exec(s); return m ? m[1].split(",").map((x) => x.replace(/['"\s]/g, "")).filter(Boolean) : []; };
+    return {flagged: list(/flagged\s*\[([^\]]*)\]/i), blocking: list(/BLOCKING\s*\[([^\]]*)\]/)};
+  }
+  // The expected stop of an uploaded structure in sample mode: preparation and energy need Docker, so the agents stop after
+  // proposing the setup. Information, not an error. Real blocks (a pocket check failing, …) are not matched here.
+  const PROPOSAL_STOP = "Preparation and the energy step need Docker; in sample mode the agents stop after proposing the setup.";
+  function expectedStop(e) {
+    const s = String(e.output_summary || "");
+    if (/proposal only|never replayed from cached output/i.test(s)) return true;
+    if (/precheck/.test(e.action || "") && customRun) {
+      const {blocking} = precheckLists(s);
+      return blocking.length > 0 && blocking.every((b) => b === "prep_available");
+    }
+    return false;
+  }
   // st (optional): the run's stats; an uploaded structure in sample mode is labelled "proposal only" by the server
   function plainReason(errs, st) {
     const e = (Array.isArray(errs) ? errs : [errs]).filter(Boolean).join("; ");
@@ -2184,11 +2215,18 @@
     if (e) return "the engine reported an error (the exact message is in the report and in Expert view)";
     return "the engine returned no value";
   }
+  // "QM/MM not run: blocked by pocket_built: …" -> "“the drug sits in its crystal pocket” did not hold"
+  function plainBlock(s) {
+    const names = [...String(s).matchAll(/blocked by ([a-z_]+)/gi)].map((m) => m[1]);
+    if (names.length) return names.map((n) => `“${plainCheck(n)}” did not hold`).join("; ");
+    return plainInternals(String(s).replace(/^QM\/MM not run:\s*/i, "")) || "a safety check did not hold";
+  }
   function sentenceFor(e) {
     const a = e.agent_name || "", act = e.action || "", st = String(e.status || ""), s = String(e.output_summary || "");
     const bad = ["failed", "error", "blocked"].includes(st);
     const key = a.replace(/^Ligand/, "") + "." + act;
     let m;
+    if (expectedStop(e) && key !== "Orchestrator.done" && key !== "Orchestrator.engine") return ["info", PROPOSAL_STOP];
     switch (key) {
       case "Planner.plan":
         m = /(\d+) steps?.*?theory (\S+?)(?:,|$)/.exec(s);
@@ -2207,8 +2245,10 @@
           return ["ok", q !== null ? `First guess for the charge of the quantum region: ${q} (textbook rule from the residues' formal charges).` : "Chose the charge of the quantum region."]; }
       case "Critic.precheck":
         if (st === "ok") return ["ok", "The Critic checked the setup before running: everything passed."];
-        m = /\[(.*)\]/.exec(s);
-        return ["warn", `The Critic flagged a concern before running: ${m ? m[1].split(",").map((x) => plainCheck(x.replace(/['\s]/g, ""))).map((x) => `“${x}” did not hold`).join("; ") : s}.`];
+        { const {flagged, blocking} = precheckLists(s);
+          const said = (xs) => xs.map((x) => `“${plainCheck(x)}” did not hold`).join("; ");
+          if (blocking.length) return ["bad", `The Critic stopped the run before the calculation: ${said(blocking)}.`];
+          return ["warn", `The Critic flagged a concern before running: ${flagged.length ? said(flagged) : plainInternals(s)}.`]; }
       case "Runner.run_qmmm":
         return st === "running" ? ["work", "Running the calculation…"] : null;
       case "Runner.cached_engine_output":
@@ -2224,6 +2264,8 @@
       case "Critic.postcheck":
         return ["ok", "Compared the quantum region with the lab expert's."];
       case "Critic.validate":
+        if (customRun) return /skipped/i.test(s) ? ["info", "Did not check the drug's contacts in your uploaded structure: there is no relaxed model without the preparation step."]
+                                                  : ["ok", "Compared the drug's contacts with your uploaded structure."];
         m = /(\d+)\/(\d+) recovered/.exec(s);
         return ["ok", m ? `Compared the drug's contacts with the published structure: ${m[1]} of ${m[2]} found.` : "Compared the drug's contacts with the published structure."];
       case "Setup.choose_chain":
@@ -2239,8 +2281,9 @@
       case "Setup.recall":
         return /rule recalled: True/.test(s) ? ["ok", "Recalled a lesson from an earlier run."] : ["ok", "Checked memory for earlier lessons: none apply here."];
       case "Setup.prep":
-        return st === "cached" ? ["replay", "Sample mode: loaded the saved protein preparation (protonation and drug parameters) instead of running it now."]
-                               : [bad ? "bad" : "ok", bad ? "Preparing the protein failed." : "Prepared the protein (protonation and drug parameters)."];
+        if (st === "cached") return ["replay", "Sample mode: loaded the saved protein preparation (protonation and drug parameters) instead of running it now."];
+        if (st === "skipped") return ["info", "Skipped preparing the protein (protonation and drug parameters) in this run."];
+        return [bad ? "bad" : "ok", bad ? "Preparing the protein failed." : "Prepared the protein (protonation and drug parameters)."];
       case "Explainer.cards":
         m = /(\d+) decision cards/.exec(s);
         return ["ok", m ? `Wrote ${m[1]} decision cards, one per choice, with evidence.` : "Wrote the decision cards."];
@@ -2249,10 +2292,12 @@
       case "Orchestrator.done":
         return st === "ok" ? ["ok", "Finished."] : ["bad", "Finished with problems: see the result."];
       case "Orchestrator.engine":
-        return ["bad", `No energy was computed: ${plainReason(s)}.`];
+        return [/proposal only/i.test(s) ? "info" : "bad", `No energy was computed: ${plainReason(s)}.`];
+      case "Orchestrator.blocked":
+        return ["bad", `The run stopped before the calculation: ${plainBlock(s)}.`];
     }
     if (a === "Server" || a === "ChimeraX") return null;      // failures are shown by flowFail; viewer actions are not run steps
-    if (bad) return ["bad", `${a || "An agent"} could not finish “${String(act).replace(/_/g, " ")}”.`];
+    if (bad) return ["bad", `${a || "An agent"} could not finish “${String(act).replace(/_/g, " ")}”${s ? `: ${plainInternals(s)}` : ""}.`];
     return [st === "cached" ? "replay" : "ok", `${a || "An agent"} finished the step “${String(act).replace(/_/g, " ")}”.`];
   }
   function flowStep(e) {
@@ -2266,11 +2311,11 @@
     flow.lines.push({tone, text});
     renderChecklist();
   }
-  const ICON = {ok: "✓", warn: "↻", replay: "↺", bad: "✕", work: "…"};
+  const ICON = {ok: "✓", warn: "↻", replay: "↺", bad: "✕", work: "…", info: "ℹ"};
   function renderChecklist() {
     const lines = flow.lines.slice();
     if (flow.running && !lines.some((l) => l.tone === "work")) lines.push({tone: "work", text: "Working…"});
-    $("flowChecklist").innerHTML = lines.map((l) => `<li class="c-${l.tone}"><span class="ic" aria-hidden="true">${l.tone === "work" ? '<span class="spinner"></span>' : ICON[l.tone]}</span><span>${glossify(l.text)}</span></li>`).join("");
+    $("flowChecklist").innerHTML = lines.map((l) => `<li class="c-${l.tone}"><span class="ic" aria-hidden="true">${l.tone === "work" ? '<span class="spinner"></span>' : ICON[l.tone]}</span><span>${glossify(plainInternals(l.text))}</span></li>`).join("");
   }
   function flowFail(msg) {
     flow.running = false; flow.failed = msg || "unknown error";
@@ -2291,9 +2336,10 @@
     flow.running = false; flow.done = true; flow.payload = payload;
     flow.lines = flow.lines.filter((l) => l.tone !== "work");
     renderChecklist();
-    const ok = (payload.stats || {}).qm_ok;
+    const pst = payload.stats || {}, ok = pst.qm_ok;
+    const proposal = !ok && (pst.custom || customRun) && /proposal only/i.test(String(pst.engine_label || "") + (pst.errors || []).join(" "));
     $("s2h").innerText = "The agents finished";
-    setFlowStatus(ok ? "Finished" : "Finished · no energy", ok ? "ok" : "bad");
+    setFlowStatus(ok ? "Finished" : proposal ? "Proposal only" : "Finished · no energy", ok ? "ok" : proposal ? "warn" : "bad");
     $("flowRunBtn").disabled = false;
     $("flowSeeResult").hidden = false; $("flowRetry").hidden = false;
     renderResult(payload);
@@ -2318,9 +2364,15 @@
     if (v && typeof v === "object" && "recovered" in v) {
       const n = Object.keys(v.recovered || {}).length, pub = v.published;
       const pocket = checks.filter((c) => c.name === "pocket_built" || c.name === "pocket_min");
-      let s = pocket.length ? (pocket.every((c) => c.passed) ? "The drug sits in its crystal pocket" : "The drug did not stay in its crystal pocket") : "The drug was placed in its pocket";
+      const custom = !!(st.custom || customRun);
+      let s = pocket.length ? (pocket.every((c) => c.passed) ? "The drug sits in its crystal pocket" : "The drug did not stay in its crystal pocket")
+            : custom ? "The agents proposed a setup for the drug in your uploaded structure" : "The drug was placed in its pocket";
       if (pocket.length) provs.add("run");
-      if (v.available === false || !isNum(pub)) { s += "; its contacts with the protein were not compared with published data"; provs.add("nc"); }
+      if (v.available === false || !isNum(pub)) {
+        // an uploaded structure has no published contacts on file; say what was (not) checked against it
+        s += custom ? "; its contacts in your structure were not checked" : "; its contacts with the protein were not compared with published data";
+        provs.add("nc");
+      }
       else {
         provs.add("expert");
         s += `; ${n} of ${pub} published contacts ${n === 1 ? "is" : "are"} present`;
@@ -2341,7 +2393,9 @@
         }
       }
       out.push(s + ".");
-      if ((st.blocked || []).length) { out.push(`The run stopped at a safety check: ${st.blocked.map(plainCheck).join(", ")}.`); provs.add("run"); }
+      // the expected proposal-only stop (uploaded structure, sample mode) is explained by the energy sentence below, not as a failed check
+      const realBlocks = (st.blocked || []).filter((b) => !(b === "prep_available" && (st.custom || customRun) && /proposal only/i.test(String(st.engine_label || "") + (st.errors || []).join(" "))));
+      if (realBlocks.length) { out.push(`The run stopped at a safety check: ${realBlocks.map(plainCheck).join(", ")} did not hold.`); provs.add("run"); }
     } else if (v && typeof v === "object" && ("jaccard" in v || "expert_mask_present" in v)) {
       const c = metalCounts(v, st);
       let s;
@@ -2390,7 +2444,8 @@
     // 1. agreement with an independent reference
     if (isLig) {
       const rec = Object.entries(v.recovered || {});
-      if (!isNum(v.published) || v.available === false) tile("Published contacts found", "—", "nc", [`<div class="fact">no published contacts on file for this case</div>`]);
+      if ((st.custom || customRun) && (!isNum(v.published) || v.available === false)) tile("Contacts in your structure", "—", "nc", [`<div class="fact">not checked: there is no relaxed model without the preparation step, and no published contacts are on file for an uploaded structure</div>`]);
+      else if (!isNum(v.published) || v.available === false) tile("Published contacts found", "—", "nc", [`<div class="fact">no published contacts on file for this case</div>`]);
       else {
         const items = rec.map(([k, d]) => `<li data-prov="expert">✓ ${glossify(k)}: ${glossify(num(d, 2) + " Å")} apart (a hydrogen-bond distance)${chip("expert")}</li>`)
           .concat((v.missed || []).map((k) => `<li>✕ ${glossify(k)}: not found</li>`))

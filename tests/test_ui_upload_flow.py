@@ -40,9 +40,25 @@ STEPS = [{"ts": "2026-10-27T10:00:00", "agent_name": "Planner", "action": "plan"
          {"ts": "2026-10-27T10:00:01", "agent_name": "Orchestrator", "action": "done", "status": "ok", "output_summary": "done"}]
 
 
-def _sse():
-    body = "".join(f"event: step\ndata: {json.dumps(s)}\n\n" for s in STEPS)
-    return body + f"event: result\ndata: {json.dumps(RESULT)}\n\n"
+def _sse(steps=None, result=None):
+    body = "".join(f"event: step\ndata: {json.dumps(s)}\n\n" for s in (steps or STEPS))
+    return body + f"event: result\ndata: {json.dumps(result or RESULT)}\n\n"
+
+
+# The event sequence the real backend sends for an uploaded structure in sample mode (1m17 + A:T766M, 2026-10-27).
+_PROPOSAL = "proposal only: engine not run (sample mode); uploaded structures are never replayed from cached output"
+REAL_STEPS = [
+    {"agent_name": "Planner", "action": "plan", "status": "ok", "output_summary": "6 steps, theory PM6, mode fallback"},
+    {"agent_name": "LigandSetup", "action": "prep", "status": "skipped", "output_summary": _PROPOSAL},
+    {"agent_name": "LigandCritic", "action": "precheck", "status": "blocked", "output_summary": "flagged ['prep_available']; BLOCKING ['prep_available']"},
+    {"agent_name": "Orchestrator", "action": "blocked", "status": "error", "output_summary": "QM/MM not run: " + _PROPOSAL},
+    {"agent_name": "LigandCritic", "action": "validate", "status": "ok", "output_summary": "no minimised model; validation skipped"},
+    {"agent_name": "Orchestrator", "action": "done", "status": "ok", "output_summary": "qm_ok False, blocked ['prep_available'], memory_used True"}]
+REAL_RESULT = json.loads(json.dumps(RESULT))
+REAL_RESULT["stats"].update(blocked=["prep_available"], sample_mode=True, errors=["blocked by prep_available: " + _PROPOSAL],
+                            custom={"structure_id": "s_mock1", "name": "my_mutant", "mutations": ["A:Y61F"]})
+REAL_RESULT["validation"] = {"published": 0, "recovered": {}, "missed": [], "expected_absent": {}, "extra": [], "contacts": [], "available": False}
+REAL_RESULT["checks"] = [{"name": "prep_available", "passed": False, "detail": _PROPOSAL}]
 
 
 def _chromium(p):
@@ -53,7 +69,7 @@ def _chromium(p):
         pytest.skip(f"no Chromium for Playwright: {exc}")
 
 
-def _page(browser, upload_status=200, calls=None, run_error=None):
+def _page(browser, upload_status=200, calls=None, run_error=None, steps=None, result=None):
     calls = [] if calls is None else calls
     page = browser.new_page(viewport={"width": 1280, "height": 900})
     errors = []
@@ -82,7 +98,7 @@ def _page(browser, upload_status=200, calls=None, run_error=None):
         if path == "/api/run":
             return route.fulfill(json={"stream_id": "stream_mock", "sample_mode": True})
         if path == "/run/stream":
-            return route.fulfill(status=200, content_type="text/event-stream", body=_sse())
+            return route.fulfill(status=200, content_type="text/event-stream", body=_sse(steps, result))
         return route.fulfill(status=404, json={"detail": "Not Found"})
 
     page.route("**/*", handle)
@@ -160,4 +176,51 @@ def test_run_422_is_shown_as_a_plain_message(browser, pick, detail):
     assert "[object Object]" not in page.inner_text("body")
     page.click("#flowRetry")
     assert want in page.inner_text("#byoRunErr")
+    assert not errors
+
+
+INTERNALS = ("BLOCKING", "];", "['", "could not finish", "prep available")
+
+
+def test_expected_sample_mode_stop_is_information_not_an_error(browser):
+    page, errors = _page(browser, steps=REAL_STEPS, result=REAL_RESULT)
+    page.set_input_files("#byoFile", files=[{"name": "my_mutant.pdb", "mimeType": "chemical/x-pdb", "buffer": TINY_PDB.encode()}])
+    page.wait_for_selector("#byoSummary")
+    page.click("#byoRun")
+    page.wait_for_selector("#flowSeeResult:not([hidden])")
+    s2 = page.inner_text("#flowChecklist")
+    assert not [x for x in INTERNALS if x in s2], s2
+    assert page.locator("#flowChecklist li.c-bad").count() == 0
+    info = page.locator("#flowChecklist li.c-info").all_inner_texts()
+    assert any("Preparation and the energy step need Docker; in sample mode the agents stop after proposing the setup." in t for t in info)
+    assert any("No energy was computed: this is a proposal only" in t for t in info)
+    assert "your uploaded structure" in s2 and "published structure" not in s2
+    assert page.inner_text("#flowStatus") == "Proposal only" and "warn" in page.get_attribute("#flowStatus", "class")
+    page.click("#flowSeeResult")
+    s3 = page.inner_text("#screen3")
+    assert not [x for x in INTERNALS if x in s3] and "safety check" not in s3 and "published data" not in s3
+    page.click("#expertSwitch")
+    page.evaluate("document.querySelector('#traceFold').open = true")
+    assert page.locator("#stages .st.error").count() == 0 and page.locator("#thoughtStream .ev.bad").count() == 0
+    assert "BLOCKING" not in page.inner_text("#thoughtStream") and "];" not in page.inner_text("#thoughtStream")
+    assert page.locator("#pipeline .node.fail").count() == 0
+    assert not errors
+
+
+def test_real_block_stays_red_in_plain_words_and_sanitizer(browser):
+    page, errors = _page(browser)
+    page.evaluate("customRun = null; flow.running = true; flow.lines = []; flow.seen = new Set()")
+    page.evaluate("""() => {
+      flowStep({agent_name: 'LigandCritic', action: 'precheck', status: 'blocked', output_summary: "flagged ['pocket_built', 'ligand_charge_sum']; BLOCKING ['pocket_built']"});
+      flowStep({agent_name: 'Orchestrator', action: 'blocked', status: 'error', output_summary: 'QM/MM not run: blocked by pocket_built: ligand moved 4.2 A'});
+      flowStep({agent_name: 'Mystery', action: 'odd_step', status: 'failed', output_summary: "x ['a', 'b']; BLOCKING ['a']"});
+    }""")
+    bad = page.locator("#flowChecklist li.c-bad").all_inner_texts()
+    assert len(bad) == 3
+    assert "The Critic stopped the run before the calculation: “the drug sits in its crystal pocket” did not hold." in bad[0]
+    assert "The run stopped before the calculation: “the drug sits in its crystal pocket” did not hold." in bad[1]
+    text = page.inner_text("#flowChecklist")
+    assert "BLOCKING" not in text and "];" not in text and "['" not in text
+    assert page.evaluate("plainInternals(\"flagged ['a', 'b']; BLOCKING ['a']\")") == "flagged a, b; blocking a"
+    assert page.evaluate("expectedStop({action: 'precheck', output_summary: \"flagged ['prep_available']; BLOCKING ['prep_available']\"})") is False
     assert not errors
