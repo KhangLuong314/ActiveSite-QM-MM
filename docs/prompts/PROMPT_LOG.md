@@ -788,6 +788,22 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-27 CDT] — P29 UI: system library, bring-your-own-structure, chat drawer, colour with meaning (branch `feat/p29-ui-library-chat`)
+- **Tool / Environment:** Claude Code (Opus 5.5) sub-agent in an isolated worktree; app on port 8093 (`CATALOG_OFFLINE=1 SAMPLE_MODE=true`); Playwright check kept outside the repo
+- **Target Component:** `activesite/server/index.html`, `tests/test_ui_library.py`, `tests/test_ui_upload_flow.py`, `docs/assets/ui/p29/`
+- **Developer Prompt:**
+  > "Improve the single-file UI … 1. System library (replaces the 6 fixed case cards) … 2. 'Bring your own structure' entry … degrade gracefully (404) … 3. AI Biochemist as a real chat, in a side drawer … 4. Colour with meaning (navy top bar, filled primaries, 4 px meaning borders, pipeline node states) … keep every existing invariant from PRs #17/#19."
+- **Agent Action:**
+  - Library: every case from the existing `GET /api/cases` (no backend change), grouped (DNA-cutting enzymes, Kinase + drug, Covalent drugs, β-lactamase), searchable by name, PDB id, drug, ligand code or enzyme class, in both views. Status chips come from repo facts: sample on file = "replays a real run"; "verified against expert" (I-PpoI A) and "verified against literature" (EGFR + erlotinib, Stamos 2002 cited); no sample = "needs Docker to run" (osimertinib, BTK); EcoRV = "not supported yet" (its case file points at the I-PpoI topology). ABL is "replays a real run", not verified: its contact list is marked "general knowledge, not yet cited" in the case file. `tests/test_ui_library.py` keeps these labels tied to `cases/` and `data/sample/`.
+  - Your own structure: upload → summary (chains, ligands, metals, warnings) → pick ligand or metal → optional SMILES, mutations (`A:Y61F` format and chain validated inline; side chains rebuilt from templates, no repacking), pH → run → normal screens 2/3. A 404 shows only "Upload is not available on this server yet". 422 details (metal-only uploads, missing `ligand_smiles`) are shown as the server's sentence. Null energies of a proposal-only run read "not computed" with the reason in plain words. 3D reads `GET /api/structures/{id}/file`.
+  - Chat: right-hand drawer from any section (floating "Ask why", result screen, Expert's Chat section); bubbles, "AI chemist" avatar, typing indicator, "How it reasoned" fold for `thinking`, "⚠ not from a run" flag and model footer under Details kept; Enter sends, Shift+Enter newline, Esc closes, Tab kept inside, focus returns to the opener. Chat API calls and the seven preset query strings unchanged.
+  - Colour: navy top bar (#10202E / #EEF2F5, amber #E8A25A current item) in both themes; filled accent Run/Send/View in 3D, outlined secondaries; 4 px left borders by meaning; pipeline nodes pending grey / running blue pulse (off under reduced motion) / done green / failed red.
+- **Verification:**
+  - Playwright, I-PpoI A and EGFR × simple/Expert × light/dark × 1440/400 (16 runs) plus library, drawer and mocked-upload runs: ALL CHECKS PASSED. No debug strings visible by default, 0 page errors, 0 horizontal scroll, every result number keeps its chip, QM highlight 64 (I-PpoI A) and 52 (EGFR) at every 3D entry point, drawer opens/traps/closes from all 10 Expert sections and all 3 screens, WCAG AA 0 failures (lowest token pair 5.05:1 dark `--faint` on `--sheet-2`; lowest rendered text 5.55:1).
+  - `tests/test_ui_upload_flow.py` (Playwright route interception, skips without Playwright): 4 passed. `uv run pytest -q -m "not slow"` and `ruff@0.8.4 check .`: see hand-off.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
