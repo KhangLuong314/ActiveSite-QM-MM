@@ -12,9 +12,9 @@
   "smiles_source": "RCSB chemcomp YY3 (PDB 4ZAU osimertinib)",
   "literature_contacts": {
     "MET769": "hinge backbone NH to pyrimidine N",
-    "CYS797": "covalent target Cys797 SG nucleophile at 3.35 Å from acrylamide C9"
+    "CYS797": "covalent target Cys797 SG nucleophile to acrylamide warhead"
   },
-  "literature_source": "Yosaatmadja et al. 2015, Nature Struct. Mol. Biol. 22:863; PDB 4ZAU, 1.55 Å wild-type EGFR in complex with osimertinib",
+  "literature_source": "Yosaatmadja et al. 2015, J Struct Biol 192:539; PDB 4ZAU, 2.80 Å EGFR in complex with osimertinib",
   "ph": 7.4,
   "min_steps": 500
 }

@@ -68,6 +68,9 @@ class LigandSetup:
     def build(self, case: Dict[str, Any]) -> Dict[str, Any]:
         self.work.mkdir(parents=True, exist_ok=True)
         pdb, ligand, ph = case["pdb"], case["ligand"], float(case.get("ph", 7.4))
+        if not Path(pdb).exists():
+            from activesite.adapters.scout import DataScout
+            DataScout().ensure_pdb(pdb)
         setup: Dict[str, Any] = {"kind": "ligand", "work": str(self.work), "mask": ":LIG", "theory": "PM6",
                                  "charge": None, "recalled": False, "prep_skipped": None, "overrides": []}
 

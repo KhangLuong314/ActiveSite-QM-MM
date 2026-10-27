@@ -720,6 +720,25 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-26 21:40 CDT] — Merge Main, Evidence Alignment, Bug Fixes & Verification
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/adapters/scout.py`, `activesite/agent/orchestrator.py`, `activesite/agent/ligand.py`, `activesite/server/main.py`, `activesite/server/index.html`, `cases/egfr_osimertinib.json`, `cases/btk_ibrutinib.json`, `docs/BENCHMARK_SCIENTIFIC_EVALUATION.md`, `tests/test_adapters.py`, `tests/test_orchestrator.py`, `tests/test_server.py`
+- **Developer Prompt:**
+  > "Context: Sidd's Claude Code reviewed your branch feat/khang-fix-scout-structure-and-agentic-setup (head ea6a375) against main (now b947bc9... 1. Merge main into your branch... 2. Fix docs/BENCHMARK_SCIENTIFIC_EVALUATION.md... 3. Keep these fixes... 4. Fix two bugs... 5. Verify, then open the PR"
+- **Agent Action:**
+  - Merged `origin/main` (commit `b947bc9`) into `feat/khang-fix-scout-structure-and-agentic-setup`. Retained main's working `zetaris.py`, `catalog_standin.py`, and `test_llm.py`; kept both sides' PROMPT_LOG entries.
+  - Aligned `docs/BENCHMARK_SCIENTIFIC_EVALUATION.md` strictly to evidence: marked EcoRV as not run (null); marked Osimertinib (4ZAU) and BTK (5P9J) as prepared/not run with null energies; updated citations (4ZAU 2.80 Å J Struct Biol; 5P9J 1.08 Å Mol Pharmacol; 1CZ0 2.10 Å Nat Struct Biol); removed non-physical inter-system total energy comparison in ABL; updated TEM-1 to 1/2 contacts (Ser70 at 2.837 Å, Lys73 missed, ESCF -139.259 kcal/mol); changed author line to ActiveSite Team & Antigravity Agent.
+  - Fixed substring false positives in `orchestrator.py`: replaced substring matching with word-boundary regexes so queries like "is the system stable?" or "what is the temperature?" raise ValueError instead of routing to TEM-1 or ABL. Added regression tests in `tests/test_orchestrator.py`.
+  - Added automatic RCSB PDB download in `DataScout.ensure_pdb` and `load_benchmark_case` / `LigandSetup.build` to prevent FileNotFoundError on fresh clones for 1FQG, 4ZAU, and 5P9J. Added mocked network unit test in `tests/test_adapters.py`.
+  - Removed fallback to 1M17 in `get_structure` for osimertinib and ibrutinib. Added unit test in `tests/test_server.py`.
+  - Preserved LLM `thinking` and `chat_detailed` with provenance guard in `main.py` and rendered collapsible `<details>` in `index.html`.
+- **Verification:**
+  - `uv run --with "ruff==0.8.4" ruff check .`: All checks passed.
+  - `uv run pytest -q -m "not slow"`: **200 passed, 3 deselected, 0 failures**.
+  - `uv run python run.py --case tem1_penicillin --docker --json`: Converged live in Docker with ESCF `-139.2605` kcal/mol, total `-9606.3` kcal/mol, Ser70 at `2.837` Å, Lys73 missed (1/2 contacts recovered).
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name

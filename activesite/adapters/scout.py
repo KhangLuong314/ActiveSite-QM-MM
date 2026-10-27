@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import httpx
@@ -37,6 +38,24 @@ class DataScout:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.timeout = timeout
 
+    def ensure_pdb(self, pdb_path_or_id: str | Path) -> Path:
+        """Ensure a PDB file exists locally; if missing, download from RCSB PDB."""
+        p = Path(pdb_path_or_id)
+        if p.exists():
+            return p
+        m = re.search(r"([0-9][a-zA-Z0-9]{3})", p.name)
+        if not m:
+            raise FileNotFoundError(f"PDB file not found and cannot infer RCSB PDB code from {pdb_path_or_id}")
+        pdb_code = m.group(1).lower()
+        meta = self.resolve_pdb(pdb_code)
+        if meta and meta.local_pdb_path and Path(meta.local_pdb_path).exists():
+            src = Path(meta.local_pdb_path)
+            if src.resolve() != p.resolve():
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_bytes(src.read_bytes())
+            return p
+        raise FileNotFoundError(f"Could not load or download PDB structure for '{pdb_code}' to {p}")
+
     def load_benchmark_case(self, case_id: str) -> Dict[str, Any]:
         """Load a benchmark case definition from cases/ directory."""
         clean_id = case_id.removesuffix(".json")
@@ -44,7 +63,13 @@ class DataScout:
         if not case_path.exists():
             raise FileNotFoundError(f"Case '{case_id}' not found in {CASES_DIR}")
         with open(case_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+        if "pdb" in data:
+            try:
+                self.ensure_pdb(data["pdb"])
+            except Exception as exc:
+                logger.warning("Could not auto-download PDB for case %s: %s", case_id, exc)
+        return data
 
     def list_benchmark_cases(self) -> List[str]:
         """List all available benchmark case IDs."""

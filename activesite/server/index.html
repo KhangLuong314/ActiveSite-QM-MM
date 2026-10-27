@@ -1061,9 +1061,13 @@
       // The server's provenance guard appends "⚠ not from a run" after unbacked numbers; make that mark visible.
       const flagged = formatted.split("⚠ not from a run").join(`<span class="flag">⚠ not from a run</span>`);
       const unv = data.unverified_numbers || [];
+      let thinkHtml = "";
+      if (data.thinking) {
+        thinkHtml = `<details style="margin-bottom:0.5rem;font-size:0.8rem;opacity:0.85;cursor:pointer;"><summary style="font-weight:600;color:var(--accent, #38bdf8);">💭 Thinking Process</summary><div style="white-space:pre-wrap;padding:0.4rem 0.6rem;background:rgba(0,0,0,0.15);border-radius:4px;margin-top:0.3rem;font-family:var(--font-mono, monospace);">${escapeHtml(data.thinking)}</div></details>`;
+      }
       const aiMsg = document.createElement("div");
       aiMsg.className = "msg ai";
-      aiMsg.innerHTML = `<div class="md chat-md">${flagged}</div>` +
+      aiMsg.innerHTML = thinkHtml + `<div class="md chat-md">${flagged}</div>` +
         (unv.length ? `<div class="unverified">⚠ ${unv.length} number(s) not from a run: ${escapeHtml(unv.join(", "))}</div>` : "") +
         `<div class="foot"><span>${escapeHtml(data.model || "model not reported")}</span><span>${escapeHtml(data.source || "")} · unverified numbers: ${unv.length}</span></div>`;
       historyEl.appendChild(aiMsg);

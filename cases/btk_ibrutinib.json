@@ -13,9 +13,9 @@
   "literature_contacts": {
     "MET477": "hinge backbone NH to pyrazolopyrimidine N",
     "GLU475": "hinge backbone NH to pyrazolopyrimidine amino group",
-    "CYS481": "catalytic Cys481 SG covalent bond at 1.85 Å to CAA"
+    "CYS481": "catalytic Cys481 SG covalent attachment to CAA"
   },
-  "literature_source": "Bender et al. 2017, J. Med. Chem.; PDB 5P9J, 1.43 Å crystal structure of BTK in complex with ibrutinib",
+  "literature_source": "Bender et al. 2017, Mol Pharmacol 91:208; PDB 5P9J, 1.08 Å crystal structure of BTK in complex with ibrutinib",
   "ph": 7.4,
   "min_steps": 500
 }
