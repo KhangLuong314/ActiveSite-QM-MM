@@ -6,8 +6,8 @@
 [![Track: Explainable Agents](https://img.shields.io/badge/Track_02-The_Agent_That_Can_Explain_Why-brightgreen)](https://hackathons.genai.works)
 [![Engine: AmberTools 26](https://img.shields.io/badge/Engine-AmberTools_26_sander_PM6-orange)](https://ambermd.org)
 [![Model: NVIDIA Nemotron](https://img.shields.io/badge/Model-NVIDIA_Nemotron_3.5-76b900)](https://build.nvidia.com)
-[![Memory: Meterless H--MEM](https://img.shields.io/badge/Memory-Meterless_H--MEM-purple)](https://meterless.io)
-[![Data: Zetaris Federated Catalog](https://img.shields.io/badge/Data-catalog--STANDIN_(DuckDB)_%2F_Zetaris-blueviolet)](https://zetaris.com)
+[![Memory: Meterless H--MEM](https://img.shields.io/badge/Memory-Meterless_H--MEM-purple)](https://meterless.ai)
+[![Data: Zetaris](https://img.shields.io/badge/Data-Zetaris_(live)_%C2%B7_labelled_stand--in_if_unreachable-blueviolet)](https://zetaris.com)
 [![Dynamics: 1_ps_QM%2FMM_MD](https://img.shields.io/badge/Dynamics-1_ps_QM%2FMM_MD_(100_frames)-cyan)](https://ambermd.org)
 
 <p align="center">
@@ -47,6 +47,8 @@ The Critic diagnoses parity failures and commits corrective rules to an append-o
 | **Warm Run** | I-PpoI Site B (`Mg :372`) | Recalled from H-MEM | None (pre-emptively applied learned charge rule) | Scored memory match from `MemoryRetrievalService`; executed single-pass | **0 retries** | Converged on Attempt 0 |
 
 ## Quickstart (judges)
+**Requirements:** Docker (judge path), or Python 3.12 with [`uv`](https://docs.astral.sh/uv/) (dependencies pinned in `pyproject.toml` / `uv.lock`). Optional: an NVIDIA API key for live Nemotron, a reachable Zetaris instance, and the engine images for live `sander` runs. No GPU.
+
 Fastest path, Docker only (no Python setup, no keys):
 ```bash
 docker build -t activesite . && docker run --rm -p 8088:8088 activesite   # dashboard at http://localhost:8088
@@ -110,7 +112,7 @@ curl -H 'Content-Type: application/json' -d '{"custom":{"structure_id":"<id>","l
 ```mermaid
 flowchart LR
   Case["case JSON"] --> Planner --> DataScout --> Setup
-  DataScout -. "Q1 expert, Q2 analogy, Q3 PDB" .-> Catalog["catalog-STANDIN (DuckDB) or Zetaris"]
+  DataScout -. "Q1 expert, Q2 analogy, Q3 PDB" .-> Catalog["Zetaris (live) or labelled DuckDB stand-in"]
   Setup --> Critic1["Critic.precheck"] --> Runner["Runner: sander PM6 in Docker"] --> Critic2["Critic.diagnose"]
   Critic2 -- "odd electrons: retry once" --> Runner
   Critic2 -- "retry converged" --> HMEM["Meterless H-MEM store + ledger"]
@@ -156,7 +158,7 @@ Optional LLM: `nvidia/llama-3.3-nemotron-super-49b-v1` / `nvidia/nemotron-3.5-li
 - PM6 semi-empirical single points and 1 ps (1,000-step, 100-frame) Langevin QM/MM MD; higher-level DFT (B3LYP) is available in reference protocols but not executed locally in the quick judge path.
 - Implicit solvent (igb=5) for ligand cases; crystal waters, including the Thr766 bridge in 1M17, are removed.
 - No free-energy barriers are computed locally; the lab's QMHub/B3LYP protocol is cited, not reproduced.
-- The data catalog is a local stand-in (`catalog-STANDIN (DuckDB)`) until Zetaris credentials are configured; the EDA table it serves is synthetic.
+- When no Zetaris instance is reachable, DataScout uses a labelled local stand-in (`catalog-STANDIN (DuckDB)`) and every trace line says so; the EDA table in both catalogs is synthetic.
 - His states near a ligand cation are geometric calls within a 1 pKa window; the charged state should be run as a sensitivity check.
 - The Critic's electron count on the metal case comes from the MM partial-charge sum of the cut region, validated by sander's own parity check, not from an independent electronic-structure count.
 - Sample mode replays outputs recorded on a Docker host; without that cache it reports `engine unavailable`.
@@ -182,6 +184,10 @@ samples/           judged inputs and saved outputs            seed/          cat
 scripts/           make_samples.sh, smoke_clean_clone.sh, fetch_reference.sh
 docs/              PROMPT_LOG.md, PRE_EXISTING.md             tests/         pytest suite (Docker tests skip themselves)
 ```
+
+## License
+Code: [MIT](LICENSE). The lab reference files under `data/reference/` and the RCSB entries are declared in [`docs/PRE_EXISTING.md`](docs/PRE_EXISTING.md) and are not covered by this licence.
+Security and leaked-secret steps: [`SECURITY.md`](SECURITY.md).
 
 ## Authors
 - **Khang Luong** ([@KhangLuong314](https://github.com/KhangLuong314)) — University of Nebraska–Lincoln

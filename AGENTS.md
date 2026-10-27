@@ -40,5 +40,6 @@ Feature freeze 2026-10-26 18:00 CDT. The engine is being rebuilt one module per 
 - `ChemistryRunner.run_simulation` runs one `sander` single point via `activesite/chem/sander.py`
   inside `activesite-engine:at26`. If SAMPLE_MODE is on, Docker/image is missing, or the system has no
   Amber topology, it returns `success=False`, `energy_* = None` and an `error_message` naming the reason.
-- The MCP data catalog is **catalog-STANDIN (DuckDB)**, a local stand-in until Zetaris credentials
-  (`ZETARIS_REST_URL`, `ZETARIS_API_KEY`) are configured. See `.env.example`.
+- DataScout queries Zetaris live when `ZETARIS_REST_URL` and a login (`ZETARIS_USER`/`ZETARIS_PASSWORD`) or
+  `ZETARIS_API_KEY` are set and the instance is reachable; otherwise it uses **catalog-STANDIN (DuckDB)**, a
+  labelled local stand-in, and every trace line names which one ran. See `.env.example`.
