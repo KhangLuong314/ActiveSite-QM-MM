@@ -160,10 +160,20 @@ def test_chat_endpoint_validation_and_explanations(client):
 
 def test_chat_endpoint_nemotron_mode(client, monkeypatch):
     monkeypatch.setattr(server.ModelClient, "available", True)
-    monkeypatch.setattr(server.ModelClient, "chat", lambda self, msgs, **kw: "Mocked Nemotron: neutral Erlotinib and Met769 contact verified.")
+    monkeypatch.setattr(server.ModelClient, "chat_detailed", lambda self, msgs, **kw: {
+        "reply": "Mocked Nemotron: neutral Erlotinib and Met769 contact verified.", "thinking": None})
     r = client.post("/api/chat", json={"message": "Why was erlotinib kept neutral?"}).json()
     assert r["source"] == "nemotron"
     assert "Mocked Nemotron" in r["reply"]
+
+
+def test_chat_endpoint_without_model_answer_uses_rule_based_reply(client, monkeypatch):
+    # the model spent its budget reasoning and gave no answer: never show its reasoning, answer from the rules
+    monkeypatch.setattr(server.ModelClient, "available", True)
+    monkeypatch.setattr(server.ModelClient, "chat_detailed", lambda self, msgs, **kw: {
+        "reply": None, "thinking": "Let me map the cards. I'll note"})
+    r = client.post("/api/chat", json={"message": "what did you find?"}).json()
+    assert r["source"] == "rule_based_fallback" and "Let me map" not in r["reply"]
 
 
 def test_chimerax_launch_endpoint(client, tmp_path, monkeypatch):

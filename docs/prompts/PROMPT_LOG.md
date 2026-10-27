@@ -788,6 +788,20 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-26 23:30 CDT] — P28 chat replies cut off by Nemotron's reasoning budget
+- **Tool / Environment:** Claude Code (Opus 5.5) on Sidd's Mac, live NVIDIA Nemotron (nemotron-3.5-lightning-30b-a3b)
+- **Target Component:** activesite/llm.py, activesite/server/main.py, tests/test_llm.py
+- **Developer Prompt:**
+  > (found while recording the demo video: the chat quick-question buttons returned cut-off or raw-reasoning replies)
+- **Agent Action:**
+  - Root cause: Nemotron reasons before answering and both count against max_tokens. At 1500 tokens the answer was cut mid-sentence (finish_reason "length"), or empty, in which case the old code showed the model's reasoning as the reply.
+  - chat_detailed now retries once with a larger budget on finish_reason "length", never returns reasoning as the reply (no answer means the existing rule-based fallback answers), handles an unclosed <think> tag, and marks a reply still cut off after the retry. The chat system prompt asks for answers under 180 words.
+- **Verification:**
+  - Live probe, 3 quick-button questions x 2 against an I-PpoI site A run: before 6/6 replies cut off (2 were raw reasoning, 5740 and 6152 chars); after 0/6 cut off, 13 to 31 s each. The EcoRV reply says no EcoRV model or energy exists and invents none (0 unverified numbers).
+  - 4 new tests in tests/test_llm.py (retry with larger budget, reasoning never shown as the answer, unclosed think tag, still-cut-off marker). uv run pytest -q -m "not slow": 205 passed (one server test now mocks chat_detailed, the path the endpoint uses, plus a fallback test); ruff clean.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
