@@ -33,6 +33,7 @@ from pydantic import BaseModel
 from activesite.server.provenance import guard
 from activesite.server.structures import metal_site_pdb
 from activesite.chem import uploads
+from activesite.adapters import pdb_search
 from activesite.agent.custom import build_custom_case
 from activesite.adapters.scout import DataScout as CaseLoader
 from activesite.agent.orchestrator import public_stats, resolve_case_id, run_case
@@ -234,6 +235,45 @@ async def upload_structure(file: UploadFile = File(...), name: Optional[str] = F
         uploads.extension_format(file.filename)
         data = await file.read(uploads.MAX_BYTES + 1)
         return await asyncio.to_thread(uploads.save_upload, data, file.filename, name)
+    except uploads.UploadError as exc:
+        raise _upload_error(exc)
+
+
+class FetchRequest(BaseModel):
+    pdb_id: str
+
+
+class ExampleRequest(BaseModel):
+    example: str
+
+
+@app.get("/api/pdb/search")
+async def pdb_search_endpoint(q: str = ""):
+    """Top RCSB entries for free text, with title, organism, resolution, bound ligands and metals."""
+    try:
+        return {"query": pdb_search.clean_query(q), "results": await asyncio.to_thread(pdb_search.search, q)}
+    except uploads.UploadError as exc:
+        raise _upload_error(exc)
+    except pdb_search.PdbUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+
+@app.post("/api/structures/fetch")
+async def fetch_structure(req: FetchRequest):
+    """Download a PDB entry and register it exactly like an upload."""
+    try:
+        return await asyncio.to_thread(pdb_search.fetch, req.pdb_id)
+    except uploads.UploadError as exc:
+        raise _upload_error(exc)
+    except pdb_search.PdbUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+
+@app.post("/api/structures/example")
+async def example_structure(req: ExampleRequest):
+    """Register a bundled real structure (allow-listed) like an upload, so no one needs a file to try the flow."""
+    try:
+        return await asyncio.to_thread(pdb_search.example, req.example)
     except uploads.UploadError as exc:
         raise _upload_error(exc)
 
