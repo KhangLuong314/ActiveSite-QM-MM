@@ -7,6 +7,8 @@ from activesite.llm import ModelClient
 
 def test_without_key_no_call(monkeypatch):
     monkeypatch.delenv("MODEL_API_KEY", raising=False)
+    monkeypatch.delenv("MODEL_NAME", raising=False)
+    monkeypatch.delenv("NEMOTRON_MODEL", raising=False)
 
     def boom(*a, **k):
         raise AssertionError("HTTP must not be called without a key")
@@ -15,6 +17,14 @@ def test_without_key_no_call(monkeypatch):
     c = ModelClient()
     assert c.available is False and c.generate("s", "p") is None and c.plan_json({"id": "x"}) is None and c.calls == 0
     assert c.base_url == "https://integrate.api.nvidia.com/v1" and c.model == "nvidia/llama-3.3-nemotron-super-49b-v1"
+
+
+def test_nemotron_model_env_var_respected(monkeypatch):
+    monkeypatch.delenv("MODEL_API_KEY", raising=False)
+    monkeypatch.delenv("MODEL_NAME", raising=False)
+    monkeypatch.setenv("NEMOTRON_MODEL", "nvidia/nemotron-3.5-lightning-30b-a3b")
+    c = ModelClient()
+    assert c.model == "nvidia/nemotron-3.5-lightning-30b-a3b"
 
 
 def test_with_key_parses_reply(monkeypatch):

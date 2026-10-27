@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import secrets
 import time
 from datetime import datetime, timezone
@@ -96,15 +97,45 @@ def public_stats(stats: Dict[str, Any]) -> Dict[str, Any]:
 
 def resolve_case_id(query: str) -> str:
     """Map a free-text request to a benchmark case id (raises when nothing matches)."""
+    q_lower = query.lower()
     plan = PlannerAgent().plan_from_prompt(query)
+
+    # Specific metal case routing
     if plan.metal_resid is not None and "ippoi" in plan.system_name:
         return "ippoi_site_b" if plan.metal_resid == 372 else "ippoi_site_a"
-    if "ecorv" in plan.system_name or "ecorv" in query.lower() or "eco-rv" in query.lower():
+    if re.search(r"\b(site\s*b|372)\b", q_lower) and re.search(r"\b(ippoi|i-ppoi|site)\b", q_lower):
+        return "ippoi_site_b"
+    if re.search(r"\b(site\s*a|371)\b", q_lower) and re.search(r"\b(ippoi|i-ppoi|site)\b", q_lower):
+        return "ippoi_site_a"
+
+    # EcoRV
+    if plan.system_name == "ecorv_endonuclease" or re.search(r"\b(ecorv|eco-rv|1rva|1b95)\b", q_lower):
         return "ecorv_endonuclease"
-    if plan.system_name == "egfr_erlotinib":
+
+    # TEM-1
+    if plan.system_name == "tem1_penicillin" or re.search(r"\b(tem-?1|benzylpenicillin|penicillin|1fqg)\b", q_lower):
+        return "tem1_penicillin"
+
+    # Osimertinib / 4ZAU
+    if re.search(r"\b(osimertinib|azd-?9291|4zau)\b", q_lower):
+        return "egfr_osimertinib"
+
+    # BTK / Ibrutinib / 5P9J
+    if re.search(r"\b(ibrutinib|btk|5p9j|pci-?32765)\b", q_lower):
+        return "btk_ibrutinib"
+
+    # EGFR / Erlotinib
+    if plan.system_name == "egfr_erlotinib" or re.search(r"\b(egfr|erlotinib|1m17)\b", q_lower):
         return "egfr_erlotinib"
-    if plan.system_name == "abl_imatinib":
+
+    # ABL / Imatinib
+    if plan.system_name == "abl_imatinib" or re.search(r"\b(abl|imatinib|2hyy|gleevec)\b", q_lower):
         return "abl_imatinib_a"
+
+    # I-PpoI fallback if mentioned by name
+    if "ippoi" in plan.system_name or re.search(r"\b(ippoi|i-ppoi)\b", q_lower):
+        return "ippoi_site_a"
+
     raise ValueError(f"no benchmark case matches the query (system {plan.system_name!r}); try --case")
 
 
@@ -153,6 +184,13 @@ def run_metal_case(case: Dict[str, Any] | str, adapter: Any = None, hmem_db: Pat
     runner = Runner(trace, Path(workroot) / run_id, sample_mode=sample_mode, timeout_s=timeout_s)
 
     setup = setup_agent.build(system, case)
+    try:
+        run_work = Path(workroot) / run_id
+        run_work.mkdir(parents=True, exist_ok=True)
+        system.s[setup["mask"]].save(str(run_work / "qmmm_region.pdb"), overwrite=True)
+        system.s.save(str(run_work / "complex.pdb"), overwrite=True)
+    except Exception:
+        pass
     checks = critic.precheck(system, case, setup, data)
 
     attempts: List[Dict[str, Any]] = []
@@ -227,6 +265,15 @@ def run_ligand_case(case: Dict[str, Any] | str, adapter: Any = None, hmem_db: Pa
     plan = planner.plan(case)
     data = DataScout(adapter, trace).gather(case)
     setup = LigandSetup(retrieval, trace, run_id, work, sample_mode=sample_mode).build(case)
+    try:
+        if setup.get("complex", {}).get("parm7"):
+            parm7 = setup["complex"]["parm7"]
+            rst7 = setup.get("minimisation", {}).get("rst7") or setup.get("complex", {}).get("rst7")
+            if parm7 and rst7 and Path(parm7).exists() and Path(rst7).exists():
+                import parmed
+                parmed.load_file(str(parm7), str(rst7)).save(str(work / "complex.pdb"), overwrite=True)
+    except Exception:
+        pass
     if not setup.get("prep_skipped") and not setup.get("prep_cached"):
         (work / "prep.json").write_text(json.dumps(serialisable_setup(setup), indent=1), encoding="utf-8")
     critic = LigandCritic(store, trace, run_id)

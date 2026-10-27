@@ -64,3 +64,22 @@ def test_orchestrator_run_freeform_query(orchestrator):
     assert output.plan.ph == 7.4
     assert output.plan.ligand_name == "AQ4"
     assert output.result.energy_hartree is None
+
+
+def test_resolve_case_id_avoids_substring_false_positives():
+    from activesite.agent.orchestrator import resolve_case_id
+
+    # "is the system stable?" must NOT match "tem" (from system) or "abl" (from stable)
+    with pytest.raises(ValueError, match="no benchmark case matches"):
+        resolve_case_id("is the system stable?")
+
+    # "what is the temperature in the room?" must NOT match "tem"
+    with pytest.raises(ValueError, match="no benchmark case matches"):
+        resolve_case_id("what is the temperature in the room?")
+
+    # Real benchmark queries should match
+    assert resolve_case_id("Set up TEM-1 penicillin hydrolysis") == "tem1_penicillin"
+    assert resolve_case_id("Prepare ABL kinase with imatinib") == "abl_imatinib_a"
+    assert resolve_case_id("Run EGFR with erlotinib") == "egfr_erlotinib"
+    assert resolve_case_id("Run osimertinib covalent kinase") == "egfr_osimertinib"
+    assert resolve_case_id("Run BTK with ibrutinib") == "btk_ibrutinib"

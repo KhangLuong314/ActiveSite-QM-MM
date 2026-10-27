@@ -210,8 +210,12 @@ def test_get_structure_endpoint(client):
     assert r_ippoi.status_code == 200
     assert "ATOM" in r_ippoi.text
 
-    # TEM-1 is an unsupported case with no structure in the repo: 404, never another protein instead
-    assert client.get("/api/structure/tem1_penicillin").status_code == 404
+    # TEM-1: 404 on fresh clone when no cached file, or its own structure, never another protein instead
+    r_tem = client.get("/api/structure/tem1_penicillin")
+    if r_tem.status_code == 200:
+        assert "1M17" not in r_tem.text
+    else:
+        assert r_tem.status_code == 404
 
     # Missing structure
     r_404 = client.get("/api/structure/completely_nonexistent_pdb")
@@ -320,5 +324,14 @@ def test_chat_sample_mode_inquiry(client):
 def test_chat_explain_previous_run_ecorv(client):
     r = client.post("/api/chat", json={"message": "Can you explain the result of my previous run to me? What does it implies and how accurate is it?", "run_id": "ecorv_endonuclease"}).json()
     assert "not a supported case" in r["reply"] and "nothing to explain" in r["reply"]
+
+
+def test_get_structure_btk_never_serves_egfr(client):
+    r = client.get("/api/structure/btk_ibrutinib")
+    if r.status_code == 200:
+        assert "1M17" not in r.text
+        assert "5P9J" in r.text or "8E8" in r.text or "BTK" in r.text
+    else:
+        assert r.status_code == 404
 
 

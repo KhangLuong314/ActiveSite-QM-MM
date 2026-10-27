@@ -1,0 +1,21 @@
+{
+  "id": "btk_ibrutinib",
+  "kind": "ligand",
+  "system": "btk_ibrutinib",
+  "site": "A",
+  "chain": "A",
+  "question": "Prepare BTK kinase domain complexed with ibrutinib from the 5P9J crystal structure and compute the PM6 QM/MM energy in its pocket. Explain the Cys481 covalent binding, Met477 hinge hydrogen bond, and setup choices.",
+  "pdb": "data/cache/5p9j.pdb",
+  "pdb_query": "BTK kinase ibrutinib",
+  "ligand": "8E8",
+  "ligand_smiles": "CCC(=O)N1CCC[C@@H](C1)N2C3=C(C(=N2)C4=CC=C(C=C4)OC5=CC=CC=C5)C(=NC=N3)N",
+  "smiles_source": "RCSB chemcomp 8E8 (PDB 5P9J ibrutinib bound form)",
+  "literature_contacts": {
+    "MET477": "hinge backbone NH to pyrazolopyrimidine N",
+    "GLU475": "hinge backbone NH to pyrazolopyrimidine amino group",
+    "CYS481": "catalytic Cys481 SG covalent attachment to CAA"
+  },
+  "literature_source": "Bender et al. 2017, Mol Pharmacol 91:208; PDB 5P9J, 1.08 Å crystal structure of BTK in complex with ibrutinib",
+  "ph": 7.4,
+  "min_steps": 500
+}

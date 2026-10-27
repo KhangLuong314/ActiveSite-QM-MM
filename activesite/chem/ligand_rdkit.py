@@ -30,7 +30,16 @@ def main(argv):
     template = Chem.MolFromSmiles(smiles)
     if template is None:
         raise SystemExit("RDKit could not parse the SMILES template")
-    mol = AllChem.AssignBondOrdersFromTemplate(template, mol)
+    try:
+        mol = AllChem.AssignBondOrdersFromTemplate(template, mol)
+    except Exception as exc:
+        try:
+            smi_clean = Chem.MolToSmiles(template, isomericSmiles=False)
+            template_clean = Chem.MolFromSmiles(smi_clean)
+            mol = AllChem.AssignBondOrdersFromTemplate(template_clean, mol)
+        except Exception:
+            sys.stderr.write(f"AssignBondOrdersFromTemplate failed for SMILES '{smiles}': {exc}\n")
+            raise
 
     protonated = None
     if protonate_atom and protonate_atom != "-":

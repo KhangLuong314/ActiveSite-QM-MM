@@ -3,11 +3,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 from activesite.agent.orchestrator import MasterOrchestrator
 
 
 def main() -> None:
+    env_sample_mode = os.getenv("SAMPLE_MODE", "true").lower() in ("true", "1", "yes")
     parser = argparse.ArgumentParser(
         description="ActiveSite: Autonomous QM/MM Assistant with Explainable Scientific Reasoning"
     )
@@ -15,7 +23,7 @@ def main() -> None:
     parser.add_argument(
         "--case",
         type=str,
-        help="Run a specific benchmark case (e.g. egfr_erlotinib, ippoi_site_a, abl_imatinib_a)",
+        help="Run a specific benchmark case (e.g. egfr_erlotinib, ippoi_site_a, abl_imatinib_a, tem1_penicillin)",
     )
     parser.add_argument(
         "--query",
@@ -25,9 +33,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--sample-mode",
-        action="store_true",
-        default=True,
-        help="Run in offline CPU evaluation mode (default: True)",
+        action=argparse.BooleanOptionalAction,
+        default=env_sample_mode,
+        help="Run in offline CPU evaluation mode (default: from SAMPLE_MODE in .env, else True)",
     )
     parser.add_argument(
         "--docker",
