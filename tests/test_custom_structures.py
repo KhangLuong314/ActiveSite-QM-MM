@@ -246,6 +246,7 @@ def test_custom_run_stream_and_errors(client):
            ({"structure_id": sid, "ligand_resname": "HOH"}, 422), ({"structure_id": sid, "ligand_resname": "aq4;"}, 422),
            ({"structure_id": sid, "ligand_resname": "AQ4", "chain": "AB"}, 422),
            ({"structure_id": sid, "ligand_resname": "AQ4", "ligand_smiles": "C;rm -rf /"}, 422),
+           ({"structure_id": sid, "ligand_resname": "AQ4", "ligand_smiles": "C$(reboot)"}, 422),
            ({"structure_id": sid, "ligand_resname": "AQ4", "ph": 20}, 422)]
     for spec, code in bad:
         assert client.post("/api/run", json={"custom": spec, "sample_mode": True}).status_code == code, spec

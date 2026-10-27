@@ -17,7 +17,7 @@ import httpx
 
 URL = "https://data.rcsb.org/rest/v1/core/chemcomp/{}"
 RESNAME_RE = re.compile(r"^[A-Z0-9]{1,3}$")
-SMILES_RE = re.compile(r"^[A-Za-z0-9@+\-\[\]()=#$%/\\.:*]{1,500}$")
+SMILES_RE = re.compile(r"^[A-Za-z0-9@+\-\[\]()=#%/\\.:*]{1,500}$")
 TIMEOUT_S = 10.0
 
 
