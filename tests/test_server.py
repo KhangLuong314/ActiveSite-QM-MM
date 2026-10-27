@@ -1,4 +1,5 @@
 """FastAPI endpoints with the orchestrator monkeypatched: run/stream/result, judge endpoint, memory reset."""
+import re
 import json
 import time
 
@@ -147,7 +148,7 @@ def test_chat_endpoint_validation_and_explanations(client):
 
     # Specific biochemical inquiry: Met769 contact
     r_met = client.post("/api/chat", json={"message": "what happened to Met769?"}).json()
-    assert "Met769" in r_met["reply"] and "2.45" in r_met["reply"] and "ligand_retained" in r_met["reply"]
+    assert "Met769" in r_met["reply"] and r_met["unverified_numbers"] == []
 
     # Multi-turn history support
     r_hist = client.post("/api/chat", json={
@@ -209,10 +210,8 @@ def test_get_structure_endpoint(client):
     assert r_ippoi.status_code == 200
     assert "ATOM" in r_ippoi.text
 
-    # TEM-1 structure
-    r_tem = client.get("/api/structure/tem1_penicillin")
-    assert r_tem.status_code == 200
-    assert "ATOM" in r_tem.text
+    # TEM-1 is an unsupported case with no structure in the repo: 404, never another protein instead
+    assert client.get("/api/structure/tem1_penicillin").status_code == 404
 
     # Missing structure
     r_404 = client.get("/api/structure/completely_nonexistent_pdb")
@@ -220,68 +219,26 @@ def test_get_structure_endpoint(client):
 
 
 def test_chat_explain_previous_run_and_accuracy(client):
-    # Inquiry specifically after I-PpoI Site B run
-    q = "Can you explain the result of my previous run to me? What does it implies and how accurate is it?"
-    r_b = client.post("/api/chat", json={"message": q, "run_id": "ippoi_site_b"}).json()
-    assert "reply" in r_b
+    # Explanation is built from the recorded site B run, not typed-in text
+    r_b = client.post("/api/chat", json={"message": "Can you explain the result of my previous run to me? What does it implies and how accurate is it?", "run_id": "ippoi_site_b"}).json()
     reply = r_b["reply"]
-    assert "I-PpoI Active Site B" in reply
-    assert "-511.364 kcal/mol" in reply
-    assert "0 retries" in reply
-    assert "0.032 e" in reply
-    assert "DFT" in reply
-    assert "free energy" in reply or "ΔG‡" in reply or "barrier" in reply
-
-    # Inquiry with EGFR run context
-    r_egfr = client.post("/api/chat", json={"message": "Can you explain my previous calculation?", "run_id": "egfr_erlotinib"}).json()
-    assert "EGFR Kinase + Erlotinib" in r_egfr["reply"]
-    assert "-8.286 kcal/mol" in r_egfr["reply"]
-    assert "Met769" in r_egfr["reply"]
+    assert "I-PpoI endonuclease site B" in reply
+    assert "-511.3637 kcal/mol" in reply and "Critic checks" in reply
+    assert r_b["unverified_numbers"] == []
 
 
 def test_chat_tem1_beta_lactamase_inquiry(client):
-    prompt = (
-        "Set up a QM/MM model for β-lactam ring opening during benzylpenicillin hydrolysis "
-        "at the active site of TEM-1 β-lactamase (Ser70) and compute its PM6 QM/MM energy. "
-        "Explain every setup choice in detail, including the protein structure and ligand selection, "
-        "protonation states, hydrogen placement, water molecules, QM/MM partitioning, link atoms, "
-        "total QM-region charge and spin multiplicity, MM force field, boundary treatment, and energy-minimization protocol."
-    )
-    r = client.post("/api/chat", json={"message": prompt}).json()
-    assert "reply" in r
-    text = r["reply"]
-    assert "TEM-1 β-Lactamase" in text
-    assert "Ser70" in text
-    assert "Lys73" in text
-    assert "Glu166" in text
-    assert "PDB 1FQG" in text
-    assert "Benzylpenicillin" in text
-    assert "singlet" in text.lower()
-    assert "Cα–Cβ" in text or "Ca-Cb" in text
-    assert "link atoms" in text.lower()
-    assert "+18.43 kcal/mol" in text
-    assert "PM6" in text
+    # TEM-1 has no case file and was never run: the answer must say so and quote no results
+    r = client.post("/api/chat", json={"message": "Set up a QM/MM model for TEM-1 beta-lactamase Ser70 acylation"}).json()
+    assert "TEM-1 beta-lactamase" in r["reply"] and "no calculation has been run" in r["reply"]
+    assert not re.search(r"\d+(\.\d+)?\s*kcal", r["reply"])
 
 
 def test_chat_ecorv_endonuclease_inquiry(client):
-    prompt = (
-        "Set up a QM/MM model for DNA phosphodiester bond cleavage at the active site of the EcoRV restriction endonuclease, "
-        "including its catalytic Mg²⁺ ion, and calculate the QM/MM energy using the PM6 semiempirical method for the QM region. "
-        "Explain every setup choice in detail, including structure preparation, QM region definition, MM region and force field, "
-        "QM method and embedding, reaction-state definition, energy calculation, and validation and limitations."
-    )
-    r = client.post("/api/chat", json={"message": prompt}).json()
-    assert "reply" in r
-    text = r["reply"]
-    assert "EcoRV Endonuclease" in text
-    assert "1RVA" in text
-    assert "GAT|ATC" in text
-    assert "Asp74" in text and "Asp90" in text and "Glu45" in text
-    assert "Mg²⁺" in text or "Mg2+" in text or "magnesium" in text.lower()
-    assert "PM6" in text
-    assert "singlet" in text.lower()
-    assert "phosphorane" in text.lower()
-    assert "Umbrella Sampling" in text or "DFT" in text
+    # EcoRV has no case file and was never run: the answer must say so and quote no results
+    r = client.post("/api/chat", json={"message": "Set up a QM/MM model for EcoRV endonuclease (PDB 1RVA) with Mg2+"}).json()
+    assert "EcoRV endonuclease (PDB 1RVA)" in r["reply"] and "no calculation has been run" in r["reply"]
+    assert not re.search(r"\d+(\.\d+)?\s*kcal", r["reply"])
 
 
 def test_chat_energy_decomposition_and_positive_escf(client):
@@ -329,15 +286,10 @@ def test_chat_abl_chain_and_his361_rationale(client):
 
 
 def test_chat_explain_previous_run_abl(client):
-    q = "Can you explain the result of my previous run to me? What does it implies and how accurate is it?"
-    r = client.post("/api/chat", json={"message": q, "run_id": "abl_imatinib_a"}).json()
-    assert "reply" in r
-    text = r["reply"]
-    assert "ABL Kinase + Imatinib" in text
-    assert "+105.68 kcal/mol" in text
-    assert "Chain B" in text
-    assert "His361" in text
-    assert "DFG-Out" in text or "DFG-out" in text
+    # No ABL run is recorded in samples/: the answer must say so rather than quote numbers
+    r = client.post("/api/chat", json={"message": "Can you explain the result of my previous run to me? What does it implies and how accurate is it?", "run_id": "abl_imatinib_a"}).json()
+    assert "No run has been recorded" in r["reply"] or "ABL kinase + imatinib" in r["reply"]
+    assert r["unverified_numbers"] == []
 
 
 def test_get_structure_abl_and_ecorv(client):
@@ -345,9 +297,8 @@ def test_get_structure_abl_and_ecorv(client):
     assert r_abl.status_code == 200
     assert "ATOM" in r_abl.text
 
-    r_ecorv = client.get("/api/structure/ecorv_endonuclease")
-    assert r_ecorv.status_code == 200
-    assert "ATOM" in r_ecorv.text
+    # EcoRV is unsupported: no structure exists, so the endpoint must not serve a different protein
+    assert client.get("/api/structure/ecorv_endonuclease").status_code == 404
 
 
 def test_chat_conversational_greetings_and_how_are_you(client):
@@ -367,14 +318,7 @@ def test_chat_sample_mode_inquiry(client):
 
 
 def test_chat_explain_previous_run_ecorv(client):
-    q = "Can you explain the result of my previous run to me? What does it implies and how accurate is it?"
-    r = client.post("/api/chat", json={"message": q, "run_id": "ecorv_endonuclease"}).json()
-    assert "reply" in r
-    text = r["reply"]
-    assert "EcoRV Endonuclease" in text
-    assert "-480.35 kcal/mol" in text
-    assert "GMAX" in text
-    assert "SN2" in text or "phosphoryl" in text
-
+    r = client.post("/api/chat", json={"message": "Can you explain the result of my previous run to me? What does it implies and how accurate is it?", "run_id": "ecorv_endonuclease"}).json()
+    assert "not a supported case" in r["reply"] and "nothing to explain" in r["reply"]
 
 

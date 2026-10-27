@@ -47,6 +47,15 @@ The Critic diagnoses parity failures and commits corrective rules to an append-o
 | **Warm Run** | I-PpoI Site B (`Mg :372`) | Recalled from H-MEM | None (pre-emptively applied learned charge rule) | Scored memory match from `MemoryRetrievalService`; executed single-pass | **0 retries** | Converged on Attempt 0 |
 
 ## Quickstart (judges)
+Fastest path, Docker only (no Python setup, no keys):
+```bash
+docker build -t activesite . && docker run --rm -p 8088:8088 activesite   # dashboard at http://localhost:8088
+curl -s -X POST localhost:8088/run -H 'content-type: application/json' -d '{"case_id":"ippoi_site_a"}'
+```
+The image runs in sample mode: every agent runs for real and the engine step replays recorded real `sander` output,
+labelled `cached engine output (sample mode)`. Add `--env-file .env` for live NVIDIA Nemotron; Zetaris is used live only when a Zetaris instance is reachable at `ZETARIS_REST_URL` (otherwise the run uses the labelled DuckDB stand-in and says so).
+
+With Python and `uv` instead:
 ```bash
 docker compose up -d                       # Postgres + MinIO for the DuckDB catalog stand-in (optional)
 uv sync
@@ -96,10 +105,14 @@ flowchart LR
 - **Server/UI** (`activesite/server/`): `POST /api/run` + SSE `GET /run/stream`, `POST /run` for judges, `POST /api/chat` (AI Biochemist powered by NVIDIA Nemotron), `POST /api/chimerax/launch` (1-click 3D viewer launch), memory and SQL panels.
 
 ## Sponsor technologies
-* **Zetaris:** `activesite/adapters/zetaris.py` posts SQL to the Zetaris REST endpoint when `ZETARIS_REST_URL` and `ZETARIS_API_KEY` are set. Otherwise **catalog-STANDIN (DuckDB)** (`activesite/adapters/catalog_standin.py`) federates Postgres (`lab_runs`), MinIO Parquet (`eda_synthetic`, a clearly synthetic placeholder) and a cached RCSB entries table in one DuckDB connection. Seed with `docker compose up -d && uv run python seed/seed.py`. Every DataScout trace line and card source names which adapter ran. MCP: `python -m activesite.adapters.zetaris_mcp`.
-* **Meterless H-MEM:** `activesite/memory/hmem.py` implements the store service (memories with provenance and confidence, append-only ledger) and the retrieval service (keyword, tag, layer, recency; the semantic, domain and entity terms are not computed). The remote Meterless endpoint is not used.
+* **Zetaris:** `activesite/adapters/zetaris.py` sends DataScout's SQL to the Zetaris query API (`POST /query/sql/start`, then `/query/sql/page`) when `ZETARIS_REST_URL` and a login (`ZETARIS_USER`/`ZETARIS_PASSWORD`) or `ZETARIS_API_KEY` are set. Verified on 26 Oct 2026 against a local Zetaris platform 2.4.3 (Zetaris Cloud "Run locally"): `smoke_test.py` 3/3 PASS, and an I-PpoI site A run read the lab expert's QM region from `ACTIVESITE.expert_runs` in Zetaris (`catalog: zetaris`, Jaccard 1.0, 64 atoms). Load the tables with `scripts/zetaris/load.sh <zetaris-platform folder>`; details in `docs/ZETARIS_SETUP.md`. If Zetaris is unreachable the run falls back to the labelled stand-in. Otherwise **catalog-STANDIN (DuckDB)** (`activesite/adapters/catalog_standin.py`) federates Postgres (`lab_runs`), MinIO Parquet (`eda_synthetic`, a clearly synthetic placeholder) and a cached RCSB entries table in one DuckDB connection. Seed with `docker compose up -d && uv run python seed/seed.py`. Every DataScout trace line and card source names which adapter ran. MCP: `python -m activesite.adapters.zetaris_mcp`.
+* **Meterless H-MEM:** `activesite/memory/hmem.py` implements the Meterless H-MEM engine spec (records with provenance and confidence, append-only ledger with previous state, feedback deltas, superseded penalty, sleep guardrails, conflict gate, dream approval boundary). All 13 Meterless H-MEM conformance vectors (upstream commit 0aa7417, 7 sections) pass under pytest against `activesite/memory/hmem.py`, using the same assertions as the upstream `runner.ts`: `uv run pytest tests/test_hmem_conformance.py`. Not implemented because no vector checks them: entity extraction, embedding similarity (a bag-of-words cosine stands in), domain-reclassification proposals and `relatedTo` discovery. No remote Meterless service is called.
 * **NVIDIA:** `activesite/llm.py` talks to `integrate.api.nvidia.com` (OpenAI-compatible) using `nvidia/nemotron-3.5-lightning-30b-a3b` (or `nvidia/llama-3.3-nemotron-super-49b-v1`) only when `MODEL_API_KEY` is set; the Planner allow-lists everything the model returns, and the AI Biochemist chat endpoint contextualizes answers with Decision Cards.
-* **Cursor:** `docs/prompts/PROMPT_LOG.md` is the prompt audit trail; `.cursorrules` and `.cursor/mcp.json` configure the IDE.
+* **Cursor and Claude Code:** the rebuild started in Cursor (`.cursorrules`, `.cursor/mcp.json`) and continued in Claude Code (`CLAUDE.md` imports the same `AGENTS.md` rules; `.mcp.json` mirrors the MCP servers). `docs/prompts/PROMPT_LOG.md` is the prompt audit trail for both.
+
+## How the explanations are checked
+* **Counterfactuals** (`tests/test_counterfactual_cards.py`): for the QM charge, the Mg first shell, the ligand protonation site, the chain choice and the His override, the test changes one piece of evidence and requires the Decision Card's choice and evidence to change with it.
+* **Number provenance** (`activesite/server/provenance.py`, `tests/test_chat_provenance.py`): every energy or distance in a chat reply must come from the active run's stats, cards or report, or be a fixed method setting; anything else is marked `⚠ not from a run`. Every preset question in the UI returns zero unverified numbers. Systems with no case file (EcoRV, TEM-1) get an answer that they are unsupported, with no numbers.
 
 ## Models and frameworks
 PM6 (AmberTools 26 `sander`, `activesite-engine:at26`); ff14SB + GAFF2/AM1-BCC; PDB2PQR + PROPKA 3.5.1; RDKit (in `activesite-prep:at26`).
@@ -113,6 +126,9 @@ Optional LLM: `nvidia/llama-3.3-nemotron-super-49b-v1` / `nvidia/nemotron-3.5-li
 - His states near a ligand cation are geometric calls within a 1 pKa window; the charged state should be run as a sensitivity check.
 - The Critic's electron count on the metal case comes from the MM partial-charge sum of the cut region, validated by sander's own parity check, not from an independent electronic-structure count.
 - Sample mode replays outputs recorded on a Docker host; without that cache it reports `engine unavailable`.
+- Ligand protonation is inferred only for tertiary amines that H-bond a backbone C=O; amidines, guanidines, carboxylates and metal-bound ligands are not handled.
+- Without `MODEL_API_KEY` the chat uses rule-based answers (labelled `rule_based_fallback`); they explain concepts and the recorded run but cannot answer open questions.
+- No ABL run is recorded in `samples/`, so in sample mode the chat says no ABL run exists until one is run on a Docker host.
 
 ## Pre-existing components and data
 Declared in full in [`docs/PRE_EXISTING.md`](docs/PRE_EXISTING.md). In short:

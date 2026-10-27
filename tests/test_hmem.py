@@ -1,6 +1,5 @@
 """Tests for activesite.memory.hmem: store, ledger and scored retrieval."""
 import json
-import time
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -20,7 +19,7 @@ def store(tmp_path):
 
 
 def _ledger(store):
-    return [json.loads(l) for l in store.ledger_path.read_text().splitlines() if l.strip()]
+    return [json.loads(line) for line in store.ledger_path.read_text().splitlines() if line.strip()]
 
 
 def test_tokens():
@@ -94,6 +93,32 @@ def test_recency_and_layer_weights(store):
     parts = rs.score(store.get(mid), ["alpha", "beta", "gamma"], ["x"])
     assert parts["layer"] == 0.6 and parts["recency"] == pytest.approx(pow(2.718281828, -2), rel=1e-3)
     assert parts["score"] == pytest.approx(0.5 * 1 + 0.25 * 1 + 0.125 * 0.6 + 0.125 * parts["recency"], abs=1e-3)
+
+
+def test_superseded_penalty_reorders_when_insertion_order_disagrees(store):
+    # Conformance vector ro-001 inserts the fresh record first, so with our keyword scorer it passes on a tie
+    # even without the penalty. Here the superseded record is inserted first: only the penalty can fix the order.
+    rs = MemoryRetrievalService(store)
+    old = store.add("we deploy the api with docker on fridays", "general", "long_term", [], source="s", confidence=0.9)
+    fresh = store.add("we deploy the api with docker on mondays", "general", "long_term", [], source="s", confidence=0.9)
+    store.update(old, "test", extra={"supersededBy": fresh})
+    hits = rs.retrieve("when do we deploy the api with docker", threshold=0, top_k=10)
+    assert [h["memory"]["id"] for h in hits] == [fresh, old]
+    assert hits[1]["parts"]["superseded"] == 1.0
+    assert hits[0]["score"] - hits[1]["score"] == pytest.approx(0.20 * 0.9, abs=1e-3)
+
+
+def test_sleep_restore_round_trip(tmp_path):
+    from activesite.memory.hmem import HMEM
+    now = {"t": 1_750_000_000_000}
+    h = HMEM(tmp_path / "h.sqlite", tmp_path / "h.jsonl", clock=lambda: now["t"])
+    m = h.add("old note", source="chat")
+    now["t"] += 40 * 86_400_000
+    report = h.sleep.execute()
+    assert h.store.get(m["id"]) is None and report["archived"] == 1
+    h.sleep.restore(report["backupId"])
+    assert h.store.get(m["id"])["content"] == "old note"
+    assert [e["action"] for e in h.ledger.history(m["id"])] == ["create", "sleep_archive", "delete"]
 
 
 def test_ledger_only_grows(store):

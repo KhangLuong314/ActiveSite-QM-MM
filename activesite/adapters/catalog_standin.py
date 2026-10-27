@@ -70,7 +70,7 @@ class CatalogStandin:
 
     def _attach_postgres(self) -> None:
         if self.offline:
-            self.sources["postgres"] = "skipped (CATALOG_OFFLINE)"
+            self._local_lab_runs("CATALOG_OFFLINE")
             return
         try:
             self.con.execute("LOAD postgres")
@@ -84,7 +84,31 @@ class CatalogStandin:
             self.con.execute(f"ATTACH '{self.postgres_dsn}' AS pg (TYPE postgres, READ_ONLY)")
             self.sources["postgres"] = f"attached {self.postgres_dsn}"
         except duckdb.Error as exc:
-            self.sources["postgres"] = f"not attached: {str(exc)[:160]}"
+            self._local_lab_runs(f"Postgres not attached: {str(exc)[:120]}")
+
+    def _local_lab_runs(self, reason: str) -> None:
+        """Without Postgres, build the same lab_runs table in memory from the repo's reference files.
+
+        Rows come from seed/seed.py:lab_rows(), the function that seeds Postgres, so the expert comparison
+        (I-PpoI site A mask and qmcharge from data/reference/qmmm_dft/gen_inputs.sh) is identical offline.
+        """
+        import importlib.util
+        seed_path = Path(__file__).resolve().parents[2] / "seed" / "seed.py"
+        try:
+            spec = importlib.util.spec_from_file_location("activesite_seed", seed_path)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            rows = mod.lab_rows()
+            self.con.execute("ATTACH ':memory:' AS pg")
+            self.con.execute("CREATE SCHEMA IF NOT EXISTS pg.public")
+            self.con.execute("""CREATE TABLE pg.public.lab_runs (case_id TEXT, system TEXT, site TEXT, qmmask TEXT,
+                                qmcharge INTEGER, residues TEXT, source TEXT, status TEXT)""")
+            self.con.executemany("INSERT INTO pg.public.lab_runs VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                                 [[r[k] for k in ("case_id", "system", "site", "qmmask", "qmcharge", "residues",
+                                                  "source", "status")] for r in rows])
+            self.sources["postgres"] = f"skipped ({reason}); lab_runs built in memory from data/reference via seed.lab_rows()"
+        except Exception as exc:  # never let the catalog stop a run
+            self.sources["postgres"] = f"skipped ({reason}); local lab_runs unavailable: {str(exc)[:120]}"
 
     def _attach_minio(self) -> None:
         if self.offline:
@@ -101,28 +125,10 @@ class CatalogStandin:
             self.con.execute("SET s3_url_style='path'")
             self.con.execute(f"SET s3_access_key_id='{os.getenv('MINIO_ROOT_USER', 'minioadmin')}'")
             self.con.execute(f"SET s3_secret_access_key='{os.getenv('MINIO_ROOT_PASSWORD', 'minioadmin')}'")
-            attached = False
-            for cand_url, is_cas9 in [
-                (f"s3://{self.bucket}/eda/{EDA_TABLE}.parquet", False),
-                (f"s3://{self.bucket}/cas9_hnh_eda.parquet", True),
-            ]:
-                try:
-                    if is_cas9:
-                        self.con.execute(f"CREATE OR REPLACE VIEW {EDA_TABLE} AS SELECT residue, total, system AS family, system, source FROM read_parquet('{cand_url}')")
-                    else:
-                        self.con.execute(f"CREATE OR REPLACE VIEW {EDA_TABLE} AS SELECT * FROM read_parquet('{cand_url}')")
-                    self.sources["minio"] = f"view {EDA_TABLE} over {cand_url}"
-                    attached = True
-                    break
-                except duckdb.Error:
-                    continue
-            if not attached:
-                self.con.execute(f"CREATE OR REPLACE TABLE {EDA_TABLE} (family VARCHAR, residue VARCHAR, total DOUBLE, note VARCHAR)")
-                self.con.execute(f"INSERT INTO {EDA_TABLE} VALUES ('homing_endonuclease_synthetic', 'SYNTHETIC-RES1', -12.0, 'synthetic placeholder'), ('egfr_erlotinib', 'MET769', -5.2, 'synthetic analogy'), ('abl_imatinib', 'MET318', -4.8, 'synthetic analogy')")
-                self.sources["minio"] = f"in-memory synthetic table {EDA_TABLE}"
+            self.con.execute(f"CREATE OR REPLACE VIEW {EDA_TABLE} AS SELECT * FROM read_parquet('s3://{self.bucket}/eda/{EDA_TABLE}.parquet')")
+            self.sources["minio"] = f"view {EDA_TABLE} over s3://{self.bucket}/eda/{EDA_TABLE}.parquet"
         except duckdb.Error as exc:
-            self.con.execute(f"CREATE OR REPLACE TABLE {EDA_TABLE} (family VARCHAR, residue VARCHAR, total DOUBLE, note VARCHAR)")
-            self.sources["minio"] = f"fallback table {EDA_TABLE} ({str(exc)[:80]})"
+            self.sources["minio"] = f"not attached: {str(exc)[:160]}"
 
     # ------------------------------------------------------------------ RCSB
     def _rcsb_rows(self) -> List[Dict[str, Any]]:

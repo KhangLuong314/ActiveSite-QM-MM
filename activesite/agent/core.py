@@ -9,7 +9,6 @@ never typed in as a constant.
 from __future__ import annotations
 
 import json
-import math
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence

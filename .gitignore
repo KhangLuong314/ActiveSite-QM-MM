@@ -87,3 +87,6 @@ Thumbs.db
 .pytest_tmp/
 
 *.pdf
+
+# Claude Code agent worktrees (temporary checkouts, never commit)
+.claude/worktrees/

@@ -41,7 +41,7 @@ def test_no_pickle_loading_and_hash_manifest():
         src = py.read_text()
         assert "pickle" not in src and "np.load(" not in src and "barrier_res_table" not in src, py
     manifest = (ROOT / "data/reference/LARGE_FILES.sha256").read_text().splitlines()
-    assert len(manifest) == 5 and all(len(l.split()[0]) == 64 for l in manifest)
+    assert len(manifest) == 5 and all(len(line.split()[0]) == 64 for line in manifest)
 
 
 def test_samples_have_inputs_and_outputs_are_never_handwritten():

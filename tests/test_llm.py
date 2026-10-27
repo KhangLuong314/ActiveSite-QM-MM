@@ -1,6 +1,5 @@
 """ModelClient: no key -> None and no HTTP; with httpx mocked -> parsed reply; plan_json parses defensively."""
 import httpx
-import pytest
 
 from activesite import llm as llm_mod
 from activesite.llm import ModelClient

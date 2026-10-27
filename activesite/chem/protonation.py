@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import List, Optional, Tuple
 from pydantic import BaseModel, Field
 
 from activesite.models import AlternativeChoice, DecisionCard, DecisionCategory
@@ -157,7 +157,7 @@ class ProtonationAgent:
                     alternatives = [
                         AlternativeChoice(
                             name=f"{resname} (deprotonated anion, -1)",
-                            rejected_reason=f"Carboxylate burial in low dielectric pocket incurs severe Born desolvation penalty (~8 kcal/mol).",
+                            rejected_reason="Carboxylate burial in low dielectric pocket incurs severe Born desolvation penalty (~8 kcal/mol).",
                         )
                     ]
                 else:

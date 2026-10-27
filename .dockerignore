@@ -1,0 +1,17 @@
+# never ship secrets or local state into the image
+.env
+.env.*
+!.env.example
+.git
+.venv
+.pytest_tmp
+.pytest_cache
+__pycache__
+logs/*.jsonl
+logs/*.md
+logs/*.json
+logs/server.out
+data/cache
+data/runs
+data/*.sqlite*
+data/memory/*.sqlite*

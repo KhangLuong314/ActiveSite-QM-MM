@@ -80,7 +80,7 @@ def test_finalise_mol2_ok():
     assert info["ligand_atoms"] == 6
     assert abs(info["charge_sum"]) < 1e-6 and abs(info["charge_residual_spread"]) < 1e-6
     # coordinates come from THIS run's sdf, charges/types from the cached mol2
-    atom1 = [l for l in out.splitlines() if l.split()[:2] == ["1", "C1"]][0].split()
+    atom1 = [line for line in out.splitlines() if line.split()[:2] == ["1", "C1"]][0].split()
     assert float(atom1[2]) == pytest.approx(0.1000) and atom1[5] == "c3"
     assert "@<TRIPOS>BOND" in out and "@<TRIPOS>SUBSTRUCTURE" in out
 
@@ -216,7 +216,8 @@ SAMPLE_EGFR = Path("data/sample/egfr_erlotinib/prep")
 def test_built_pose_reports_contacts_in_crystal_numbering(tmp_path: Path):
     """complex.parm7 has no residue numbers (parmed gives the 0-based index), so the map back to crystal numbering
     must go through idx+1. A real EGFR run reported MET768/GLY771 instead of MET769/GLY772 before this was fixed."""
-    import json, shutil
+    import json
+    import shutil
     from activesite.chem import prep as prep_mod
     work = tmp_path / "egfr"
     work.mkdir()

@@ -9,7 +9,7 @@ import json
 import sys
 import uuid
 from typing import Any, Dict
-from activesite.memory.meterless import EpisodicMemoryRecord, MeterlessHMEM, TrustLedgerEntry
+from activesite.memory.meterless import EpisodicMemoryRecord, MeterlessHMEM
 
 
 def handle_request(hmem: MeterlessHMEM, req: Dict[str, Any]) -> Dict[str, Any]:
