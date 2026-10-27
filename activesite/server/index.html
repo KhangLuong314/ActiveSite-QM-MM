@@ -17,287 +17,328 @@
     "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
 </script>
 <style>
-  /* Lab notebook meets instrument panel. Semantic colours: blue = working/concept, green = done, amber = caught/cached, red = error. */
+  /* Lab notebook, calm. Colour only where it means something:
+       the four provenance chips (run / replay / expert / not computed), errors, and element colours in 3D.
+     Everything else is neutral ink on warm paper, plus one ink-blue accent for focus, links and the current place. */
   :root {
     color-scheme: light;
-    --paper: #f3efe6; --sheet: #fffdf8; --sheet-2: #f8f5ee; --ink: #1c1a16; --ink-2: #3a372f; --muted: #6f6a5d; --faint: #8f897a;
-    --rule: #ddd6c6; --rule-2: #e9e3d6; --grid: rgba(60, 80, 140, .07); --dot: #d8d1c0;
-    --blue: #2349b8; --blue-bg: #e4eaf9; --green: #19744a; --green-bg: #e0f0e6;
-    --amber: #9a5500; --amber-bg: #faecd2; --red: #b5321f; --red-bg: #f8e2dd;
-    --carbon: #3b3b3b; --chamber-a: #fffdf8; --chamber-b: #e8e2d4; --mm: #9a9384;
-    --shadow: 0 1px 0 rgba(28, 26, 22, .04), 0 10px 30px -18px rgba(28, 26, 22, .35);
+    --paper: #f5f2eb; --sheet: #fffdf9; --sheet-2: #f6f3ed; --ink: #1f1d1a; --ink-2: #3d3a34; --muted: #5c574e; --faint: #67625a;
+    --rule: #e3ded3; --rule-2: #ece8e0; --dot: #cfc9bc;
+    --accent: #2d4f86; --accent-bg: #e9eef6; --on-accent: #ffffff;
+    --run-fg: #22407a; --run-bg: #e7edf7; --rep-fg: #6e4300; --rep-bg: #f7ecd9;
+    --exp-fg: #1d5a38; --exp-bg: #e4f0e7; --nc-fg: #57524a; --nc-bg: #f1eee8; --nc-rule: #dcd6ca;
+    --err-fg: #a2301f; --err-bg: #f9e7e3;
+    --carbon: #3b3b3b; --chamber-a: #fffdf9; --chamber-b: #efebe3; --mm: #9a9384;
+    --shadow: 0 1px 2px rgba(31, 29, 26, .06);
+    --topbar-h: 48px;
     --serif: "Fraunces", Georgia, serif; --sans: "IBM Plex Sans", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
-      --paper: #0d1117; --sheet: #151b24; --sheet-2: #1a212c; --ink: #ece7da; --ink-2: #cfc9ba; --muted: #9c978a; --faint: #7d7a71;
-      --rule: #263040; --rule-2: #1e2633; --grid: rgba(130, 170, 255, .05); --dot: #2c3647;
-      --blue: #8db0ff; --blue-bg: #18233a; --green: #63d095; --green-bg: #132a20;
-      --amber: #f0b158; --amber-bg: #2d2214; --red: #ff8b78; --red-bg: #33191a;
-      --carbon: #8e9196; --chamber-a: #1b2330; --chamber-b: #0b0f15; --mm: #56606f;
-      --shadow: 0 0 0 1px rgba(0, 0, 0, .2), 0 14px 40px -20px rgba(0, 0, 0, .8);
+      --paper: #1c1d20; --sheet: #24262a; --sheet-2: #2b2d32; --ink: #ece8e1; --ink-2: #d2cdc4; --muted: #aaa59c; --faint: #a19c93;
+      --rule: #3a3c42; --rule-2: #313338; --dot: #4f5157;
+      --accent: #9fb6dc; --accent-bg: #2e3644; --on-accent: #1c1d20;
+      --run-fg: #bccdee; --run-bg: #2f3849; --rep-fg: #ecd0a2; --rep-bg: #42372a;
+      --exp-fg: #b9dcc4; --exp-bg: #2a3b31; --nc-fg: #c4bfb6; --nc-bg: #303237; --nc-rule: #46484e;
+      --err-fg: #f2b0a5; --err-bg: #452a28;
+      --carbon: #a3a6ab; --chamber-a: #2a2c31; --chamber-b: #202125; --mm: #6b6e75;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3);
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --paper: #0d1117; --sheet: #151b24; --sheet-2: #1a212c; --ink: #ece7da; --ink-2: #cfc9ba; --muted: #9c978a; --faint: #7d7a71;
-    --rule: #263040; --rule-2: #1e2633; --grid: rgba(130, 170, 255, .05); --dot: #2c3647;
-    --blue: #8db0ff; --blue-bg: #18233a; --green: #63d095; --green-bg: #132a20;
-    --amber: #f0b158; --amber-bg: #2d2214; --red: #ff8b78; --red-bg: #33191a;
-    --carbon: #8e9196; --chamber-a: #1b2330; --chamber-b: #0b0f15; --mm: #56606f;
-    --shadow: 0 0 0 1px rgba(0, 0, 0, .2), 0 14px 40px -20px rgba(0, 0, 0, .8);
+    --paper: #1c1d20; --sheet: #24262a; --sheet-2: #2b2d32; --ink: #ece8e1; --ink-2: #d2cdc4; --muted: #aaa59c; --faint: #a19c93;
+    --rule: #3a3c42; --rule-2: #313338; --dot: #4f5157;
+    --accent: #9fb6dc; --accent-bg: #2e3644; --on-accent: #1c1d20;
+    --run-fg: #bccdee; --run-bg: #2f3849; --rep-fg: #ecd0a2; --rep-bg: #42372a;
+    --exp-fg: #b9dcc4; --exp-bg: #2a3b31; --nc-fg: #c4bfb6; --nc-bg: #303237; --nc-rule: #46484e;
+    --err-fg: #f2b0a5; --err-bg: #452a28;
+    --carbon: #a3a6ab; --chamber-a: #2a2c31; --chamber-b: #202125; --mm: #6b6e75;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3);
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; color: var(--ink); font: 15px/1.55 var(--sans); -webkit-font-smoothing: antialiased; }
-  html { overflow-x: hidden; }
-  body { background: var(--paper); background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-         background-size: 26px 26px; min-height: 100vh; overflow-x: hidden; }
+  html { overflow-x: hidden; scroll-behavior: smooth; }
+  /* clip, not hidden: overflow hidden on body makes it a scroll container, and the sticky top bar would stop sticking */
+  body { background: var(--paper); min-height: 100vh; overflow-x: clip; }
   button, select, input, textarea { font: inherit; color: inherit; }
-  a { color: var(--blue); }
+  a { color: var(--accent); }
   .mono { font-family: var(--mono); } .muted { color: var(--muted); } .hidden { display: none !important; }
   .wrap-any { overflow-wrap: anywhere; word-break: break-word; }
-  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-  .reveal { animation: rise .6s cubic-bezier(.2, .7, .2, 1) both; animation-delay: calc(var(--d, 0) * 80ms); }
-  @keyframes blink { from { opacity: .3; } to { opacity: 1; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .reveal { animation: rise .4s cubic-bezier(.2, .7, .2, 1) both; animation-delay: calc(var(--d, 0) * 60ms); }
+  @keyframes blink { from { opacity: .45; } to { opacity: 1; } }
   @keyframes spin { to { transform: rotate(360deg); } }
   .spinner { display: inline-block; width: 11px; height: 11px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -1px; }
-  @media (prefers-reduced-motion: reduce) { .reveal, .st.active i, .chamber.tone-run, .spinner { animation: none !important; } }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .reveal, .st.active i, .chamber.tone-run, .spinner, .pill.run-on { animation: none !important; } }
 
-  .layout { max-width: 1500px; margin: 0 auto; padding: 22px 24px 56px; display: grid; grid-template-columns: minmax(0, 1fr) 470px; gap: 24px; align-items: start; }
-  @media (max-width: 1100px) { .layout { grid-template-columns: minmax(0, 1fr); padding: 16px; } .live { position: static !important; max-height: none !important; overflow: visible !important; } }
+  /* ===== Expert layout: one column below 1200px (order = result → why → 3D → raw evidence); two columns at ≥1200px ===== */
+  .layout { max-width: 1500px; margin: 0 auto; padding: 18px 24px 56px; display: flex; flex-direction: column; gap: 18px; }
+  .col { display: contents; }
+  .xo0 { order: 0; } .xo1 { order: 1; } .xo2 { order: 2; } .xo3 { order: 3; } .xo4 { order: 4; } .xo5 { order: 5; }
+  .xo6 { order: 6; } .xo7 { order: 7; } .xo8 { order: 8; } .xo9 { order: 9; } .xo10 { order: 10; }
+  @media (min-width: 1200px) {
+    .layout { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+    .col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+    .col > * { order: 0 !important; }   /* inside a column the DOM order rules: left = result + 3D, right = why, trace, chat */
+  }
+  @media (max-width: 700px) { .layout { padding: 14px 16px 48px; } }
   main { min-width: 0; }
-  .sheet { background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px; box-shadow: var(--shadow); min-width: 0; }
+  .xsec { min-width: 0; scroll-margin-top: calc(var(--topbar-h) + 10px); }
+  .sheet { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; box-shadow: var(--shadow); min-width: 0; }
   .pad { padding: 16px 18px; }
-  .label { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-  .section-title { display: flex; align-items: baseline; gap: 14px; margin: 30px 0 12px; flex-wrap: wrap; }
-  .section-title .no { font-family: var(--mono); font-size: 12px; color: var(--faint); }
-  .section-title h2 { margin: 0; font: 600 23px/1.1 var(--serif); letter-spacing: -.01em; }
+  .label { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .section-title { display: flex; align-items: baseline; gap: 12px; margin: 0 0 10px; flex-wrap: wrap; }
+  .section-title h2 { margin: 0; font: 600 21px/1.15 var(--serif); letter-spacing: -.01em; }
   .section-title .aside { margin-left: auto; font-size: 13px; color: var(--muted); }
 
   /* masthead */
-  .masthead { display: grid; grid-template-columns: auto 1fr auto; gap: 18px; align-items: center; padding-bottom: 14px; border-bottom: 2px solid var(--ink); }
-  .masthead h1 { margin: 0; font: 700 40px/0.95 var(--serif); letter-spacing: -.03em; }
-  .masthead h1 em { font-style: italic; font-weight: 400; color: var(--blue); }
-  .masthead p { margin: 6px 0 0; color: var(--muted); font-size: 14px; max-width: 620px; }
-  .track { display: inline-block; font: 500 11px var(--mono); letter-spacing: .06em; padding: 2px 8px; border-radius: 2px; background: var(--blue-bg); color: var(--blue); vertical-align: 8px; margin-left: 6px; }
-  .readouts { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
-  .readout { font-family: var(--mono); font-size: 11.5px; padding: 3px 9px; border: 1px solid currentColor; border-radius: 3px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
-  .readout.amber { color: var(--amber); background: var(--amber-bg); } .readout.blue { color: var(--blue); background: var(--blue-bg); }
-  .readout.green { color: var(--green); background: var(--green-bg); } .readout.red { color: var(--red); background: var(--red-bg); }
-  .readout.grey { color: var(--muted); background: var(--sheet-2); }
+  .masthead { display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--rule); }
+  .masthead h1 { margin: 0; font: 700 30px/1 var(--serif); letter-spacing: -.02em; }
+  .masthead h1 em { font-style: italic; font-weight: 400; }
+  .masthead p { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; max-width: 620px; }
+  .track { display: inline-block; font: 500 11px var(--mono); letter-spacing: .04em; padding: 2px 8px; border-radius: 3px; background: var(--sheet-2); color: var(--muted); border: 1px solid var(--rule); vertical-align: 5px; margin-left: 6px; }
+  .readouts { display: flex; flex-direction: column; gap: 5px; align-items: flex-end; }
+  .readout { font-family: var(--mono); font-size: 11.5px; padding: 2px 9px; border: 1px solid var(--rule); border-radius: 3px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; color: var(--muted); background: var(--sheet-2); }
+  /* engine readout carries provenance: ran now = run chip colours, cached = replay chip colours, unavailable = error */
+  .readout.green, .readout.blue { color: var(--run-fg); background: var(--run-bg); border-color: transparent; }
+  .readout.amber { color: var(--rep-fg); background: var(--rep-bg); border-color: transparent; }
+  .readout.red { color: var(--err-fg); background: var(--err-bg); border-color: transparent; }
+  .readout.grey, .readout.plain { color: var(--muted); background: var(--sheet-2); }
   .readout .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
   .theme-btn { font: 500 11px var(--mono); letter-spacing: .06em; background: var(--sheet); border: 1px solid var(--rule); border-radius: 3px; padding: 3px 9px; cursor: pointer; color: var(--muted); }
   .theme-btn:hover { color: var(--ink); border-color: var(--ink-2); }
-  @media (max-width: 760px) { .masthead { grid-template-columns: auto 1fr; } .readouts { grid-column: 1 / -1; align-items: flex-start; flex-direction: row; flex-wrap: wrap; } .masthead h1 { font-size: 34px; } .readout { white-space: normal; } }
+  @media (max-width: 760px) { .masthead { grid-template-columns: auto 1fr; } .readouts { grid-column: 1 / -1; align-items: flex-start; flex-direction: row; flex-wrap: wrap; } .masthead h1 { font-size: 26px; } .readout { white-space: normal; } .masthead p { display: none; } }
 
-  /* 01 cases + request */
-  .cases { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  /* setup: cases + request */
+  .cases { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
   @media (max-width: 1300px) { .cases { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  @media (max-width: 520px) { .cases { grid-template-columns: 1fr; } }
-  .case { text-align: left; cursor: pointer; padding: 14px 16px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px;
-          box-shadow: var(--shadow); transition: transform .15s, border-color .15s; min-width: 0; }
-  .case:hover { transform: translateY(-2px); border-color: var(--ink-2); }
-  .case.on { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue), var(--shadow); }
-  .case:focus-visible, .run:focus-visible, .tab:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .case { text-align: left; cursor: pointer; padding: 11px 13px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px;
+          box-shadow: var(--shadow); transition: border-color .15s; min-width: 0; }
+  .case:hover { border-color: var(--ink-2); }
+  .case.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .case:focus-visible, .run:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .case .k { display: block; font-family: var(--mono); font-size: 10.5px; color: var(--faint); letter-spacing: .08em; text-transform: uppercase; }
-  .case .t { display: block; font: 600 18px/1.2 var(--serif); margin-top: 2px; }
-  .case .q { display: block; font-size: 12.5px; color: var(--muted); margin-top: 6px; }
-  .request { margin-top: 14px; padding: 14px 16px; }
-  .request textarea { width: 100%; margin-top: 6px; padding: 10px 12px; background: var(--sheet-2); border: 1px solid var(--rule); border-radius: 3px; resize: vertical; font-size: 14px; line-height: 1.5; }
-  .request textarea:focus, .chat-input input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-bg); }
-  .toggles { display: flex; gap: 10px 22px; flex-wrap: wrap; margin-top: 10px; font-size: 13.5px; }
+  .case .t { display: block; font: 600 16px/1.2 var(--serif); margin-top: 2px; }
+  .case .q { display: block; font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+  @media (max-width: 520px) { .case { padding: 9px 10px; } .case .t { font-size: 14.5px; } .case .q { font-size: 11.5px; } }
+  .request { margin-top: 10px; padding: 12px 14px; }
+  .request textarea { width: 100%; margin-top: 6px; padding: 9px 11px; background: var(--sheet-2); border: 1px solid var(--rule); border-radius: 4px; resize: vertical; font-size: 14px; line-height: 1.5; }
+  .request textarea:focus, .chat-input input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-bg); }
+  .toggles { display: flex; gap: 8px 22px; flex-wrap: wrap; margin-top: 8px; font-size: 13.5px; }
   .toggles label { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
-  .toggles input { width: 16px; height: 16px; accent-color: var(--blue); }
-  .runbar { display: flex; gap: 12px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
-  .run { background: var(--ink); color: var(--sheet); border: 0; border-radius: 3px; padding: 11px 22px; cursor: pointer; font-weight: 600;
+  .toggles input { width: 16px; height: 16px; accent-color: var(--accent); }
+  .runbar { display: flex; gap: 12px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  .run { background: var(--ink); color: var(--sheet); border: 0; border-radius: 4px; padding: 10px 20px; cursor: pointer; font-weight: 600;
          display: inline-flex; align-items: center; gap: 10px; }
-  .run .led { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
-  .run:disabled { opacity: .6; cursor: progress; } .run:disabled .led { background: var(--amber); animation: blink .6s infinite alternate; }
+  .run .led { width: 8px; height: 8px; border-radius: 50%; background: var(--sheet); opacity: .7; }
+  .run:disabled { opacity: .6; cursor: progress; } .run:disabled .led { animation: blink .6s infinite alternate; }
   .ghost { border: 1px solid transparent; background: none; color: var(--muted); cursor: pointer; font-size: 13px; padding: 6px 8px; border-radius: 3px; }
-  .ghost:hover { color: var(--red); border-color: var(--rule); }
-  .pill { font-family: var(--mono); font-size: 11.5px; padding: 2px 9px; border-radius: 2px; background: var(--sheet-2); color: var(--muted); border: 1px solid var(--rule); }
-  .pill.run-on { color: var(--blue); background: var(--blue-bg); border-color: transparent; animation: blink .8s infinite alternate; }
-  .pill.ok { color: var(--green); background: var(--green-bg); border-color: transparent; }
-  .pill.bad { color: var(--red); background: var(--red-bg); border-color: transparent; }
+  .ghost:hover { color: var(--ink); border-color: var(--rule); }
+  .pill { font-family: var(--mono); font-size: 11.5px; padding: 2px 9px; border-radius: 3px; background: var(--sheet-2); color: var(--muted); border: 1px solid var(--rule); }
+  .pill.run-on { color: var(--accent); background: var(--accent-bg); border-color: transparent; animation: blink .8s infinite alternate; }
+  .pill.ok { color: var(--ink-2); background: var(--sheet-2); }
+  .pill.bad { color: var(--err-fg); background: var(--err-bg); border-color: transparent; }
   .runbar .pill { margin-left: auto; }
 
-  /* 02 result */
+  /* result */
   .hero { display: grid; grid-template-columns: 1.15fr 1fr; }
-  @media (max-width: 900px) { .hero { grid-template-columns: 1fr; } .hero > div + div { border-left: 0 !important; border-top: 1px dashed var(--rule); } }
-  .hero > div { padding: 20px 22px; min-width: 0; }
-  .hero > div + div { border-left: 1px dashed var(--rule); }
-  .h-big { font: 700 30px/1.05 var(--serif); letter-spacing: -.02em; margin-top: 4px; }
-  .h-val { font: 500 24px/1.2 var(--mono); color: var(--blue); margin-top: 8px; }
+  @media (max-width: 900px) { .hero { grid-template-columns: 1fr; } .hero > div + div { border-left: 0 !important; border-top: 1px solid var(--rule-2); } }
+  .hero > div { padding: 18px 20px; min-width: 0; }
+  .hero > div + div { border-left: 1px solid var(--rule-2); }
+  .h-big { font: 700 26px/1.1 var(--serif); letter-spacing: -.02em; margin-top: 4px; }
+  .h-val { font: 500 22px/1.2 var(--mono); color: var(--ink); margin-top: 8px; }
   .h-val.nc, .metric .v.nc { color: var(--faint); font-style: italic; }
+  .h-val small { font: 500 14px var(--sans); color: var(--muted); }
   .h-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
-  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px 22px; margin-top: 16px; }
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px 20px; margin-top: 14px; }
   .metric { min-width: 0; } .metric .k { font-size: 11.5px; color: var(--muted); }
-  .metric .v { font: 600 17px/1.25 var(--mono); margin-top: 3px; overflow-wrap: anywhere; } .metric .s { font: 400 11px/1.4 var(--mono); color: var(--muted); margin-top: 3px; overflow-wrap: anywhere; }
-  .vrow { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 6px; font-size: 13.5px; padding: 5px 0; border-bottom: 1px dashed var(--rule-2); }
+  .metric .v { font: 600 16px/1.25 var(--mono); margin-top: 3px; overflow-wrap: anywhere; } .metric .s { font: 400 11px/1.4 var(--mono); color: var(--muted); margin-top: 3px; overflow-wrap: anywhere; }
+  .vrow { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 6px; font-size: 13.5px; padding: 5px 0; border-bottom: 1px solid var(--rule-2); }
   .vrow:last-child { border-bottom: 0; }
   .vrow > span:last-child { overflow-wrap: anywhere; }
-  .ok { color: var(--green); font-weight: 700; } .no { color: var(--amber); font-weight: 700; } .na { color: var(--faint); font-weight: 700; }
+  .ok { color: var(--ink-2); font-weight: 700; } .no { color: var(--err-fg); font-weight: 700; } .na { color: var(--faint); font-weight: 700; }
   .trace-line { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 10px; overflow-wrap: anywhere; }
 
-  /* 03 tabs */
-  .tabs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; border-bottom: 2px solid var(--ink); padding-bottom: 6px; }
-  .tab { border: 1px solid transparent; background: none; cursor: pointer; padding: 7px 11px; border-radius: 3px; font-size: 13.5px; color: var(--muted); font-weight: 500; }
-  .tab:hover { color: var(--ink); background: var(--sheet-2); }
-  .tab.on { color: var(--ink); background: var(--sheet); border-color: var(--rule); box-shadow: var(--shadow); font-weight: 600; }
-  .tab .n { font-family: var(--mono); font-size: 11px; color: var(--blue); }
-  .tab-actions { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
-  .btn { border: 1px solid var(--rule); background: var(--sheet); cursor: pointer; padding: 6px 11px; border-radius: 3px; font-size: 12.5px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+  /* buttons */
+  .tab-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .btn { border: 1px solid var(--rule); background: var(--sheet); cursor: pointer; padding: 6px 11px; border-radius: 4px; font-size: 12.5px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
   .btn:hover { border-color: var(--ink-2); color: var(--ink); }
-  .btn.on { border-color: var(--blue); color: var(--blue); background: var(--blue-bg); }
+  .btn.on { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
   .btn.dark { background: var(--ink); color: var(--sheet); border-color: var(--ink); }
   .btn:disabled { opacity: .55; cursor: progress; }
-  .panel { margin-top: 14px; }
-  .empty { text-align: center; color: var(--faint); font: italic 400 14px/1.4 var(--serif); padding: 22px 12px; }
+  .seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; background: var(--sheet); }
+  .seg button { border: 0; background: none; padding: 7px 14px; cursor: pointer; font-size: 13.5px; color: var(--muted); font-weight: 500; }
+  .seg button + button { border-left: 1px solid var(--rule); }
+  .seg button[aria-pressed="true"] { background: var(--accent-bg); color: var(--accent); font-weight: 600; }
+  .panel { margin-top: 0; }
+  .empty { text-align: center; color: var(--faint); font: italic 400 14px/1.4 var(--serif); padding: 20px 12px; }
+
+  /* collapsible long panels: count in the summary */
+  details.fold { padding: 0; }
+  details.fold > summary { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 13px 16px; color: var(--ink); font: 600 18px/1.2 var(--serif); border-radius: 6px; }
+  details.fold > summary::before { content: "▸"; color: var(--muted); font: 400 13px var(--mono); }
+  details.fold[open] > summary::before { content: "▾"; }
+  details.fold > summary:hover { background: var(--sheet-2); }
+  details.fold > summary .cnt { font: 500 12px var(--mono); color: var(--muted); }
+  details.fold > summary .aside { margin-left: auto; font: 400 12.5px var(--sans); color: var(--muted); }
+  details.fold > .fold-body { padding: 0 16px 16px; }
 
   /* decision cards */
-  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 10px; }
-  .card { background: var(--sheet); border: 1px solid var(--rule); border-left: 4px solid var(--dot); border-radius: 3px; padding: 11px 13px; min-width: 0; }
-  .card.high { border-left-color: var(--green); } .card.medium { border-left-color: var(--blue); } .card.low { border-left-color: var(--amber); background: var(--amber-bg); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 10px; }
+  .card { background: var(--sheet); border: 1px solid var(--rule); border-radius: 5px; padding: 11px 13px; min-width: 0; }
   .card .kk { font-family: var(--mono); font-size: 10.5px; color: var(--muted); overflow-wrap: anywhere; }
   .card .d { font: 600 15px/1.3 var(--serif); margin-top: 4px; overflow-wrap: anywhere; }
   .card .e { font-size: 12.5px; color: var(--ink-2); margin-top: 5px; overflow-wrap: anywhere; }
   .card .s { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 6px; overflow-wrap: anywhere; }
-  .card .c { float: right; font-family: var(--mono); font-size: 10px; padding: 0 6px; border-radius: 2px; background: var(--sheet-2); color: var(--muted); margin-left: 8px; }
-  .card.high .c { color: var(--green); background: var(--green-bg); } .card.medium .c { color: var(--blue); background: var(--blue-bg); } .card.low .c { color: var(--amber); background: var(--sheet); }
+  .card .c { float: right; font-family: var(--mono); font-size: 10px; padding: 0 6px; border-radius: 3px; background: var(--sheet-2); color: var(--muted); margin-left: 8px; border: 1px solid var(--rule-2); }
   .card details summary { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); cursor: pointer; margin-top: 8px; }
   .card ul { margin: 4px 0 0; padding-left: 0; list-style: none; }
   .card li { font-size: 12px; color: var(--ink-2); margin-top: 3px; overflow-wrap: anywhere; }
-  .card li::before { content: "✕ "; color: var(--red); }
-  .card .alts { border-top: 1px dashed var(--rule); margin-top: 8px; padding-top: 6px; }
+  .card li::before { content: "✕ "; color: var(--muted); }
+  .card .alts { border-top: 1px solid var(--rule-2); margin-top: 8px; padding-top: 6px; }
 
-  .badge { display: inline-flex; font-family: var(--mono); font-size: 10.5px; padding: 1px 7px; border-radius: 2px; white-space: nowrap; }
-  .badge.blue { color: var(--blue); background: var(--blue-bg); } .badge.green { color: var(--green); background: var(--green-bg); }
-  .badge.amber { color: var(--amber); background: var(--amber-bg); } .badge.red { color: var(--red); background: var(--red-bg); }
-  .badge.grey { color: var(--muted); background: var(--sheet-2); }
+  .badge { display: inline-flex; font-family: var(--mono); font-size: 10.5px; padding: 1px 7px; border-radius: 3px; white-space: nowrap; color: var(--muted); background: var(--sheet-2); border: 1px solid var(--rule-2); }
+  .badge.red { color: var(--err-fg); background: var(--err-bg); border-color: transparent; }
   .scroll-x { overflow-x: auto; max-width: 100%; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th, td { text-align: left; padding: 8px 11px; border-bottom: 1px solid var(--rule-2); vertical-align: top; }
   th { font-family: var(--mono); font-weight: 500; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
-  pre { font-family: var(--mono); font-size: 11.5px; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--sheet-2); border: 1px solid var(--rule); border-radius: 3px; padding: 10px; margin: 6px 0 0; max-width: 100%; }
+  pre { font-family: var(--mono); font-size: 11.5px; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--sheet-2); border: 1px solid var(--rule); border-radius: 4px; padding: 10px; margin: 6px 0 0; max-width: 100%; color: var(--ink-2); }
   details > summary { cursor: pointer; color: var(--muted); font-size: 13.5px; list-style: none; }
   details > summary::-webkit-details-marker { display: none; }
-  details > summary::before { content: "▸ "; } details[open] > summary::before { content: "▾ "; }
+  details:not(.fold) > summary::before { content: "▸ "; } details:not(.fold)[open] > summary::before { content: "▾ "; }
+  /* One pattern for technical detail everywhere (file names, endpoints, run ids, masks, atom counts, raw JSON):
+     a small native <details> whose summary says "Details". Closed by default, keyboard accessible, no script. */
+  details.det { margin-top: 8px; font-size: 12px; min-width: 0; }
+  details.det > summary { font: 400 12.5px/1.5 var(--sans); letter-spacing: normal; text-transform: none; display: inline-block; margin-top: 0; }
+  details.det[open] > summary { margin-bottom: 4px; }
+  .det-body { font-family: var(--mono); font-size: 11px; line-height: 1.5; color: var(--muted); overflow-wrap: anywhere; display: flex; flex-direction: column; gap: 3px; }
+  .det-body pre { margin-top: 2px; }
+  .cap3d { font-size: 13.5px; color: var(--ink-2); margin: 3px 0 0; overflow-wrap: anywhere; }
+  .note3d { font-size: 13.5px; color: var(--muted); margin-top: 8px; }
+  .readouts details.det { margin-top: 0; text-align: right; }
+  .readouts .det-body { align-items: flex-end; margin-top: 4px; }
+  @media (max-width: 760px) { .readouts details.det { text-align: left; } .readouts .det-body { align-items: flex-start; } }
 
   /* chat */
-  .chat-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px dashed var(--rule); }
+  .chat-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid var(--rule-2); }
   .chat-head h3 { margin: 0; font: 600 19px/1.2 var(--serif); }
   .quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .quick button { border: 1px solid var(--rule); background: var(--sheet-2); border-radius: 3px; padding: 5px 10px; font-size: 12.5px; cursor: pointer; text-align: left; color: var(--ink-2); }
-  .quick button:hover { border-color: var(--blue); color: var(--blue); }
-  #chatHistory { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; max-height: 460px; min-height: 240px; overflow-y: auto; padding: 12px; background: var(--sheet-2); border: 1px solid var(--rule); border-radius: 3px; }
-  .msg { max-width: 88%; padding: 9px 12px; border-radius: 3px; font-size: 13.5px; overflow-wrap: anywhere; }
-  .msg.ai { align-self: flex-start; background: var(--sheet); border: 1px solid var(--rule); border-left: 3px solid var(--blue); }
+  .quick button { border: 1px solid var(--rule); background: var(--sheet-2); border-radius: 4px; padding: 5px 10px; font-size: 12.5px; cursor: pointer; text-align: left; color: var(--ink-2); }
+  .quick button:hover { border-color: var(--accent); color: var(--accent); }
+  #chatHistory { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; max-height: 460px; min-height: 200px; overflow-y: auto; padding: 12px; background: var(--sheet-2); border: 1px solid var(--rule); border-radius: 4px; }
+  .msg { max-width: 88%; padding: 9px 12px; border-radius: 4px; font-size: 13.5px; overflow-wrap: anywhere; }
+  .msg.ai { align-self: flex-start; background: var(--sheet); border: 1px solid var(--rule); }
   .msg.me { align-self: flex-end; background: var(--ink); color: var(--sheet); }
-  .msg.err { align-self: stretch; max-width: none; background: var(--red-bg); color: var(--red); }
+  .msg.err { align-self: stretch; max-width: none; background: var(--err-bg); color: var(--err-fg); }
   .msg.wait { color: var(--muted); font-style: italic; }
-  .msg .foot { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 6px; padding-top: 5px; border-top: 1px dashed var(--rule); font: 400 10.5px var(--mono); color: var(--muted); }
-  .flag { color: var(--amber); background: var(--amber-bg); font-family: var(--mono); font-size: .85em; padding: 0 4px; border-radius: 2px; white-space: nowrap; }
-  .unverified { margin-top: 6px; font: 400 11.5px var(--mono); color: var(--amber); background: var(--amber-bg); padding: 4px 8px; border-radius: 2px; }
+  .msg .foot { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--rule-2); font: 400 10.5px var(--mono); color: var(--muted); }
+  /* an unbacked number in chat is the same warning as an error: it must not be trusted */
+  .flag { color: var(--err-fg); background: var(--err-bg); font-family: var(--mono); font-size: .85em; padding: 0 4px; border-radius: 3px; white-space: nowrap; }
+  .unverified { margin-top: 6px; font: 400 11.5px var(--mono); color: var(--err-fg); background: var(--err-bg); padding: 4px 8px; border-radius: 3px; }
   .chat-input { display: flex; gap: 8px; margin-top: 10px; }
-  .chat-input input { flex: 1; min-width: 0; padding: 10px 12px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 3px; font-size: 13.5px; }
+  .chat-input input { flex: 1; min-width: 0; padding: 10px 12px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px; font-size: 13.5px; }
 
   /* markdown (report + chat) */
   .md { font-size: 13.5px; overflow-wrap: anywhere; }
-  .md h1 { font: 600 22px/1.2 var(--serif); margin: 18px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--rule); }
-  .md h2 { font: 600 18px/1.25 var(--serif); margin: 16px 0 6px; } .md h3 { font: 600 15px/1.3 var(--serif); margin: 12px 0 4px; color: var(--blue); }
+  .md h1 { font: 600 21px/1.2 var(--serif); margin: 16px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--rule); }
+  .md h2 { font: 600 17px/1.25 var(--serif); margin: 16px 0 6px; } .md h3 { font: 600 15px/1.3 var(--serif); margin: 12px 0 4px; color: var(--ink-2); }
   .md p { margin: 0 0 10px; } .md ul, .md ol { margin: 0 0 10px; padding-left: 22px; } .md li { margin-bottom: 3px; }
-  .md code { font-family: var(--mono); font-size: .88em; background: var(--sheet-2); border: 1px solid var(--rule-2); padding: 0 4px; border-radius: 2px; }
+  .md code { font-family: var(--mono); font-size: .88em; background: var(--sheet-2); border: 1px solid var(--rule-2); padding: 0 4px; border-radius: 3px; }
   .md pre code { border: 0; padding: 0; background: none; }
   .md table { display: block; overflow-x: auto; font-size: 12.5px; margin-bottom: 12px; }
-  .md blockquote { margin: 0 0 10px; border-left: 3px solid var(--blue); padding-left: 12px; color: var(--muted); }
-  .md hr { border: 0; border-top: 1px dashed var(--rule); margin: 14px 0; }
+  .md blockquote { margin: 0 0 10px; border-left: 3px solid var(--rule); padding-left: 12px; color: var(--muted); }
+  .md hr { border: 0; border-top: 1px solid var(--rule); margin: 14px 0; }
   .chat-md p:last-child { margin-bottom: 0; }
 
   /* 3D */
-  .chamber { position: relative; height: 300px; border-radius: 4px; overflow: hidden; border: 1px solid var(--rule);
+  .chamber { position: relative; height: 300px; border-radius: 6px; overflow: hidden; border: 1px solid var(--rule);
              background: radial-gradient(ellipse at 50% 38%, var(--chamber-a), var(--chamber-b) 80%); transition: box-shadow .3s, border-color .3s; }
-  .chamber.big { height: 480px; } @media (max-width: 600px) { .chamber.big { height: 340px; } }
+  .chamber.big { height: 440px; } @media (max-width: 600px) { .chamber.big { height: 340px; } }
   .chamber canvas { display: block; width: 100% !important; height: 100% !important; cursor: grab; }
   .chamber .labels { position: absolute; inset: 0; pointer-events: none; }
-  .chamber .corner { position: absolute; font-family: var(--mono); font-size: 10px; color: var(--faint); letter-spacing: .08em; pointer-events: none; z-index: 2; }
+  .chamber .corner { position: absolute; font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: .08em; pointer-events: none; z-index: 2; }
   .chamber .msg3d { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 20px; font-size: 13px; color: var(--muted); z-index: 1; }
-  .chamber.tone-run { border-color: var(--blue); animation: glow .9s infinite alternate; }
-  .chamber.tone-amber { border-color: var(--amber); box-shadow: inset 0 0 0 2px var(--amber); }
-  .chamber.tone-green { border-color: var(--green); box-shadow: inset 0 0 0 1px var(--green); }
-  .chamber.tone-red { border-color: var(--red); box-shadow: inset 0 0 0 2px var(--red); }
-  @keyframes glow { from { box-shadow: inset 0 0 0 1px var(--blue); } to { box-shadow: inset 0 0 0 1px var(--blue), 0 0 0 6px var(--blue-bg); } }
-  .res-label { font: 600 10.5px var(--sans); color: var(--ink); background: color-mix(in srgb, var(--sheet) 80%, transparent);
-               padding: 0 5px; border-radius: 2px; white-space: nowrap; pointer-events: none; }
-  .res-label.qm { color: var(--blue); }
+  .tone-run { border-color: var(--accent) !important; animation: glow .9s infinite alternate; }
+  .tone-red { border-color: var(--err-fg) !important; box-shadow: inset 0 0 0 2px var(--err-fg); }
+  @keyframes glow { from { box-shadow: inset 0 0 0 1px var(--accent); } to { box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 4px var(--accent-bg); } }
+  .res-label { font: 600 10.5px var(--sans); color: var(--ink); background: color-mix(in srgb, var(--sheet) 85%, transparent);
+               padding: 0 5px; border-radius: 3px; white-space: nowrap; pointer-events: none; }
   .vsrc { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 6px; overflow-wrap: anywhere; }
-  .vwarn { font-size: 12px; color: var(--amber); background: var(--amber-bg); padding: 5px 9px; border-radius: 2px; margin-top: 6px; overflow-wrap: anywhere; }
+  .vwarn { font-size: 12px; color: var(--err-fg); background: var(--err-bg); padding: 5px 9px; border-radius: 3px; margin-top: 6px; overflow-wrap: anywhere; }
   .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; color: var(--muted); }
   .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; margin-right: 4px; }
-  #molViewer { position: relative; height: 480px; border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; background: var(--chamber-b); }
-  @media (max-width: 600px) { #molViewer { height: 340px; } }
-  #molViewerLoading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: var(--muted); z-index: 1; pointer-events: none; }
-  .viewer-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
-  .viewer-head h3 { margin: 0; font: 600 19px/1.2 var(--serif); }
+  .molbox { position: relative; height: 440px; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; background: var(--chamber-b); }
+  @media (max-width: 600px) { .molbox { height: 340px; } }
+  .molbox .loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: var(--muted); z-index: 1; pointer-events: none; text-align: center; padding: 16px; }
+  .viewer-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .viewer-head h2 { margin: 0; font: 600 21px/1.15 var(--serif); }
+  .viewer-tools { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 0 0 10px; }
+  .viewer-tools .sep { width: 1px; align-self: stretch; background: var(--rule); margin: 0 4px; }
 
-  /* live column */
-  .live { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 2px; }
+  /* pipeline + lifecycle + trace */
   .head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-  .pipeline { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); margin-top: 14px; }
+  .pipeline { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); margin-top: 12px; }
   .node { text-align: center; position: relative; min-width: 0; }
-  .node::before { content: ""; position: absolute; top: 14px; left: -50%; width: 100%; height: 2px; background: linear-gradient(90deg, var(--rule) 50%, transparent 0) 0 0 / 8px 2px; }
+  .node::before { content: ""; position: absolute; top: 13px; left: -50%; width: 100%; height: 1px; background: var(--rule); }
   .node:first-child::before { display: none; }
-  .node.done::before, .node.active::before, .node.warn::before { background: var(--green); }
-  .node .c { position: relative; z-index: 1; width: 30px; height: 30px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center;
+  .node.done::before, .node.active::before, .node.warn::before { background: var(--ink-2); }
+  .node .c { position: relative; z-index: 1; width: 28px; height: 28px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center;
              background: var(--sheet); border: 1.5px solid var(--rule); font: 600 11px var(--mono); color: var(--faint); transition: all .2s; }
-  .node.done .c { border-color: var(--green); color: var(--green); }
-  .node.active .c { background: var(--blue); border-color: var(--blue); color: var(--sheet); box-shadow: 0 0 0 5px var(--blue-bg), 0 0 16px var(--blue); }
-  .node.warn .c { background: var(--amber); border-color: var(--amber); color: var(--sheet); box-shadow: 0 0 0 5px var(--amber-bg), 0 0 16px var(--amber); }
-  .node .nm { font-size: 11px; font-weight: 600; margin-top: 7px; overflow: hidden; text-overflow: ellipsis; }
+  .node.done .c { border-color: var(--ink-2); color: var(--ink-2); }
+  .node.active .c, .node.warn .c { background: var(--accent); border-color: var(--accent); color: var(--on-accent); box-shadow: 0 0 0 4px var(--accent-bg); }
+  .node .nm { font-size: 11px; font-weight: 600; margin-top: 6px; overflow: hidden; text-overflow: ellipsis; }
   .node .ac { font-family: var(--mono); font-size: 9.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 14px; }
-  .node.active .nm { color: var(--blue); } .node.warn .nm { color: var(--amber); }
-  .handoff { font-family: var(--mono); font-size: 11.5px; color: var(--muted); text-align: center; margin-top: 8px; min-height: 18px; overflow-wrap: anywhere; }
-  #stages { margin-top: 8px; display: flex; flex-direction: column; gap: 2px; max-height: 260px; overflow-y: auto; }
-  .st { display: grid; grid-template-columns: 12px minmax(70px, 120px) minmax(0, 1fr); gap: 10px; align-items: baseline; padding: 5px 8px; border-radius: 3px; font-size: 12.5px; }
-  .st i { width: 9px; height: 9px; border-radius: 50%; background: var(--dot); align-self: center; }
+  .node.active .nm, .node.warn .nm { color: var(--accent); }
+  .handoff { font-family: var(--mono); font-size: 11.5px; color: var(--muted); text-align: center; margin-top: 6px; min-height: 18px; overflow-wrap: anywhere; }
+  #stages { margin-top: 6px; display: flex; flex-direction: column; gap: 2px; max-height: 240px; overflow-y: auto; }
+  .st { display: grid; grid-template-columns: 12px minmax(70px, 120px) minmax(0, 1fr); gap: 10px; align-items: baseline; padding: 4px 8px; border-radius: 3px; font-size: 12.5px; }
+  .st i { width: 8px; height: 8px; border-radius: 50%; background: var(--dot); align-self: center; }
   .st b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .st span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .st.active { background: var(--blue-bg); } .st.active i { background: var(--blue); animation: blink .6s infinite alternate; }
-  .st.ok i { background: var(--green); } .st.warn i { background: var(--amber); } .st.warn { background: var(--amber-bg); }
-  .st.error i { background: var(--red); } .st.error { background: var(--red-bg); }
-  #thoughtStream { margin-top: 8px; max-height: 340px; overflow-y: auto; display: flex; flex-direction: column; font-size: 12px; }
-  #thoughtStream .ev { padding: 5px 0; border-bottom: 1px dashed var(--rule); overflow-wrap: anywhere; }
+  .st.active { background: var(--accent-bg); } .st.active i { background: var(--accent); animation: blink .6s infinite alternate; }
+  .st.ok i { background: var(--ink-2); } .st.warn i { background: var(--rep-fg); }
+  .st.error i { background: var(--err-fg); } .st.error { background: var(--err-bg); } .st.error b, .st.error span { color: var(--err-fg); }
+  #thoughtStream { max-height: 420px; overflow-y: auto; display: flex; flex-direction: column; font-size: 12px; }
+  #thoughtStream .ev { padding: 5px 0; border-bottom: 1px solid var(--rule-2); overflow-wrap: anywhere; }
   #thoughtStream .ev .t { font-family: var(--mono); color: var(--faint); margin-right: 6px; font-size: 11px; }
   #thoughtStream .ev .a { font-weight: 600; } #thoughtStream .ev .act { font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
   #thoughtStream .ev .x { font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
   #thoughtStream .ev .sum { display: block; color: var(--muted); margin-top: 1px; }
-  #thoughtStream .ev.bad { background: var(--red-bg); } #thoughtStream .ev.bad .sum { color: var(--red); }
-  #thoughtStream .ev.mid .sum { color: var(--amber); }
+  #thoughtStream .ev.bad { background: var(--err-bg); } #thoughtStream .ev.bad .sum, #thoughtStream .ev.bad .t, #thoughtStream .ev.bad .x { color: var(--err-fg); }
   #thoughtStream .placeholder { color: var(--faint); font: italic 400 13.5px/1.4 var(--serif); padding: 8px 0; }
 
-  /* ===== Default view: a three-screen flow. Expert view (body.expert) is the full page above, unchanged. ===== */
-  :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  /* ===== Default view: a three-screen flow. Expert view (body.expert) shows the full page. ===== */
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   body:not(.expert) .layout { display: none; }
   body.expert #flow, body.expert .stepper { display: none !important; }
-  .topbar { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--sheet) 94%, transparent); border-bottom: 1px solid var(--rule);
-            backdrop-filter: blur(6px); }
-  .topbar-in { max-width: 1500px; margin: 0 auto; padding: 8px 24px; display: flex; align-items: center; gap: 10px 18px; flex-wrap: wrap; }
+  body:not(.expert) .secnav { display: none; }
+  .topbar { position: sticky; top: 0; z-index: 20; background: var(--sheet); border-bottom: 1px solid var(--rule); }
+  .topbar-in { max-width: 1500px; margin: 0 auto; padding: 8px 24px; display: flex; align-items: center; gap: 8px 18px; flex-wrap: wrap; }
   @media (max-width: 700px) { .topbar-in { padding: 8px 16px; } }
   .brand { font: 700 20px/1 var(--serif); letter-spacing: -.02em; white-space: nowrap; }
-  .brand em { font-style: italic; font-weight: 400; color: var(--blue); }
+  .brand em { font-style: italic; font-weight: 400; }
   .stepper { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
   .stepper button { border: 1px solid transparent; background: none; cursor: pointer; padding: 5px 10px; border-radius: 999px; font-size: 13px; color: var(--muted);
                     display: inline-flex; align-items: center; gap: 6px; }
   .stepper button .n { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid currentColor; font: 600 11px var(--mono); }
-  .stepper button[aria-current="step"] { color: var(--blue); background: var(--blue-bg); font-weight: 600; }
-  .stepper button.done:not([aria-current="step"]) { color: var(--green); }
-  .stepper button:disabled { cursor: default; opacity: .55; }
+  .stepper button[aria-current="step"] { color: var(--accent); background: var(--accent-bg); font-weight: 600; }
+  .stepper button.done:not([aria-current="step"]) { color: var(--ink-2); }
+  .stepper button:disabled { cursor: default; opacity: .6; }
+  /* Expert view: sticky section bar in the same top bar; the current section is highlighted while scrolling */
+  .secnav { display: flex; gap: 2px; min-width: 0; flex: 1 1 auto; overflow-x: auto; scrollbar-width: none; }
+  .secnav::-webkit-scrollbar { display: none; }
+  .secnav a { padding: 5px 10px; border-radius: 999px; color: var(--muted); text-decoration: none; font-size: 13px; white-space: nowrap; }
+  .secnav a:hover { color: var(--ink); background: var(--sheet-2); }
+  .secnav a[aria-current="true"] { color: var(--accent); background: var(--accent-bg); font-weight: 600; }
   .top-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-  @media (max-width: 700px) { .stepper { order: 3; width: 100%; } }
+  @media (max-width: 700px) { .stepper, .secnav { order: 3; width: 100%; flex-basis: 100%; } }
   .switch { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--rule); background: var(--sheet); border-radius: 999px; padding: 3px 10px 3px 4px;
             cursor: pointer; font-size: 12.5px; color: var(--ink-2); }
-  .switch .knob { width: 30px; height: 18px; border-radius: 999px; background: var(--rule); position: relative; transition: background .15s; }
+  .switch .knob { width: 30px; height: 18px; border-radius: 999px; background: var(--dot); position: relative; transition: background .15s; }
   .switch .knob::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--sheet); transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
-  .switch[aria-checked="true"] .knob { background: var(--blue); }
+  .switch[aria-checked="true"] .knob { background: var(--accent); }
   .switch[aria-checked="true"] .knob::after { transform: translateX(12px); }
 
   #flow { max-width: 1120px; margin: 0 auto; padding: 22px 24px 64px; }
@@ -308,7 +349,7 @@
   .qcases { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
   .qcase { text-align: left; cursor: pointer; padding: 14px 16px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; box-shadow: var(--shadow); min-width: 0; }
   .qcase:hover { border-color: var(--ink-2); }
-  .qcase[aria-pressed="true"] { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue), var(--shadow); }
+  .qcase[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .qcase .k { display: block; font: 500 10.5px var(--mono); color: var(--faint); letter-spacing: .08em; text-transform: uppercase; }
   .qcase .t { display: block; font: 600 18px/1.25 var(--serif); margin-top: 3px; }
   .qcase .s { display: block; font-size: 13px; color: var(--muted); margin-top: 4px; }
@@ -316,25 +357,22 @@
   .own textarea { width: 100%; margin-top: 6px; padding: 10px 12px; background: var(--sheet-2); border: 1px solid var(--rule); border-radius: 4px; resize: vertical; font-size: 14px; }
   .options { margin-top: 14px; font-size: 14px; }
   .options .opt { display: flex; gap: 8px; align-items: flex-start; margin-top: 8px; flex-wrap: wrap; }
-  .options input { width: 16px; height: 16px; accent-color: var(--blue); margin-top: 3px; }
+  .options input { width: 16px; height: 16px; accent-color: var(--accent); margin-top: 3px; }
   .primary-row { display: flex; gap: 12px; align-items: center; margin-top: 18px; flex-wrap: wrap; }
-  .primary { background: var(--blue); color: #fff; border: 0; border-radius: 6px; padding: 12px 24px; font-weight: 600; font-size: 15px; cursor: pointer; }
-  [data-theme="dark"] .primary { color: #0d1117; }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .primary { color: #0d1117; } }
+  .primary { background: var(--accent); color: var(--on-accent); border: 0; border-radius: 6px; padding: 12px 24px; font-weight: 600; font-size: 15px; cursor: pointer; }
   .primary:disabled { opacity: .6; cursor: progress; }
   .secondary { border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); border-radius: 6px; padding: 9px 14px; font-size: 14px; cursor: pointer; }
   .secondary:hover { border-color: var(--ink-2); }
-  .linkbtn { border: 0; background: none; color: var(--blue); cursor: pointer; padding: 4px 2px; font-size: 13.5px; text-decoration: underline; text-underline-offset: 2px; }
-  .inline-err { color: var(--red); font-size: 13.5px; }
+  .linkbtn { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 4px 2px; font-size: 13.5px; text-decoration: underline; text-underline-offset: 2px; }
+  .inline-err { color: var(--err-fg); font-size: 13.5px; }
 
   .checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
   .checklist li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 8px; padding: 7px 10px; border-radius: 4px; font-size: 14.5px; overflow-wrap: anywhere; }
-  .checklist li .ic { font-weight: 700; text-align: center; }
-  .checklist li.c-ok .ic { color: var(--green); }
-  .checklist li.c-warn { background: var(--amber-bg); } .checklist li.c-warn .ic { color: var(--amber); }
-  .checklist li.c-replay .ic { color: var(--amber); }
-  .checklist li.c-bad { background: var(--red-bg); color: var(--red); } .checklist li.c-bad .ic { color: var(--red); }
-  .checklist li.c-work { color: var(--blue); } .checklist li.c-work .ic { color: var(--blue); }
+  .checklist li .ic { font-weight: 700; text-align: center; color: var(--muted); }
+  .checklist li.c-ok .ic, .checklist li.c-warn .ic { color: var(--ink-2); }
+  .checklist li.c-replay .ic { color: var(--rep-fg); }
+  .checklist li.c-bad { background: var(--err-bg); color: var(--err-fg); } .checklist li.c-bad .ic { color: var(--err-fg); }
+  .checklist li.c-work { color: var(--accent); } .checklist li.c-work .ic { color: var(--accent); }
   .feed-head { display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
   .feed-head .label { margin-right: auto; }
 
@@ -343,6 +381,9 @@
   .headline .chips { display: inline-flex; gap: 4px; vertical-align: 4px; flex-wrap: wrap; }
   .kicker { font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
   .matched { font-size: 13.5px; color: var(--muted); margin-top: 6px; }
+  .cta3d { display: flex; gap: 10px 14px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+  .cta3d .primary { padding: 10px 20px; }
+  .cta3d .muted { font-size: 13.5px; }
   .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
   @media (max-width: 1000px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (max-width: 520px) { .tiles { grid-template-columns: minmax(0, 1fr); } }
@@ -357,25 +398,25 @@
   .tile li { font-size: 13px; margin-top: 4px; overflow-wrap: anywhere; }
   .whyrow, .actrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; align-items: center; }
   .whyrow .label { margin-right: 4px; }
-  .why { border: 1px solid var(--blue); background: var(--blue-bg); color: var(--blue); border-radius: 999px; padding: 6px 13px; font-size: 13.5px; cursor: pointer; }
-  .why:hover { background: var(--sheet); }
+  .why { border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); border-radius: 999px; padding: 6px 13px; font-size: 13.5px; cursor: pointer; }
+  .why:hover { border-color: var(--accent); color: var(--accent); }
   .footnote { margin-top: 22px; font-size: 13px; color: var(--muted); }
 
   .chip { display: inline-flex; align-items: center; font: 500 10.5px/1.5 var(--mono) !important; padding: 0 7px !important; border-radius: 999px; border: 1px solid transparent !important;
           white-space: nowrap; vertical-align: 1px; margin-left: 4px; cursor: help; text-decoration: none !important; }
-  .chip-run { color: var(--blue) !important; background: var(--blue-bg) !important; }
-  .chip-replay { color: var(--amber) !important; background: var(--amber-bg) !important; }
-  .chip-expert { color: var(--green) !important; background: var(--green-bg) !important; }
-  .chip-nc { color: var(--muted) !important; background: var(--sheet-2) !important; border-color: var(--rule) !important; }
+  .chip-run { color: var(--run-fg) !important; background: var(--run-bg) !important; }
+  .chip-replay { color: var(--rep-fg) !important; background: var(--rep-bg) !important; }
+  .chip-expert { color: var(--exp-fg) !important; background: var(--exp-bg) !important; }
+  .chip-nc { color: var(--nc-fg) !important; background: var(--nc-bg) !important; border-color: var(--nc-rule) !important; }
   .term { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: help; border-bottom: 1px dotted currentColor; border-radius: 0; text-align: inherit; }
-  .term:hover { color: var(--blue); }
+  .term:hover { color: var(--accent); }
   #glossTip { position: fixed; z-index: 1000; max-width: min(340px, calc(100vw - 24px)); background: var(--ink); color: var(--sheet); padding: 9px 12px; border-radius: 6px;
-              font: 400 13px/1.45 var(--sans); box-shadow: 0 8px 24px rgba(0,0,0,.3); pointer-events: none; }
+              font: 400 13px/1.45 var(--sans); box-shadow: 0 8px 24px rgba(0,0,0,.25); pointer-events: none; }
   #glossTip b { display: block; margin-bottom: 2px; }
 
   dialog.modal { width: min(760px, calc(100vw - 24px)); max-height: calc(100vh - 32px); border: 1px solid var(--rule); background: var(--sheet); color: var(--ink);
-                 padding: 0; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
-  dialog.modal::backdrop { background: rgba(10, 12, 16, .5); }
+                 padding: 0; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+  dialog.modal::backdrop { background: rgba(20, 20, 22, .45); }
   dialog.drawer { margin: 0 0 0 auto; height: 100vh; max-height: 100vh; width: min(500px, 100vw); border-radius: 0; }
   .dlg-head { position: sticky; top: 0; z-index: 2; display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--rule); background: var(--sheet); }
   .dlg-head h2 { margin: 0; font: 600 21px/1.25 var(--serif); }
@@ -385,10 +426,13 @@
   .dlg-body ul { padding-left: 18px; margin: 4px 0; } .dlg-body li { margin-top: 3px; }
   .xbtn { border: 1px solid var(--rule); background: var(--sheet); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 13px; }
   dialog.drawer #tabChat { margin: 0; border: 0; box-shadow: none; }
-  #flowSite { height: min(460px, 60vh); }
+  #flowSite, #flowMol { height: min(460px, 60vh); }
   .legend3d { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; margin-top: 10px; }
-  .legend3d .ball { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--blue); vertical-align: -1px; margin-right: 5px; }
+  .legend3d .ball { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--carbon); vertical-align: -1px; margin-right: 5px; }
   .legend3d .stick { display: inline-block; width: 18px; height: 4px; border-radius: 2px; background: var(--mm); vertical-align: 3px; margin-right: 5px; }
+  .legend3d .ribbon { display: inline-block; width: 22px; height: 7px; border-radius: 3px; background: linear-gradient(90deg, #d7514a, #e0c34a, #5fb46a, #4f7fd0); vertical-align: 1px; margin-right: 5px; opacity: .85; }
+  .legend3d .qmstick { display: inline-block; width: 18px; height: 6px; border-radius: 3px; background: var(--carbon); vertical-align: 2px; margin-right: 5px; }
+  .legend3d .metal { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #3fbf4f; vertical-align: -1px; margin-right: 5px; }
   @media (prefers-reduced-motion: reduce) { .switch .knob, .switch .knob::after, .qcase { transition: none !important; } }
 </style>
 </head>
@@ -401,7 +445,7 @@
     if (expert) document.body.classList.add("expert");
   })();
 </script>
-<header class="topbar">
+<header class="topbar" id="topbar">
   <div class="topbar-in">
     <span class="brand">Active<em>Site</em></span>
     <ol class="stepper" aria-label="Progress">
@@ -409,6 +453,7 @@
       <li><button type="button" id="step2" onclick="flowGo(2)" disabled><span class="n">2</span>Agents work</button></li>
       <li><button type="button" id="step3" onclick="flowGo(3)" disabled><span class="n">3</span>Result</button></li>
     </ol>
+    <nav class="secnav" id="secnav" aria-label="Sections"></nav>
     <div class="top-right">
       <button type="button" class="switch" id="expertSwitch" role="switch" aria-checked="false" onclick="setExpert(!document.body.classList.contains('expert'))"
               title="Expert view shows every panel: pipeline, lifecycle, live trace, all decision cards, memory, SQL, ChimeraX"><span class="knob"></span>Expert view</button>
@@ -459,10 +504,13 @@
     <div class="kicker" id="s3kicker"></div>
     <h1 id="s3h" class="headline" tabindex="-1" data-prov="mixed"></h1>
     <div class="matched" id="s3matched" hidden></div>
+    <div class="cta3d">
+      <button type="button" class="primary" id="flowView3d" onclick="open3D()">View in 3D</button>
+      <span class="muted">the agents' quantum region, drawn on the structure</span>
+    </div>
     <div class="tiles" id="flowTiles"></div>
     <div class="whyrow" id="flowWhy"></div>
     <div class="actrow">
-      <button type="button" class="secondary" onclick="open3D()">See the active site in 3D</button>
       <button type="button" class="secondary" onclick="openReport()">Read the report</button>
       <button type="button" class="secondary" onclick="openChat()">Ask the AI chemist</button>
       <button type="button" class="secondary" onclick="flowGo(1)">Start over</button>
@@ -478,12 +526,19 @@
 <dialog class="modal" id="dlg3d" aria-labelledby="dlg3dTitle">
   <div class="dlg-head"><h2 id="dlg3dTitle">The active site in 3D</h2><button type="button" class="xbtn" onclick="this.closest('dialog').close()">Close</button></div>
   <div class="dlg-body">
-    <div class="chamber" id="flowSite"><span class="corner" style="top:8px;left:10px" id="flowSiteCorner"></span><span class="corner" style="bottom:8px;right:10px">DRAG TO TURN · SCROLL TO ZOOM</span></div>
+    <div class="seg" role="group" aria-label="3D style" style="margin-bottom:8px">
+      <button type="button" data-frep="ribbon" aria-pressed="true" onclick="setFlowRep('ribbon')">Ribbon</button>
+      <button type="button" data-frep="atoms" aria-pressed="false" onclick="setFlowRep('atoms')">Atoms</button>
+    </div>
+    <p class="cap3d" id="flowCaption" style="margin:0 0 8px"></p>
+    <div class="molbox" id="flowMol"><div class="loading" id="flowMolLoading">Loading the structure…</div></div>
+    <div class="chamber hidden" id="flowSite"><span class="corner" style="top:8px;left:10px" id="flowSiteCorner"></span><span class="corner" style="bottom:8px;right:10px">DRAG TO TURN · SCROLL TO ZOOM</span></div>
+    <div class="note3d hidden" id="flowMsg"></div>
     <div class="legend3d" id="flowLegend"></div>
     <div class="legend3d" id="flowLegendEls"></div>
     <div class="vwarn hidden" id="flowVwarn"></div>
     <div id="flowPieces" style="margin-top:10px;font-size:13.5px"></div>
-    <details style="margin-top:10px"><summary>Where this picture comes from</summary><div class="vsrc" id="flowVsrc"></div></details>
+    <details class="det"><summary>Details</summary><div class="det-body" id="flowVsrc"></div></details>
   </div>
 </dialog>
 <dialog class="modal drawer" id="dlgChat" aria-label="AI chemist chat">
@@ -493,12 +548,12 @@
 <div id="glossTip" role="tooltip" hidden></div>
 
 <div class="layout">
-<main>
-  <header class="masthead reveal">
-    <svg width="54" height="54" viewBox="0 0 54 54" aria-hidden="true">
+<div class="col col-main">
+  <header class="masthead reveal xo0">
+    <svg width="44" height="44" viewBox="0 0 54 54" aria-hidden="true">
       <circle cx="27" cy="27" r="21" fill="none" stroke="currentColor" stroke-width="2.5" />
       <circle cx="27" cy="27" r="9" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2 3" />
-      <circle cx="27" cy="27" r="4" fill="var(--blue)" /><circle cx="45" cy="18" r="3.5" fill="var(--green)" /><circle cx="12" cy="40" r="3.5" fill="var(--amber)" />
+      <circle cx="27" cy="27" r="4" fill="var(--accent)" /><circle cx="45" cy="18" r="3.5" fill="var(--muted)" /><circle cx="12" cy="40" r="3.5" fill="var(--muted)" />
     </svg>
     <div>
       <h1>Active<em>Site</em><span class="track">Track 02: Explainable Agents</span></h1>
@@ -506,172 +561,192 @@
     </div>
     <div class="readouts">
       <span class="readout grey" id="engineReadout"><span id="engineBadgeDot" class="dot"></span><span id="engineBadge">engine: not run yet</span></span>
-      <span class="readout blue">data layer: catalog-STANDIN (DuckDB)</span>
-      <span class="readout green">AmberTools 26 / xtb · Meterless H-MEM</span>
+      <details class="det"><summary>Details</summary><div class="det-body">
+        <span class="readout plain">data layer: catalog-STANDIN (DuckDB)</span>
+        <span class="readout plain">AmberTools 26 / xtb · Meterless H-MEM</span>
+      </div></details>
     </div>
   </header>
 
-  <div class="section-title reveal" style="--d:1"><span class="no">01</span><h2>Benchmark cases</h2><span class="aside">zero-key evaluation · pick one, or write a request</span></div>
-  <div class="cases reveal" style="--d:1" id="caseButtons">
-    <button type="button" class="case" onclick="selectCase('ippoi_site_a')" data-case="ippoi_site_a"><span class="k">metal + DNA</span><span class="t">I-PpoI site A</span><span class="q">Mg:371 &bull; cold run</span></button>
-    <button type="button" class="case" onclick="selectCase('ippoi_site_b')" data-case="ippoi_site_b"><span class="k">metal + DNA</span><span class="t">I-PpoI site B</span><span class="q">Mg:372 &bull; warm run</span></button>
-    <button type="button" class="case" onclick="selectCase('egfr_erlotinib')" data-case="egfr_erlotinib"><span class="k">drug in pocket</span><span class="t">EGFR + Erlotinib</span><span class="q">PDB 1M17 &bull; pH 7.4</span></button>
-    <button type="button" class="case" onclick="selectCase('abl_imatinib_a')" data-case="abl_imatinib_a"><span class="k">drug in pocket</span><span class="t">ABL + Imatinib</span><span class="q">PDB 2HYY &bull; Chain B</span></button>
-  </div>
-
-  <section class="sheet request reveal" style="--d:2">
-    <label class="label" for="promptInput">Conversational setup request</label>
-    <textarea id="promptInput" rows="3" placeholder="e.g. Set up a QM/MM model for I-PpoI active site A (Mg :371) and explain every setup choice."></textarea>
-    <div class="toggles">
-      <label><input type="checkbox" id="sampleModeToggle" checked> <span>Offline Sample Mode</span></label>
-      <label><input type="checkbox" id="mdToggle"> <span>Run 1 ps QM/MM MD (100 frames)</span></label>
+  <section class="xsec xo1" id="secSetup" aria-labelledby="secSetupH">
+    <div class="section-title"><h2 id="secSetupH">Benchmark cases</h2><span class="aside">pick a case, or describe your own · no API keys needed</span></div>
+    <div class="cases" id="caseButtons">
+      <button type="button" class="case" onclick="selectCase('ippoi_site_a')" data-case="ippoi_site_a"><span class="k">metal + DNA</span><span class="t">I-PpoI site A</span><span class="q">Mg 371 &bull; memory empty</span></button>
+      <button type="button" class="case" onclick="selectCase('ippoi_site_b')" data-case="ippoi_site_b"><span class="k">metal + DNA</span><span class="t">I-PpoI site B</span><span class="q">Mg 372 &bull; reuses site A's lesson</span></button>
+      <button type="button" class="case" onclick="selectCase('egfr_erlotinib')" data-case="egfr_erlotinib"><span class="k">drug in pocket</span><span class="t">EGFR + Erlotinib</span><span class="q">PDB 1M17 &bull; pH 7.4</span></button>
+      <button type="button" class="case" onclick="selectCase('abl_imatinib_a')" data-case="abl_imatinib_a"><span class="k">drug in pocket</span><span class="t">ABL + Imatinib</span><span class="q">PDB 2HYY &bull; Chain B</span></button>
     </div>
-    <div class="runbar">
-      <button class="run" id="runBtn" type="button" onclick="runSimulation()"><span class="led"></span><span>Run Autonomous Setup &amp; Explanation</span></button>
-      <button class="ghost" id="resetBtn" type="button" onclick="resetMemory()" title="Delete the H-MEM db and ledger so the next run is cold">Reset memory</button>
-      <span id="streamStatus" class="pill">Idle</span>
-    </div>
-  </section>
-
-  <div class="section-title"><span class="no">02</span><h2>Result</h2><span class="aside mono wrap-any" style="font-size:11.5px">Trace file: <a id="traceLink" href="#">none yet</a></span></div>
-  <section class="sheet hero">
-    <div>
-      <div class="label">QM/MM single point</div>
-      <div class="h-big" id="hTitle">No run yet</div>
-      <div class="h-val nc" id="metricEnergy">not computed</div>
-      <div class="h-sub mono" id="metricTotal">total: not computed</div>
-      <div class="metrics">
-        <div class="metric"><div class="k">Engine</div><div class="v" id="metricEngine">not run yet</div><div class="s" id="metricEngineTime">engine time: not computed</div></div>
-        <div class="metric"><div class="k">qmcharge / retries</div><div class="v" id="metricCharge">--</div><div class="s" id="metricRetries">retries: -- &bull; memory used: --</div></div>
-        <div class="metric"><div class="k">Catalog / model</div><div class="v" id="metricCatalog" style="color:var(--green)">--</div><div class="s" id="metricModel">model: --</div></div>
+    <div class="sheet request">
+      <label class="label" for="promptInput">Or describe your own system</label>
+      <textarea id="promptInput" rows="2" placeholder="e.g. Set up a QM/MM model for I-PpoI active site A (Mg :371) and explain every setup choice."></textarea>
+      <div class="toggles">
+        <label><input type="checkbox" id="sampleModeToggle" checked> <span>Sample mode (offline: replays a saved real run)</span></label>
+        <label><input type="checkbox" id="mdToggle"> <span>Also run 1 ps of molecular dynamics</span></label>
+      </div>
+      <div class="runbar">
+        <button class="run" id="runBtn" type="button" onclick="runSimulation()"><span class="led"></span><span>Run Autonomous Setup &amp; Explanation</span></button>
+        <button class="ghost" id="resetBtn" type="button" onclick="resetMemory()" title="Clear the agents' memory so the next run starts with nothing remembered">Reset memory</button>
+        <span id="streamStatus" class="pill">Idle</span>
       </div>
     </div>
-    <div>
-      <div class="label" id="vTitle">Accuracy check</div>
-      <div id="validation" style="margin-top:8px"><div class="empty">Checks and validation appear here after a run.</div></div>
-    </div>
   </section>
 
-  <div class="section-title"><span class="no">03</span><h2>Evidence</h2><span class="aside">every choice, its evidence and its source</span></div>
-  <nav class="tabs" aria-label="Result views">
-    <button type="button" class="tab on" onclick="switchTab('cards')" id="tabBtnCards">Decision Cards <span class="n">(<span id="cardsCount">0</span>)</span></button>
-    <button type="button" class="tab" onclick="switchTab('chat')" id="tabBtnChat">AI Biochemist Chat</button>
-    <button type="button" class="tab" onclick="switchTab('structure')" id="tabBtnStructure">3D Structure</button>
-    <button type="button" class="tab" onclick="switchTab('report')" id="tabBtnReport">Report</button>
-    <button type="button" class="tab" onclick="switchTab('memory')" id="tabBtnMemory">What the system remembers</button>
-    <button type="button" class="tab" onclick="switchTab('sql')" id="tabBtnSql">SQL sent through the data layer</button>
-    <span class="tab-actions">
-      <button type="button" class="btn dark" id="launchChimeraXBtn" onclick="launchChimeraX()">Launch ChimeraX (3D)</button>
-      <button type="button" class="btn" id="cxcDownloadBtn" onclick="downloadChimeraXScript()" title="Download this run's ChimeraX script (.cxc)">ChimeraX script (.cxc)</button>
-    </span>
-  </nav>
-
-  <section id="tabCards" class="panel">
-    <div id="cardsList" class="cards"><div class="sheet empty" style="grid-column:1/-1">No run yet. Decision Cards appear when the Explainer finishes.</div></div>
-  </section>
-
-  <span id="chatHome" hidden></span>
-  <section id="tabChat" class="panel sheet pad hidden">
-    <div class="chat-head">
+  <section class="xsec xo3" id="secResult" aria-labelledby="secResultH">
+    <div class="section-title"><h2 id="secResultH">Result</h2></div>
+    <div class="sheet hero">
       <div>
-        <h3>AI Biochemist</h3>
-        <div class="muted" style="font-size:12.5px">Computational chemistry reasoning &amp; Decision Card auditor. Numbers not carried by a run are marked <span class="flag">⚠ not from a run</span>.</div>
+        <div class="label">QM/MM energy (single point)</div>
+        <div class="h-big" id="hTitle">No run yet</div>
+        <div class="h-sub" id="metricEnergyK">Energy of the quantum part</div>
+        <div class="h-val nc" id="metricEnergy">not computed</div>
+        <div class="h-sub" id="metricTotal">whole system: not computed</div>
+        <div class="metrics">
+          <div class="metric"><div class="k">Engine</div><div class="v" id="metricEngine">not run yet</div></div>
+          <div class="metric"><div class="k">Charge of the quantum region</div><div class="v" id="metricCharge">--</div><div class="s" id="metricRetries">corrections: -- &bull; memory used: --</div></div>
+        </div>
+        <details class="det" id="resultDet"><summary>Details</summary><div class="det-body">
+          <span>run: <span id="metricRunId">none yet</span></span>
+          <span>trace file: <a id="traceLink" href="#">none yet</a></span>
+          <span id="metricEngineTime">engine time: not computed</span>
+          <span>data layer: <span id="metricCatalog">--</span></span>
+          <span id="metricModel">model: --</span>
+        </div></details>
       </div>
-      <span class="readout grey" id="chatModelChip">model: shown after the first reply</span>
-    </div>
-    <div style="margin-top:10px">
-      <span class="label">Quick inquiries</span>
-      <div class="quick">
-        <button type="button" onclick="sendQuickQuery('Can you explain the result of my previous run to me? What does it implies and how accurate is it?')">📊 Explain my last run in plain words</button>
-        <button type="button" onclick="sendQuickQuery('Set up a QM/MM model for DNA phosphodiester bond cleavage at the active site of the EcoRV restriction endonuclease, including its catalytic Mg²⁺ ion, and calculate the QM/MM energy using the PM6 semiempirical method for the QM region.')">🧬 Can it set up EcoRV? (unsupported case)</button>
-        <button type="button" onclick="sendQuickQuery('Why is ESCF positive while total energy is negative? Explain the energy decomposition and units.')">⚡ Why is the quantum-part energy positive but the total negative?</button>
-        <button type="button" onclick="sendQuickQuery('Why did you choose Chain B over Chain A in 2HYY?')">🔗 Why that copy of the ABL protein (chain B, not A)?</button>
-        <button type="button" onclick="sendQuickQuery('Explain why His361 was overridden from HIP to HIE in ABL kinase.')">🧪 Why did histidine 361 lose a proton?</button>
-        <button type="button" onclick="sendQuickQuery('What happened to Met769 hinge contact?')">🎯 What happened to the drug's contact with methionine 769?</button>
-        <button type="button" onclick="sendQuickQuery('Set up a QM/MM model for β-lactam ring opening during benzylpenicillin hydrolysis at the active site of TEM-1 β-lactamase (Ser70)')">💊 Can it set up TEM-1? (unsupported case)</button>
+      <div>
+        <div class="label" id="vTitle">Accuracy check</div>
+        <div id="validation" style="margin-top:8px"><div class="empty">Checks and validation appear here after a run.</div></div>
       </div>
-    </div>
-    <div id="chatHistory">
-      <div class="msg ai">Hello! I am your AI Biochemist. Ask why the agents made a choice, what a number means, or where it came from. Numbers that do not come from a run are marked <span class="flag">⚠ not from a run</span>.</div>
-    </div>
-    <div class="chat-input">
-      <input type="text" id="chatInput" placeholder="Ask about protonation, QM/MM partition, MD dynamics…" onkeydown="if(event.key==='Enter') sendChatMessage()">
-      <button type="button" class="run" id="chatSendBtn" onclick="sendChatMessage()" style="padding:9px 18px">Send</button>
     </div>
   </section>
 
-  <section id="tabStructure" class="panel sheet pad hidden">
+  <section class="xsec xo5 sheet pad" id="sec3d" aria-labelledby="sec3dH">
     <div class="viewer-head">
       <div>
-        <h3>Interactive 3D Molecular Viewer <span id="structureBadge" class="badge blue" style="vertical-align:3px">Three.js active site</span></h3>
-        <div id="structureSubTitle" class="muted wrap-any" style="font-size:12.5px">No structure loaded yet.</div>
+        <h2 id="sec3dH">3D Structure</h2>
+        <p id="structureSubTitle" class="cap3d">No structure loaded yet.</p>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button type="button" class="btn" onclick="toggleSpin()" id="spinBtn">Spin</button>
-        <button type="button" class="btn" onclick="resetView()">Center</button>
-        <button type="button" class="btn on" data-rep="site" onclick="setRepresentation('site')">Active site</button>
-        <button type="button" class="btn" data-rep="cartoon" onclick="setRepresentation('cartoon')">Cartoon</button>
-        <button type="button" class="btn" data-rep="stick" onclick="setRepresentation('stick')">Sticks</button>
-        <button type="button" class="btn" data-rep="surface" onclick="setRepresentation('surface')">Surface</button>
-        <button type="button" class="btn dark" onclick="launchChimeraX()">ChimeraX Desktop</button>
+      <div class="seg" role="group" aria-label="3D style">
+        <button type="button" data-rep="ribbon" aria-pressed="true" onclick="setRepresentation('ribbon')">Ribbon</button>
+        <button type="button" data-rep="atoms" aria-pressed="false" onclick="setRepresentation('atoms')">Atoms</button>
       </div>
     </div>
-    <div class="chamber big" id="tabSite">
-      <span class="corner" style="top:8px;left:10px" id="tabSiteCorner">QM = BALLS · MM POCKET = STICKS</span>
-      <span class="corner" style="bottom:8px;right:10px">DRAG · SCROLL TO ZOOM</span>
+    <div class="viewer-tools">
+      <span class="label">more</span>
+      <button type="button" class="btn" data-rep="cartoon" onclick="setRepresentation('cartoon')">Cartoon</button>
+      <button type="button" class="btn" data-rep="stick" onclick="setRepresentation('stick')">Sticks</button>
+      <button type="button" class="btn" data-rep="surface" onclick="setRepresentation('surface')">Surface</button>
+      <span class="sep" aria-hidden="true"></span>
+      <button type="button" class="btn" onclick="toggleSpin()" id="spinBtn">Spin</button>
+      <button type="button" class="btn" onclick="resetView()">Center</button>
+      <span class="sep" aria-hidden="true"></span>
+      <button type="button" class="btn dark" id="launchChimeraXBtn" onclick="launchChimeraX()">Launch ChimeraX</button>
+      <button type="button" class="btn" id="cxcDownloadBtn" onclick="downloadChimeraXScript()" title="Download this run's ChimeraX script (.cxc)">ChimeraX script (.cxc)</button>
     </div>
-    <div id="molViewer" class="hidden">
-      <div id="molViewerLoading">Initializing 3D molecular coordinates…</div>
-    </div>
-    <div class="legend" id="tabLegend" style="margin-top:8px"></div>
-    <div class="vsrc" id="tabVsrc"></div>
-    <div class="vwarn hidden" id="tabVwarn"></div>
-    <div class="muted" style="font-size:11.5px;margin-top:8px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
-      <span><b>Mouse:</b> drag to rotate · scroll to zoom · (Cartoon / Sticks / Surface: full protein, 3Dmol.js Active; right-drag to translate)</span>
-      <span id="molAtomCount" class="mono"></span>
-    </div>
-  </section>
-
-  <section id="tabReport" class="panel sheet pad hidden"><div id="reportContent" class="md"><div class="empty">No report generated yet.</div></div></section>
-
-  <section id="tabMemory" class="panel sheet pad hidden">
-    <div class="label">Meterless H-MEM memories and ledger</div>
-    <p class="muted" style="font-size:13px;margin:6px 0 10px">The store starts empty. A row appears only after the Critic learns something from a converged retry; the ledger below is append-only.</p>
-    <div id="memoryContent" class="scroll-x"></div>
-    <details style="margin-top:12px"><summary>Ledger (last 50 lines)</summary><pre id="ledgerContent"></pre></details>
-  </section>
-
-  <section id="tabSql" class="panel sheet pad hidden">
-    <div class="label">SQL sent through the data layer</div>
-    <p id="sqlLabel" class="muted" style="font-size:13px;margin:6px 0 4px">No run yet.</p>
-    <div id="sqlContent"></div>
-  </section>
-</main>
-
-<aside class="live">
-  <section class="sheet pad reveal" style="--d:1">
-    <div class="head"><span class="label">Pipeline · agents at work</span><span class="label" style="letter-spacing:.04em" id="pipelineAgent"></span></div>
-    <div class="pipeline" id="pipeline"></div>
-    <div class="handoff" id="handoff">no handoff yet</div>
-  </section>
-  <section class="sheet pad reveal" style="--d:2">
-    <div class="head"><span class="label">Active site · 3D</span><span class="legend" id="liveLegend"></span></div>
-    <div class="chamber" id="liveSite" style="margin-top:10px">
+    <div class="chamber big hidden" id="liveSite">
       <span class="corner" style="top:8px;left:10px" id="liveSiteCorner">QM = BALLS · MM POCKET = STICKS</span>
       <span class="corner" style="bottom:8px;right:10px">DRAG · SCROLL TO ZOOM</span>
     </div>
-    <div class="vsrc" id="liveVsrc">loading 3D…</div>
+    <div id="molViewer" class="molbox" role="img" aria-label="Interactive 3D Molecular Viewer">
+      <div id="molViewerLoading" class="loading">Loading the structure…</div>
+    </div>
+    <div class="note3d hidden" id="liveMsg"></div>
+    <div class="legend3d" id="ribbonLegend"></div>
+    <div class="legend hidden" id="liveLegend" style="margin-top:8px"></div>
     <div class="vwarn hidden" id="liveVwarn"></div>
+    <div class="muted" style="font-size:11.5px;margin-top:8px">
+      <span><b>Mouse:</b> drag to rotate · scroll to zoom · right-drag to move (Ribbon, Cartoon, Sticks, Surface)</span>
+    </div>
+    <details class="det"><summary>Details</summary><div class="det-body">
+      <span>drawn as: <span id="structureBadge">ribbon · 3Dmol.js</span></span>
+      <span id="liveVsrc">loading 3D…</span>
+      <span id="molAtomCount"></span>
+    </div></details>
   </section>
-  <section class="sheet pad reveal" style="--d:3">
-    <div class="head"><span class="label">Setup lifecycle</span><span class="label" id="stageCount"></span></div>
+
+  <section class="xsec xo6 sheet" id="secReport" aria-label="Report">
+    <details class="fold" open>
+      <summary>Report <span class="aside">written by the Explainer agent from this run</span></summary>
+      <div class="fold-body"><div id="reportContent" class="md"><div class="empty">No report generated yet.</div></div></div>
+    </details>
+  </section>
+</div>
+
+<div class="col col-side">
+  <section class="xsec xo2 sheet pad" id="secPipeline" aria-labelledby="secPipelineH">
+    <div class="head"><span class="label" id="secPipelineH">Pipeline · agents at work</span><span class="label" style="letter-spacing:.04em" id="pipelineAgent"></span></div>
+    <div class="pipeline" id="pipeline"></div>
+    <div class="handoff" id="handoff">no handoff yet</div>
+    <div class="head" style="margin-top:10px"><span class="label">Setup lifecycle</span><span class="label" id="stageCount"></span></div>
     <div id="stages"><div class="empty" style="padding:10px">Stages appear as the agents report them.</div></div>
   </section>
-  <section class="sheet pad reveal" style="--d:4">
-    <div class="head"><span class="label">Agent trace · live SSE</span><span class="label" id="eventCount"></span></div>
-    <div id="thoughtStream"><div class="placeholder">Waiting for a run. Each line below arrives from the server as the agent acts; nothing is pre-filled.</div></div>
+
+  <section class="xsec xo4 sheet" id="secCards" aria-label="Decision cards">
+    <details class="fold" id="cardsFold">
+      <summary>Why: decision cards <span class="cnt">(<span id="cardsCount">0</span>)</span><span class="aside">every choice, its evidence and its source</span></summary>
+      <div class="fold-body"><div id="cardsList" class="cards"><div class="empty" style="grid-column:1/-1">No run yet. Decision Cards appear when the Explainer finishes.</div></div></div>
+    </details>
   </section>
-</aside>
+
+  <section class="xsec xo8 sheet" id="secTrace" aria-label="Agent trace">
+    <details class="fold" id="traceFold">
+      <summary>Agent trace <span class="cnt" id="eventCount">(0 events)</span><span class="aside">live feed from the server, nothing pre-filled</span></summary>
+      <div class="fold-body"><div id="thoughtStream"><div class="placeholder">Waiting for a run. Each line below arrives from the server as the agent acts; nothing is pre-filled.</div></div></div>
+    </details>
+  </section>
+
+  <section class="xsec xo7" id="secChat" aria-label="AI Biochemist chat">
+    <span id="chatHome" hidden></span>
+    <section id="tabChat" class="panel sheet pad">
+      <div class="chat-head">
+        <div>
+          <h3>AI Biochemist</h3>
+          <div class="muted" style="font-size:12.5px">Ask why the agents made a choice or what a number means. Numbers not carried by a run are marked <span class="flag">⚠ not from a run</span>.</div>
+        </div>
+        <span class="readout grey hidden" id="chatModelChip"></span>
+      </div>
+      <div style="margin-top:10px">
+        <span class="label">Quick inquiries</span>
+        <div class="quick">
+          <button type="button" onclick="sendQuickQuery('Can you explain the result of my previous run to me? What does it implies and how accurate is it?')">📊 Explain my last run in plain words</button>
+          <button type="button" onclick="sendQuickQuery('Set up a QM/MM model for DNA phosphodiester bond cleavage at the active site of the EcoRV restriction endonuclease, including its catalytic Mg²⁺ ion, and calculate the QM/MM energy using the PM6 semiempirical method for the QM region.')">🧬 Can it set up EcoRV? (unsupported case)</button>
+          <button type="button" onclick="sendQuickQuery('Why is ESCF positive while total energy is negative? Explain the energy decomposition and units.')">⚡ Why is the quantum-part energy positive but the total negative?</button>
+          <button type="button" onclick="sendQuickQuery('Why did you choose Chain B over Chain A in 2HYY?')">🔗 Why that copy of the ABL protein (chain B, not A)?</button>
+          <button type="button" onclick="sendQuickQuery('Explain why His361 was overridden from HIP to HIE in ABL kinase.')">🧪 Why did histidine 361 lose a proton?</button>
+          <button type="button" onclick="sendQuickQuery('What happened to Met769 hinge contact?')">🎯 What happened to the drug's contact with methionine 769?</button>
+          <button type="button" onclick="sendQuickQuery('Set up a QM/MM model for β-lactam ring opening during benzylpenicillin hydrolysis at the active site of TEM-1 β-lactamase (Ser70)')">💊 Can it set up TEM-1? (unsupported case)</button>
+        </div>
+      </div>
+      <div id="chatHistory">
+        <div class="msg ai">Hello! I am your AI Biochemist. Ask why the agents made a choice, what a number means, or where it came from. Numbers that do not come from a run are marked <span class="flag">⚠ not from a run</span>.</div>
+      </div>
+      <div class="chat-input">
+        <input type="text" id="chatInput" placeholder="Ask about protonation, QM/MM partition, MD dynamics…" onkeydown="if(event.key==='Enter') sendChatMessage()">
+        <button type="button" class="run" id="chatSendBtn" onclick="sendChatMessage()" style="padding:9px 18px">Send</button>
+      </div>
+    </section>
+  </section>
+
+  <section class="xsec xo9 sheet" id="secSql" aria-label="SQL">
+    <details class="fold" id="sqlFold">
+      <summary>SQL sent through the data layer <span class="cnt" id="sqlCount">(0 queries)</span></summary>
+      <div class="fold-body">
+        <p id="sqlLabel" class="muted" style="font-size:13px;margin:0 0 4px">No run yet.</p>
+        <div id="sqlContent"></div>
+      </div>
+    </details>
+  </section>
+
+  <section class="xsec xo10 sheet" id="secMemory" aria-label="Memory">
+    <details class="fold" id="memFold">
+      <summary>What the system remembers <span class="cnt" id="memCount"></span></summary>
+      <div class="fold-body">
+        <p class="muted" style="font-size:13px;margin:0 0 10px">Meterless H-MEM. The store starts empty. A row appears only after the Critic learns something from a converged retry; the ledger below is append-only.</p>
+        <div id="memoryContent" class="scroll-x"></div>
+        <details style="margin-top:12px"><summary>Ledger (last 50 lines)</summary><pre id="ledgerContent"></pre></details>
+      </div>
+    </details>
+  </section>
+</div>
 </div>
 
 <script>
@@ -687,6 +762,7 @@
   let chatHistoryList = [];
   let caseInfo = {};          // from GET /api/cases: kind, ligand, system per case id
   let lastStats = null;       // stats of the last finished run (mask, chain, case)
+  const runByCase = {};       // case id -> stats of the last finished run of that case (the 3D view draws its quantum region)
   let nodesDone = new Set();
   let stageState = new Map(); // action -> {state, text, n}
   let eventCount = 0;
@@ -728,7 +804,7 @@
     $("promptInput").value = PROMPTS[caseId] || "";
     document.querySelectorAll("#caseButtons button").forEach(b => b.classList.toggle("on", b.dataset.case === caseId));
     $("mdToggle").checked = (caseId === "egfr_erlotinib");
-    loadSiteScene([caseId], caseId, null);
+    loadStructureViewer(caseId, null);
   }
   $("promptInput").addEventListener("input", () => {
     activeCaseId = null;
@@ -779,7 +855,7 @@
     el.innerHTML = `<span class="t">${escapeHtml(ts)}</span><span class="a">${escapeHtml(e.agent_name)}</span> <span class="act">${escapeHtml(e.action)}</span> <span class="badge ${badge}">${escapeHtml(e.status)}</span> ${extra ? `<span class="x">${escapeHtml(extra)}</span>` : ""}<span class="sum">${escapeHtml(e.output_summary || "")}</span>`;
     stream.appendChild(el);
     stream.scrollTop = stream.scrollHeight;
-    $("eventCount").innerText = `${++eventCount} events`;
+    $("eventCount").innerText = `(${++eventCount} event${eventCount === 1 ? "" : "s"})`;
 
     const warn = bad || e.action === "diagnose";
     renderPipeline(e.agent_name, e.target_agent, String(e.action || "").replace(/_/g, " "), warn);
@@ -788,7 +864,9 @@
       const prev = stageState.get(e.action);
       let state = stageFrom(e);
       if (prev && prev.state === "error" && state === "ok") state = "warn";   // caught and fixed: amber, not green
-      stageState.set(e.action, {state, text: e.output_summary || "", n: (prev ? prev.n : 0) + 1});
+      // the lifecycle row says what happened in plain words; the raw summary (masks, file names) stays in the Agent trace
+      const plain = window.sentenceFor ? sentenceFor(e) : null;
+      stageState.set(e.action, {state, text: plain ? plain[1] : (prev ? prev.text : ""), n: (prev ? prev.n : 0) + 1});
       renderStages();
     }
 
@@ -803,27 +881,19 @@
       const link = $("traceLink");
       link.href = `/api/trace/${e.run_id}`;
       link.innerText = `trace-${e.run_id}.jsonl`;
+      $("metricRunId").innerText = e.run_id;
     }
     if (window.flowStep) flowStep(e);   // default view: same event, rewritten as a plain sentence
   }
 
   /* ---------- tabs ---------- */
+  // Expert view is one scrolling page now: "switching tab" means jumping to that section (and opening it if it is folded).
+  const SECTION_OF = {cards: "secCards", chat: "secChat", structure: "sec3d", report: "secReport", memory: "secMemory", sql: "secSql", trace: "secTrace"};
   function switchTab(tab) {
-    for (const t of ["Cards", "Chat", "Structure", "Report", "Memory", "Sql"]) {
-      const el = $("tab" + t), btn = $("tabBtn" + t);
-      if (el) el.classList.add("hidden");
-      if (btn) btn.classList.remove("on");
-    }
-    const T = tab.charAt(0).toUpperCase() + tab.slice(1);
-    if ($("tab" + T)) $("tab" + T).classList.remove("hidden");
-    if ($("tabBtn" + T)) $("tabBtn" + T).classList.add("on");
+    const sec = $(SECTION_OF[tab] || tab); if (!sec) return;
+    const fold = sec.querySelector("details.fold"); if (fold) fold.open = true;
     if (tab === "memory") loadMemory();
-    if (tab === "structure") {
-      setTimeout(() => {
-        if (molViewerInstance) { molViewerInstance.resize(); molViewerInstance.render(); }
-        loadStructureViewer(currentRunId || activeCaseId || "egfr_erlotinib");
-      }, 60);
-    }
+    goSection(sec.id);
   }
 
   /* ---------- result ---------- */
@@ -840,16 +910,24 @@
     const st = payload.stats || {};
     const res = payload.result || {};
     lastStats = st;
+    if (st.case) runByCase[st.case] = st;     // every 3D entry point for this case now draws the run's quantum region
     currentRunId = st.run_id || currentRunId;
     currentScriptPath = payload.chimerax_script || st.chimerax_script || null;
 
     $("hTitle").innerText = CASE_TITLES[st.case] || (caseInfo[st.case] || {}).system || st.case || "Run";
-    setNc($("metricEnergy"), res.qm_escf_kcal === null || res.qm_escf_kcal === undefined ? "not computed" : `${fmt(res.qm_escf_kcal, 3)} kcal/mol`);
-    $("metricTotal").innerText = "total: " + (res.total_energy_kcal === null || res.total_energy_kcal === undefined ? "not computed" : `${fmt(res.total_energy_kcal, 2)} kcal/mol`);
+    // every number carries its provenance chip, as on the result screen
+    const ep = engineProv(st, res.qm_escf_kcal), tp = engineProv(st, res.total_energy_kcal);
+    const eEl = $("metricEnergy");
+    eEl.classList.toggle("nc", ep === "nc");
+    eEl.innerHTML = (ep === "nc" ? "not computed" : `${escapeHtml(fmt(res.qm_escf_kcal, 3))} <small>${glossify("kcal/mol")}</small>`) + chip(ep);
+    $("metricTotal").innerHTML = `${glossify("whole system")}: ` + (tp === "nc" ? "not computed" : `${escapeHtml(fmt(res.total_energy_kcal, 2))} kcal/mol`) + chip(tp);
     setEngineBadge(st.engine_label || "engine unavailable");
     $("metricEngineTime").innerText = "engine time: " + (st.engine_time_s === null || st.engine_time_s === undefined ? "not computed" : `${st.engine_time_s} s`);
-    $("metricCharge").innerText = st.qmcharge === null || st.qmcharge === undefined ? "null" : (st.qmcharge >= 0 ? "+" : "") + st.qmcharge;
-    $("metricRetries").innerText = `retries: ${st.retries} • memory used: ${st.memory_used}`;
+    const q = signed(st.qmcharge);
+    $("metricCharge").innerHTML = (q === null ? "not computed" : escapeHtml(q)) + chip(q === null ? "nc" : "run");
+    const yes = (b) => b === true ? "yes" : b === false ? "no" : "not reported";
+    $("metricRetries").innerText = `corrections: ${isNum(st.retries) ? st.retries : "not reported"} • memory used: ${yes(st.memory_used)}`;
+    $("metricRunId").innerText = st.run_id || "none";
     $("metricCatalog").innerText = st.catalog || "--";
     $("metricModel").innerText = `model: ${st.model_mode} (${st.model_calls} calls)`;
     renderAccuracy(payload);
@@ -857,16 +935,56 @@
     $("cardsCount").innerText = (payload.cards || []).length;
     if (window.marked && payload.report_markdown) {
       $("reportContent").innerHTML = marked.parse(payload.report_markdown);
+      cleanReport($("reportContent"), payload.report_markdown, st);
+      glossifyDom($("reportContent"));
     } else {
       $("reportContent").innerText = payload.report_markdown || "No report generated yet.";
     }
     const sql = payload.sql || {};
     $("sqlLabel").innerText = `Adapter: ${st.catalog || "none"}`;
     const entries = Object.entries(sql);
+    $("sqlCount").innerText = `(${entries.length} quer${entries.length === 1 ? "y" : "ies"})`;
     $("sqlContent").innerHTML = entries.length ? entries.map(([k, v]) => `<div class="label" style="margin-top:10px">-- ${escapeHtml(k)}</div><pre>${escapeHtml(v)}</pre>`).join("") : `<div class="empty">No SQL was sent in this run.</div>`;
     if (st.errors && st.errors.length) appendStep({ts: new Date().toISOString(), agent_name: "Orchestrator", action: "engine", status: "failed", output_summary: st.errors.join("; ")});
-    loadSiteScene(structureIds(st), st.case, st);
+    loadStructureViewer(st.case, st);
     if (window.flowResult) flowResult(payload);
+  }
+
+  /* ---------- plain words on screen, technical detail one click away ---------- */
+  // Record-keeping tokens the server writes, said plainly where a chemist reads them. The raw text stays in a Details block.
+  const PLAIN_WORDS = [[/REMARK 465\/470/g, "missing-residue records"], [/(?<![A-Za-z_])qmcharge(?![A-Za-z_])/g, "charge of the quantum region"]];
+  const plainWords = (s) => PLAIN_WORDS.reduce((t, [re, w]) => t.replace(re, (m, off) => off === 0 ? w[0].toUpperCase() + w.slice(1) : w), String(s ?? ""));
+  // the one disclosure pattern: <details class="det"><summary>Details</summary> … </details>
+  const detHtml = (inner) => `<details class="det"><summary>Details</summary><div class="det-body">${inner}</div></details>`;
+  function detEl(inner) { const t = document.createElement("template"); t.innerHTML = detHtml(inner); return t.content.firstElementChild; }
+
+  // The server writes the report for the record (run id, file paths, atom masks, raw evidence JSON). On screen it reads
+  // plainly: raw parts fold behind Details, and the report exactly as written stays available at its end.
+  function cleanReport(root, md, st) {
+    const h1 = root.querySelector("h1");
+    if (h1) h1.textContent = "Report: " + (CASE_TITLES[st.case] || st.case || "this run");
+    for (const li of root.querySelectorAll("li")) {
+      const raw = /^Evidence:/.test(li.textContent.trim()) ||
+                  [...li.querySelectorAll("code")].some((c) => /[\/\\]|\.(?:jsonl|cxc|pdb|parm7|ncrst|nc)\b/i.test(c.textContent));
+      if (raw) { const inner = li.innerHTML; li.innerHTML = ""; li.appendChild(detEl(inner)); }
+    }
+    // a section that is only a file name (the trace) folds whole
+    for (const h2 of [...root.querySelectorAll("h2")]) {
+      if (!/^trace$/i.test(h2.textContent.trim())) continue;
+      const body = [];
+      for (let n = h2.nextElementSibling; n && n.tagName !== "H2"; n = n.nextElementSibling) body.push(n);
+      const d = detEl(`<span>trace file:</span>`); const box = d.querySelector(".det-body");
+      for (const n of body) box.appendChild(n);
+      h2.replaceWith(d);
+    }
+    for (const h3 of root.querySelectorAll("h3")) h3.textContent = h3.textContent.replace(/_/g, " ");
+    // skip only the raw blocks made above (the report itself may sit inside a folding <details>)
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {acceptNode: (n) => {
+      const raw = n.parentElement && n.parentElement.closest("details, pre, code");
+      return raw && root.contains(raw) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; }});
+    const texts = []; while (walker.nextNode()) texts.push(walker.currentNode);
+    for (const n of texts) { const p = plainWords(n.nodeValue); if (p !== n.nodeValue) n.nodeValue = p; }
+    root.appendChild(detEl(`<span>run: ${escapeHtml(st.run_id || "not reported")}</span><span>the report exactly as written (Markdown):</span><pre>${escapeHtml(md)}</pre>`));
   }
 
   // GET /api/structure/<run_id> only finds a file when the run wrote md/complex.pdb (an MD run); other runs use the case structure.
@@ -880,13 +998,14 @@
     let h = "";
     if (checks.length) {
       const passed = checks.filter(c => c.passed).length;
-      h += `<div class="label" style="margin-bottom:2px">checks ${passed}/${checks.length} passed</div>`;
-      h += checks.map(c => row(!!c.passed, `<b>${escapeHtml(c.name)}</b> <span class="muted">${escapeHtml(c.detail || "")}</span>`)).join("");
+      h += `<div class="label" style="margin-bottom:2px">safety checks ${passed}/${checks.length} passed ${chip("run")}</div>`;
+      h += checks.map(c => row(!!c.passed, `<b>${glossify(plainCheck(c.name))}</b> <span class="muted">${glossify(plainWords(c.detail || ""))}</span>`)).join("");
     }
     if (v && typeof v === "object" && "recovered" in v) {
       $("vTitle").innerText = "Binding mode vs published contacts";
       const rec = v.recovered || {};
       const n = Object.keys(rec).length;
+      h += `<div class="label" style="margin:8px 0 2px">compared with the published structure ${chip(isNum(v.published) ? "expert" : "nc")}</div>`;
       h += row(v.published === undefined || v.published === null ? null : n === v.published,
                `<b>${n}/${v.published ?? "not computed"}</b> published contacts present`);
       h += Object.entries(rec).map(([k, d]) => row(true, `${escapeHtml(k)} <span class="mono muted">${escapeHtml(d)} Å</span>`)).join("");
@@ -897,14 +1016,28 @@
       $("vTitle").innerText = "Agreement with the expert setup";
       const keys = Object.keys(v || {});
       if (v && v.expert_mask_present === false) h += row(null, "no expert setup on file for this case: agreement <b>not computed</b>");
+      // known keys in plain words; anything else is listed as the server named it. The raw values are under Details.
+      const PLAIN_VAL = {
+        jaccard: (x) => [null, `overlap with the expert's atoms: <b>${num(x, 2)}</b> (${glossify("Jaccard")}; 1.00 = identical)`],
+        expert_atoms: (x) => [null, `the expert's quantum region: ${escapeHtml(x)} atoms`],
+        charge_match: (x) => [x, x ? "charge matches the expert's" : "charge differs from the expert's"],
+        expert_qmcharge: (x) => [null, `the expert's charge: ${escapeHtml(signed(x) ?? "not computed")}`],
+        only_ours: (x) => [Array.isArray(x) ? x.length === 0 : null, `atoms only in the agents' region: ${Array.isArray(x) ? x.length : "not computed"}`],
+        only_expert: (x) => [Array.isArray(x) ? x.length === 0 : null, `atoms only in the expert's region: ${Array.isArray(x) ? x.length : "not computed"}`],
+      };
+      let plainRows = "";
       for (const k of keys) {
-        if (k === "expert_mask_present" && v[k] === false) continue;
+        if (k === "expert_mask_present") continue;
         const val = v[k];
-        const shown = val === null || val === undefined ? "not computed" : typeof val === "object" ? JSON.stringify(val) : String(val);
-        h += row(typeof val === "boolean" ? val : null, `${escapeHtml(k)}: <span class="mono">${escapeHtml(shown)}</span>`);
+        if (val === null || val === undefined) { plainRows += row(null, `${escapeHtml(k.replace(/_/g, " "))}: not computed`); continue; }
+        if (PLAIN_VAL[k]) { const [state, html] = PLAIN_VAL[k](val); plainRows += row(state, html); continue; }
+        const shown = typeof val === "object" ? JSON.stringify(val) : String(val);
+        plainRows += row(typeof val === "boolean" ? val : null, `${escapeHtml(k.replace(/_/g, " "))}: <span class="mono">${escapeHtml(shown)}</span>`);
       }
+      if (plainRows) h += `<div class="label" style="margin:8px 0 2px">compared with the lab expert ${chip("expert")}</div>` + plainRows;
       if (!keys.length) h += row(null, "validation: not computed");
     }
+    if (h && v && Object.keys(v).length) h += detHtml(`<pre>${escapeHtml(JSON.stringify(v, null, 1))}</pre>`);
     $("validation").innerHTML = h || `<div class="empty">This run carried no checks or validation.</div>`;
   }
 
@@ -912,7 +1045,7 @@
   function renderCards(cards) {
     const container = $("cardsList");
     container.innerHTML = "";
-    if (!cards.length) { container.innerHTML = `<div class="sheet empty" style="grid-column:1/-1">No cards were produced.</div>`; return; }
+    if (!cards.length) { container.innerHTML = `<div class="empty" style="grid-column:1/-1">No cards were produced.</div>`; return; }
     cards.forEach((card, idx) => {
       const el = document.createElement("div");
       el.className = "card " + confClass(card.confidence);
@@ -921,11 +1054,10 @@
       const alts = (card.alternatives || []).map(a => `<li><b>${escapeHtml(a.name)}</b>: ${escapeHtml(a.rejected_reason)}</li>`).join("");
       el.innerHTML = `
         <span class="c">confidence ${card.confidence === null || card.confidence === undefined ? "not computed" : Number(card.confidence).toFixed(2)}</span>
-        <div class="kk">${idx + 1}. ${escapeHtml(card.category)} · ${escapeHtml(card.target)}</div>
-        <div class="d">${escapeHtml(card.choice)}</div>
-        <div class="e">${escapeHtml(card.rationale)}</div>
-        <div class="s">source: ${escapeHtml(source)}</div>
-        <details><summary>Evidence</summary><pre>${escapeHtml(JSON.stringify(ev, null, 1))}</pre></details>
+        <div class="kk">${idx + 1}. ${escapeHtml(String(card.category || "").replace(/_/g, " "))} · ${escapeHtml(plainWords(card.target))}</div>
+        <div class="d">${escapeHtml(plainWords(card.choice))}</div>
+        <div class="e">${escapeHtml(plainWords(card.rationale))}</div>
+        ${detHtml(`<span>card: ${escapeHtml(card.decision_id || "not reported")}</span><span>evidence source: ${escapeHtml(source)}</span><pre>${escapeHtml(JSON.stringify(ev, null, 1))}</pre>`)}
         ${alts ? `<div class="alts"><div class="label">Rejected alternatives</div><ul>${alts}</ul></div>` : ""}`;
       container.appendChild(el);
     });
@@ -941,7 +1073,7 @@
     btn.innerHTML = `<span class="led"></span><span>Running…</span>`;
     setStatus("Starting…", "run-on");
     $("thoughtStream").innerHTML = "";
-    eventCount = 0; $("eventCount").innerText = "";
+    eventCount = 0; $("eventCount").innerText = "(0 events)";
     nodesDone = new Set(); stageState = new Map(); renderStages(); siteTone("");
     renderPipeline(null, null);
     if (window.flowBegin) flowBegin();
@@ -1069,11 +1201,12 @@
       aiMsg.className = "msg ai";
       aiMsg.innerHTML = thinkHtml + `<div class="md chat-md">${flagged}</div>` +
         (unv.length ? `<div class="unverified">⚠ ${unv.length} number(s) not from a run: ${escapeHtml(unv.join(", "))}</div>` : "") +
-        `<div class="foot"><span>${escapeHtml(data.model || "model not reported")}</span><span>${escapeHtml(data.source || "")} · unverified numbers: ${unv.length}</span></div>`;
+        detHtml(`<span>model: ${escapeHtml(data.model || "not reported")}</span><span>answered by: ${escapeHtml(data.source || "not reported")} · numbers not from a run: ${unv.length}</span>`);
       historyEl.appendChild(aiMsg);
       $("chatModelChip").innerText = `last reply: ${data.source || "source not reported"}`;
+      $("chatModelChip").classList.remove("hidden");
       $("chatModelChip").title = data.model || "";
-      $("chatModelChip").className = "readout " + (data.source === "nemotron" ? "blue" : "amber");
+      $("chatModelChip").className = "readout " + (data.source === "nemotron" ? "blue" : "amber");   // also drops "hidden"
     } catch (err) {
       if (loadingMsg) loadingMsg.remove();
       const errEl = document.createElement("div");
@@ -1154,21 +1287,27 @@
     } else if (stats && stats.mask) {
       note = `run mask ${String(stats.mask).slice(0, 40)}${String(stats.mask).length > 40 ? "…" : ""} indexes topology atoms; not mappable onto this file`;
     }
+    let focusKind = mode === "qm" ? "qm" : null;
     if (!focus.length) {
+      // No run region to draw: centre on the case's own metal ion or drug. Technical note only (shown under Details).
       let het = atoms.filter(a => a.het && !WATERS.has(a.resn));
       if (stats && stats.chain) { const c = het.filter(a => a.chain === stats.chain); if (c.length) het = c; }
-      if (het.length) {
-        const first = het[0];
-        const groupKey = (a) => `${a.resn}|${a.chain}|${a.resi}`;
-        const ligandKey = groupKey(het.find(a => !METALS.has(a.el)) || first);
-        const metals = het.filter(a => METALS.has(a.el));
-        focus = het.filter(a => groupKey(a) === ligandKey);
-        if (metals.length && METALS.has(first.el)) focus = metals.slice(0, 2);
-        mode = "het";
-        note = (note ? note + " · " : "") + `focus = HETATM ${[...new Set(focus.map(a => a.resn))].join(", ")} (not the run's QM region)`;
+      const info = caseInfo[caseId] || {};
+      const metals = het.filter(a => METALS.has(a.el));
+      const ligs = het.filter(a => !METALS.has(a.el));
+      const groupKey = (a) => `${a.resn}|${a.chain}|${a.resi}`;
+      if (metals.length && (info.kind === "metal" || !ligs.length)) {
+        focus = [metals.find(a => a.el === "Mg") || metals[0]];        // the catalytic Mg of the I-PpoI cases, not a structural Zn
+        focusKind = "metal";
+      } else if (ligs.length) {
+        const want = [String(info.ligand || "").toUpperCase(), "LIG"];
+        const key = groupKey(ligs.find(a => want.includes(a.resn.toUpperCase())) || ligs[0]);
+        focus = ligs.filter(a => groupKey(a) === key);
+        focusKind = "ligand";
       }
+      if (focus.length) { mode = "het"; note = (note ? note + " · " : "") + `centred on HETATM ${[...new Set(focus.map(a => a.resn))].join(", ")}`; }
     }
-    if (!focus.length) return {atoms: [], bonds: [], radius: 10, mode, note: note || "no ligand or metal in this file to centre on"};
+    if (!focus.length) return {atoms: [], bonds: [], radius: 10, mode, focusKind: null, note: note || "no HETATM ligand or metal in this file", focusSerials: []};
     const fset = new Set(focus);
     const near = 5.0 * 5.0;
     const resKey = (a) => `${a.chain}|${a.resi}|${a.resn}`;
@@ -1190,142 +1329,279 @@
       if (dx * dx + dy * dy + dz * dz < lim * lim) bonds.push([i, j]);
     }
     const radius = Math.sqrt(Math.max(...out.map(a => a.x * a.x + a.y * a.y + a.z * a.z)));
-    return {atoms: out, bonds, radius, mode, note};
+    return {atoms: out, bonds, radius, mode, focusKind, note, focusSerials: focus.map(a => a.serial).filter(Number.isFinite)};
   }
 
-  // Data-driven warning: the served file should contain this case's ligand or a metal ion.
+  // Data-driven warning: the structure should contain this case's drug or a metal ion. Plain line on screen; codes under Details.
   function mismatchWarning(pdb, caseId) {
     const info = caseInfo[caseId];
-    if (!info) return "";
+    if (!info) return {plain: "", tech: ""};
     const resn = new Set(pdb.atoms.map(a => a.resn.toUpperCase()));
-    if (info.kind === "metal" && !pdb.atoms.some(a => METALS.has(a.el))) return `The served file (${pdb.serialsTopology ? "lab topology (atom numbers = run)" : `PDB ${pdb.idcode || "no HEADER"}`}) contains no metal ion, so it is not the active site of ${caseId}; the server fell back to another structure.`;
-    if (info.kind === "ligand" && info.ligand && !resn.has(String(info.ligand).toUpperCase()) && !resn.has("LIG")) return `The served file has no ${info.ligand} or LIG residue, so it may not be this case's complex.`;
-    return "";
+    if (info.kind === "metal" && !pdb.atoms.some(a => METALS.has(a.el)))
+      return {plain: `This structure has no metal ion, so it is not the active site of ${siteName(caseId)}.`, tech: `no metal element in the file (${pdb.serialsTopology ? "lab topology" : `PDB ${pdb.idcode || "no HEADER"}`})`};
+    if (info.kind === "ligand" && info.ligand && !resn.has(String(info.ligand).toUpperCase()) && !resn.has("LIG"))
+      return {plain: "This structure does not contain the drug, so it may not be this case's complex.", tech: `no ${info.ligand} or LIG residue in the file`};
+    return {plain: "", tech: ""};
+  }
+  const SITE_NAMES = {ippoi_site_a: "I-PpoI active site A", ippoi_site_b: "I-PpoI active site B", egfr_erlotinib: "EGFR kinase with erlotinib",
+                      abl_imatinib_a: "ABL kinase with imatinib", abl_imatinib_b: "ABL kinase with imatinib (chain A)", ecorv_endonuclease: "EcoRV endonuclease"};
+  const siteName = (id) => SITE_NAMES[id] || CASE_TITLES[id] || (caseInfo[id] || {}).system || id || "this structure";
+  const andList = (xs) => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
+
+  // One caption line for the 3D view: what you are looking at, in plain words. Counts of the file, the source and the
+  // serial mapping are under Details. rep: "ribbon" | "atoms" | another 3Dmol style.
+  function caption3d(sc, rep) {
+    if (!sc) return "";
+    const parts = [escapeHtml(siteName(sc.caseId))];
+    const metals = sc.metalNames || [];
+    if (rep !== "ribbon" && rep !== "atoms") {
+      parts.push(`${escapeHtml({cartoon: "cartoon", stick: "all atoms as sticks", surface: "surface"}[rep] || rep)} view (Ribbon and Atoms highlight the agents' ${glossify("quantum region")})`);
+      return parts.join(" · ");
+    }
+    if (sc.mode === "qm") {
+      const n = sc.atoms.filter(a => a.qm).length;
+      parts.push(`agents' ${glossify("quantum region")} (${n} atoms)${chip("run")} ${rep === "atoms" ? "as balls" : "in sticks"}`);
+      if (rep === "atoms") parts.push("nearby pocket as thin sticks");
+    } else if (sc.focusKind === "metal") {
+      const m = (sc.atoms.find(a => a.qm) || {}).el || "metal";
+      parts.push(rep === "atoms" ? `the ${escapeHtml(m)} ion as a ball, nearby pocket as sticks` : `centred on the ${escapeHtml(m)} ion`);
+    } else if (sc.focusKind === "ligand") {
+      parts.push(rep === "atoms" ? "the drug as balls, nearby pocket as sticks" : "centred on the drug, in sticks");
+    }
+    if (rep === "ribbon" && metals.length) parts.push(`${escapeHtml(andList(metals))} as sphere${metals.length > 1 ? "s" : ""}`);
+    return parts.join(" · ");
+  }
+  // The plain message under the picture when the agents' region is not drawn.
+  function message3d(sc) {
+    if (!sc || sc.mode === "qm") return "";
+    if (!sc.atoms.length) return "This structure has no drug or metal ion to centre on.";
+    if (!sc.hasRun) return "Run the agents to see the quantum region they chose.";
+    return `The agents' quantum region could not be drawn on this structure, so the view is centred on the ${sc.focusKind === "metal" ? "metal ion" : "drug"}.`;
+  }
+  function renderCaption(P, rep) {
+    const sc = lastScene[P];
+    $(P === "flow" ? "flowCaption" : "structureSubTitle").innerHTML = caption3d(sc, rep) || "No structure loaded yet.";
+    const msg = message3d(sc), el = $(P + "Msg");
+    el.innerText = msg; el.classList.toggle("hidden", !msg);
   }
 
-  let lastScene = {live: null, tab: null};
+  let lastScene = {live: null, flow: null};
+  const lastPdb = {live: null, flow: null};      // the PDB text behind each scene, for the 3Dmol ribbon
   function withViews(cb) { if (window.ActiveSiteView) cb(window.ActiveSiteView); else window.addEventListener("activesite-three", () => cb(window.ActiveSiteView), {once: true}); }
-  function siteTone(t) { withViews(V => { V.live.tone(t); }); }
+  function siteTone(t) {
+    withViews(V => { V.live.tone(t); });
+    const mv = $("molViewer"); mv.className = mv.className.replace(/\btone-\S+/g, "").trim() + (t ? " tone-" + t : "");
+  }
 
-  function describe(served, pdb, scene) {
-    return `/api/structure/${served} · ${pdb.serialsTopology ? "lab topology (atom numbers = run)" : `PDB ${pdb.idcode || "no HEADER"}`}${pdb.klass ? " (" + pdb.klass.toLowerCase() + ")" : ""} · ${pdb.atoms.length} atoms · ${scene.atoms.filter(a => a.qm).length} focus + ${scene.atoms.filter(a => !a.qm).length} pocket shown`;
+  // Technical lines for the 3D Details block: where the file came from, what it holds, how the region was mapped.
+  function describe(served, pdb, scene, stats) {
+    const kind = pdb.serialsTopology ? "lab topology, 12 Å cut-out (atom numbers = run topology)" : `PDB ${pdb.idcode || "no HEADER"}`;
+    return [`file: /api/structure/${served}`, `contents: ${kind}${pdb.klass ? " (" + pdb.klass.toLowerCase() + ")" : ""}`,
+            `${pdb.atoms.length} atoms in the file · ${scene.atoms.filter(a => a.qm).length} highlighted + ${scene.atoms.filter(a => !a.qm).length} pocket atoms in the Atoms view`,
+            stats && stats.run_id ? `run: ${stats.run_id}${stats.mask ? ` · mask ${stats.mask}` : ""}` : "run: none yet for this case",
+            scene.note, scene.cutout ? "the ribbon is faded because a cut-out holds the chain in short pieces" : ""].filter(Boolean);
   }
 
   async function loadSiteScene(ids, caseId, stats, target) {
-    target = target || "live";
-    const P = target === "tab" || target === "flow" ? target : "live";
+    const P = target === "flow" ? "flow" : "live";   // Expert view has one 3D section now (the old live column + tab merged)
     try {
       const {id, text} = await fetchStructure(ids);
       const pdb = parsePDB(text);
       const scene = buildScene(pdb, stats, caseId);
-      scene.source = describe(id, pdb, scene);
-      lastScene[P] = scene;
-      $(P + "Vsrc").innerText = scene.source + (scene.note ? " · " + scene.note : "");
+      scene.caseId = caseId;
+      scene.hasRun = !!(stats && stats.run_id);
+      scene.hasMetal = pdb.atoms.some(a => METAL_RESN.includes(a.resn.toUpperCase()));
+      scene.metalNames = [...new Set(pdb.atoms.filter(a => METAL_RESN.includes(a.resn.toUpperCase())).map(a => a.el))];
+      scene.cutout = pdb.serialsTopology;
       const warn = mismatchWarning(pdb, caseId);
-      $(P + "Vwarn").innerText = warn; $(P + "Vwarn").classList.toggle("hidden", !warn);
-      $(P + "SiteCorner").innerText = scene.mode === "qm" ? "QM = BALLS · MM POCKET = STICKS" : "LIGAND/METAL = BALLS · POCKET = STICKS";
+      scene.source = describe(id, pdb, scene, stats).concat(warn.tech ? [warn.tech] : []);
+      lastScene[P] = scene; lastPdb[P] = text;
+      $(P + "Vsrc").innerHTML = scene.source.map(s => `<span>${escapeHtml(s)}</span>`).join("");
+      $(P + "Vwarn").innerText = warn.plain; $(P + "Vwarn").classList.toggle("hidden", !warn.plain);
+      $(P + "SiteCorner").innerText = scene.mode === "qm" ? "QM = BALLS · MM POCKET = STICKS" : "DRUG / METAL = BALLS · POCKET = STICKS";
+      renderCaption(P, P === "flow" ? flowRep : currentRepresentation);
       withViews(V => V[P].show(scene));
       return {id, pdb, text};
     } catch (err) {
+      lastScene[P] = null;
       $(P + "Vsrc").innerText = "3D unavailable: " + err.message;
-      withViews(V => V[P].clear("3D unavailable: " + err.message));
+      renderCaption(P, "ribbon");
+      withViews(V => V[P].clear("The 3D structure is not available for this case."));
       return null;
     }
   }
   window.addEventListener("activesite-theme", () => withViews(V => {
     if (lastScene.live) V.live.show(lastScene.live);
-    if (lastScene.tab) V.tab.show(lastScene.tab);
     if (lastScene.flow && V.flow) V.flow.show(lastScene.flow);
-    if (molViewerInstance) { molViewerInstance.setBackgroundColor(css("--chamber-b")); molViewerInstance.render(); }
+    if (molViewerInstance) { molViewerInstance.setBackgroundColor(css("--chamber-b")); applyRepresentation(currentRepresentation); }
+    if (flowMol) { flowMol.setBackgroundColor(css("--chamber-b")); styleRibbon(flowMol, lastScene.flow); flowMol.render(); }
   }));
 
-  /* ---------- 3D Structure tab: Three.js active site + 3Dmol.js full protein ---------- */
+  /* ---------- 3D: 3Dmol.js ribbon (default) or Three.js atoms. The run's QM atoms stay highlighted as sticks on the ribbon. ----------
+     Ribbon recipe (from Khang's branch): computeSecondaryStructure(), cartoon "spectrum" for polymer, sticks for ligands, spheres for metals. */
   let molViewerInstance = null;
   let isSpinning = false;
-  let currentStructureId = null;
-  let currentRepresentation = "site";
+  let currentRepresentation = "ribbon";
   let loadedPdbData = null;
+  let molDirty = false;
+  let flowMol = null, flowRep = "ribbon";
+  const METAL_RESN = ["MG", "MN", "ZN", "FE", "CA"];
+  const ELEM_HEX = {H: "#f2f2f2", N: "#3355e0", O: "#e2342a", P: "#ff8000", S: "#e0b63a", F: "#7fd03b", Cl: "#1fc01f", Br: "#a62929", I: "#940094",
+                    Mg: "#3fbf4f", Zn: "#7d80b0", Mn: "#9c7ac7", Ca: "#3dbf00", Fe: "#e06633", Na: "#ab5cf2", K: "#8f40d4"};
+  // element colours (CPK) with the theme's carbon, so QM sticks read on both light and dark backgrounds
+  function elemScheme() {
+    const map = {};
+    for (const [k, v] of Object.entries(ELEM_HEX)) { map[k] = parseInt(v.slice(1), 16); map[k.toUpperCase()] = map[k]; }
+    map.C = parseInt((css("--carbon") || "#3b3b3b").replace("#", ""), 16);
+    return {prop: "elem", map};
+  }
+  // A lab-topology file is a 12 Å cut-out with no HELIX/SHEET records, so its chain comes out in short pieces:
+  // draw it thin and faded there, and keep the QM sticks as the thing you see. Full crystal files get the full ribbon.
+  const RIBBON = {full: {color: "spectrum", opacity: 0.9}, cutout: {color: "spectrum", opacity: 0.5, thickness: 0.2, width: 0.8}};
+  function styleRibbon(v, scene) {
+    if (!v) return;
+    const cs = elemScheme();
+    v.setStyle({}, {});
+    v.setStyle({hetflag: false}, {cartoon: scene && scene.cutout ? RIBBON.cutout : RIBBON.full});
+    v.setStyle({hetflag: true, not: {resn: [...WATERS]}}, {stick: {radius: 0.22, colorscheme: cs}});
+    const S = (scene && scene.focusSerials) || [];
+    // addStyle (not setStyle): a QM atom that is also a backbone atom keeps its ribbon segment
+    if (S.length) v.addStyle({serial: S, not: {resn: METAL_RESN}}, {stick: {radius: 0.3, colorscheme: cs}, sphere: {scale: 0.25, colorscheme: cs}});
+    v.setStyle({resn: METAL_RESN}, {sphere: {radius: 0.9, colorscheme: cs}});
+  }
+  function zoomRibbon(v, scene) {
+    const S = (scene && scene.focusSerials) || [];
+    v.zoomTo(S.length ? {within: {distance: 12, sel: {serial: S}}} : {});
+  }
+  function ribbonLegendHtml(scene) {
+    const has = scene && (scene.focusSerials || []).length;
+    const sticks = !has ? "" : scene.mode === "qm"
+      ? `<span><span class="qmstick"></span>Sticks = the agents' ${glossify("quantum region")}</span>`
+      : `<span><span class="qmstick"></span>Sticks = the drug and other small molecules</span>`;
+    return `<span><span class="ribbon"></span>Ribbon = protein / DNA backbone (colour follows position along the chain)</span>` + sticks +
+           (scene && scene.hasMetal ? `<span><span class="metal"></span>Spheres = metal ions</span>` : "");
+  }
+  function renderRibbonLegend() {
+    const ribbon = currentRepresentation === "ribbon";
+    $("ribbonLegend").classList.toggle("hidden", !ribbon);
+    if (ribbon) $("ribbonLegend").innerHTML = ribbonLegendHtml(lastScene.live);
+  }
 
-  async function loadStructureViewer(targetId) {
-    if (!targetId) targetId = activeCaseId || "egfr_erlotinib";
-    currentStructureId = targetId;
-    const caseId = (lastStats && lastStats.run_id === targetId) ? lastStats.case : (activeCaseId || targetId);
-    const stats = (lastStats && (lastStats.run_id === targetId || lastStats.case === targetId)) ? lastStats : null;
-    // A run id has no PDB of its own unless the run wrote one; fall back to the case structure.
-    const ids = stats ? structureIds(stats) : [caseId];
-    const got = await loadSiteScene(ids, caseId, stats, "tab");
-    if (!got) { $("structureSubTitle").innerText = "No structure available."; return; }
+  async function loadStructureViewer(caseId, stats) {
+    caseId = caseId || activeCaseId || "egfr_erlotinib";
+    // opened from a case card or before this run finished: a finished run of the same case still decides the highlight
+    if (!stats || !stats.mask) stats = runByCase[caseId] || stats || null;
+    const ids = stats ? structureIds(stats) : [caseId];   // a run id has no PDB of its own unless the run wrote one
+    const got = await loadSiteScene(ids, caseId, stats, "live");
+    if (!got) { $("structureSubTitle").innerText = "No structure available."; $("molViewerLoading").style.display = "flex"; $("molViewerLoading").innerText = "No structure available."; return; }
     loadedPdbData = got.text;
-    const title = CASE_TITLES[caseId] || caseId;
-    $("structureSubTitle").innerText = `requested: ${title} · served: ${got.pdb.serialsTopology ? "lab topology" : `PDB ${got.pdb.idcode || "no HEADER"}`}${got.id !== targetId ? ` (via ${got.id})` : ""}`;
-    $("molAtomCount").innerText = `${got.pdb.atoms.length} atoms in file`;
-    if (currentRepresentation !== "site") render3Dmol();
+    $("molAtomCount").innerText = got.id !== caseId ? `structure from run ${got.id} (it wrote its own file)` : "";
+    renderRibbonLegend();
+    render3Dmol();
   }
 
   function render3Dmol() {
-    const container = $("molViewer");
     const loading = $("molViewerLoading");
+    // 3Dmol cannot size a hidden container: draw when Expert view (and a 3Dmol mode) is on screen
+    if (!document.body.classList.contains("expert") || currentRepresentation === "atoms") { molDirty = true; return; }
     try {
       if (!loadedPdbData) throw new Error("no structure loaded yet");
-      if (!window.$3Dmol) throw new Error("3Dmol.js WebGL library not loaded yet.");
-      if (!molViewerInstance) molViewerInstance = $3Dmol.createViewer(container, { backgroundColor: css("--chamber-b") || "white" });
+      if (!window.$3Dmol) throw new Error("3Dmol.js did not load (offline?). Use Atoms.");
+      if (!molViewerInstance) molViewerInstance = $3Dmol.createViewer($("molViewer"), { backgroundColor: css("--chamber-b") || "white" });
       molViewerInstance.resize();
       molViewerInstance.clear();
-      molViewerInstance.addModel(loadedPdbData, "pdb");
+      // keepH: 3Dmol drops hydrogens by default, so the ribbon's quantum-region sticks would miss their H atoms
+      // (36 of 64 for I-PpoI A). The other styles draw every atom alike and stay without H.
+      const m = molViewerInstance.addModel(loadedPdbData, "pdb", {keepH: currentRepresentation === "ribbon"});
+      // 3Dmol 2.0.4's PDB parser already assigns helices/sheets when a file has no HELIX/SHEET records; the model method
+      // from the recipe is called where a 3Dmol build has it (it is absent in 2.0.4, so this is a no-op there).
+      if (m && typeof m.computeSecondaryStructure === "function") m.computeSecondaryStructure();
       applyRepresentation(currentRepresentation);
-      molViewerInstance.zoomTo();
+      if (currentRepresentation === "ribbon") zoomRibbon(molViewerInstance, lastScene.live); else molViewerInstance.zoomTo();
       molViewerInstance.render();
       molViewerInstance.spin(isSpinning);
       loading.style.display = "none";
+      molDirty = false;
     } catch (err) {
       console.error("3Dmol load error:", err);
       loading.style.display = "flex";
-      loading.innerHTML = `<span style="color:var(--red)">3D view error: ${escapeHtml(err.message)}</span>`;
+      loading.innerHTML = `<span style="color:var(--err-fg)">3D view error: ${escapeHtml(err.message)}</span>`;
     }
   }
 
   function applyRepresentation(mode) {
-    if (!molViewerInstance) return;
-    currentRepresentation = mode;
-    molViewerInstance.removeAllSurfaces();
-    molViewerInstance.setStyle({}, {});
-    if (mode === "cartoon") {
-      molViewerInstance.setStyle({ hetero: false }, { cartoon: { color: "spectrum", opacity: 0.88 } });
-      molViewerInstance.setStyle({ hetero: true }, { stick: { colorscheme: "cyanCarbon", radius: 0.28 } });
-      molViewerInstance.setStyle({ resn: "MG" }, { sphere: { color: "green", radius: 1.2 } });
+    const v = molViewerInstance;
+    if (!v) return;
+    v.removeAllSurfaces();
+    v.setStyle({}, {});
+    const cs = elemScheme();
+    if (mode === "ribbon") {
+      styleRibbon(v, lastScene.live);
+    } else if (mode === "cartoon") {   // selector fixed: 3Dmol's property is hetflag ("hetero" matched nothing)
+      v.setStyle({ hetflag: false }, { cartoon: { color: "spectrum", opacity: 0.88 } });
+      v.setStyle({ hetflag: true, not: { resn: [...WATERS] } }, { stick: { colorscheme: cs, radius: 0.28 } });
+      v.setStyle({ resn: METAL_RESN }, { sphere: { colorscheme: cs, radius: 1.0 } });
     } else if (mode === "stick") {
-      molViewerInstance.setStyle({}, { stick: { colorscheme: "default", radius: 0.18 } });
-      molViewerInstance.setStyle({ resn: "MG" }, { sphere: { color: "green", radius: 1.2 } });
+      v.setStyle({ not: { resn: [...WATERS] } }, { stick: { colorscheme: cs, radius: 0.18 } });
+      v.setStyle({ resn: METAL_RESN }, { sphere: { colorscheme: cs, radius: 1.0 } });
     } else if (mode === "surface") {
-      molViewerInstance.setStyle({ hetero: false }, { cartoon: { color: "slate", opacity: 0.6 } });
-      molViewerInstance.setStyle({ hetero: true }, { stick: { colorscheme: "cyanCarbon", radius: 0.3 } });
-      molViewerInstance.addSurface($3Dmol.SurfaceType.VDW, { opacity: 0.65, color: "teal" }, { hetero: false });
+      v.setStyle({ hetflag: false }, { cartoon: { color: "#9a9384", opacity: 0.6 } });
+      v.setStyle({ hetflag: true, not: { resn: [...WATERS] } }, { stick: { colorscheme: cs, radius: 0.3 } });
+      v.addSurface($3Dmol.SurfaceType.VDW, { opacity: 0.6, color: "#b9b2a3" }, { hetflag: false });
     }
-    molViewerInstance.render();
+    v.render();
   }
 
   function setRepresentation(mode) {
     currentRepresentation = mode;
-    document.querySelectorAll("[data-rep]").forEach(b => b.classList.toggle("on", b.dataset.rep === mode));
-    const site = mode === "site";
-    $("tabSite").classList.toggle("hidden", !site);
-    $("molViewer").classList.toggle("hidden", site);
-    $("structureBadge").innerText = site ? "Three.js active site" : "3Dmol.js Active";
-    if (!site) { if (molViewerInstance) applyRepresentation(mode); else render3Dmol(); }
+    document.querySelectorAll("[data-rep]").forEach(b => {
+      const on = b.dataset.rep === mode;
+      if (b.closest(".seg")) b.setAttribute("aria-pressed", on ? "true" : "false"); else b.classList.toggle("on", on);
+    });
+    const atoms = mode === "atoms";
+    $("liveSite").classList.toggle("hidden", !atoms);
+    $("molViewer").classList.toggle("hidden", atoms);
+    $("liveLegend").classList.toggle("hidden", !atoms);
+    $("structureBadge").innerText = atoms ? "atoms · Three.js" : `${mode} · 3Dmol.js`;
+    renderCaption("live", mode);
+    renderRibbonLegend();
+    if (!atoms) render3Dmol();
   }
 
   function toggleSpin() {
     isSpinning = !isSpinning;
     if (molViewerInstance) molViewerInstance.spin(isSpinning);
-    withViews(V => V.tab.spin(isSpinning));
+    withViews(V => V.live.spin(isSpinning));
     $("spinBtn").classList.toggle("on", isSpinning);
   }
 
   function resetView() {
-    if (currentRepresentation === "site") { withViews(V => V.tab.reset()); return; }
+    if (currentRepresentation === "atoms") { withViews(V => V.live.reset()); return; }
     if (!molViewerInstance) return;
-    molViewerInstance.zoomTo();
+    if (currentRepresentation === "ribbon") zoomRibbon(molViewerInstance, lastScene.live); else molViewerInstance.zoomTo();
     molViewerInstance.render();
+  }
+
+  // the default view's 3D dialog: same ribbon recipe, its own 3Dmol viewer
+  function renderFlowRibbon() {
+    const ld = $("flowMolLoading");
+    try {
+      if (!lastPdb.flow) throw new Error("no structure loaded yet");
+      if (!window.$3Dmol) throw new Error("3Dmol.js did not load (offline?). Use Atoms.");
+      if (!flowMol) flowMol = $3Dmol.createViewer($("flowMol"), { backgroundColor: css("--chamber-b") || "white" });
+      flowMol.resize();
+      flowMol.clear();
+      const m = flowMol.addModel(lastPdb.flow, "pdb", {keepH: true});   // every quantum-region atom, hydrogens included
+      if (m && typeof m.computeSecondaryStructure === "function") m.computeSecondaryStructure();
+      styleRibbon(flowMol, lastScene.flow);
+      zoomRibbon(flowMol, lastScene.flow);
+      flowMol.render();
+      ld.style.display = "none";
+    } catch (err) {
+      console.error("3Dmol load error:", err);
+      ld.style.display = "flex";
+      ld.innerHTML = `<span style="color:var(--err-fg)">3D view error: ${escapeHtml(err.message)}</span>`;
+    }
   }
 
   /* ---------- memory ---------- */
@@ -1334,15 +1610,16 @@
     try {
       const data = await (await fetch("/api/ledger")).json();
       container.innerHTML = "";
+      $("memCount").innerText = `(${data.memories.length} memor${data.memories.length === 1 ? "y" : "ies"} · ${data.ledger_total} ledger lines)`;
       if (!data.memories.length) {
         container.innerHTML = `<div class="empty">Nothing remembered yet (${data.ledger_total} ledger lines). Run I-PpoI site A cold, then site B warm.</div>`;
       } else {
-        const rows = data.memories.map(m => `<tr><td class="mono" style="color:var(--blue)">${escapeHtml(m.id)}</td><td><span class="badge green">${escapeHtml(m.layer)}</span></td><td>${(m.tags || []).map(t => `<span class="badge grey">${escapeHtml(t)}</span>`).join(" ")}</td><td class="mono">${m.confidence === null || m.confidence === undefined ? "not computed" : Number(m.confidence).toFixed(2)}</td><td class="mono">${escapeHtml(m.access_count)}</td><td style="min-width:240px">${escapeHtml(m.content)}</td><td class="mono muted" style="font-size:11.5px">${escapeHtml(m.source)}</td></tr>`).join("");
+        const rows = data.memories.map(m => `<tr><td class="mono">${escapeHtml(m.id)}</td><td><span class="badge">${escapeHtml(m.layer)}</span></td><td>${(m.tags || []).map(t => `<span class="badge">${escapeHtml(t)}</span>`).join(" ")}</td><td class="mono">${m.confidence === null || m.confidence === undefined ? "not computed" : Number(m.confidence).toFixed(2)}</td><td class="mono">${escapeHtml(m.access_count)}</td><td style="min-width:240px">${escapeHtml(m.content)}</td><td class="mono muted" style="font-size:11.5px">${escapeHtml(m.source)}</td></tr>`).join("");
         container.innerHTML = `<table><thead><tr><th>id</th><th>layer</th><th>tags</th><th>conf</th><th>reads</th><th>content</th><th>source</th></tr></thead><tbody>${rows}</tbody></table>`;
       }
       $("ledgerContent").innerText = data.ledger.map(l => JSON.stringify(l)).join("\n");
     } catch (e) {
-      container.innerHTML = `<div style="color:var(--red);font-size:13px">Failed to load memory: ${escapeHtml(e.message)}</div>`;
+      container.innerHTML = `<div style="color:var(--err-fg);font-size:13px">Failed to load memory: ${escapeHtml(e.message)}</div>`;
     }
   }
 
@@ -1563,8 +1840,60 @@
     try { localStorage.setItem("activesite-view", on ? "expert" : "simple"); } catch (e) { /* storage blocked: the toggle still works for this page */ }
     if (on) { closeDialogs(); returnChat(); }
     window.dispatchEvent(new Event("resize"));
+    if (on) requestAnimationFrame(() => { if (molDirty || !molViewerInstance) render3Dmol(); else { molViewerInstance.resize(); molViewerInstance.render(); } updateSecnav(); });
   }
   function closeDialogs() { for (const d of document.querySelectorAll("dialog[open]")) d.close(); }
+
+  /* ---------- Expert view: sticky section bar; IntersectionObserver marks the section being read ---------- */
+  const SECTIONS = [["secSetup", "Setup"], ["secPipeline", "Pipeline"], ["secResult", "Result"], ["secCards", "Decisions"], ["sec3d", "3D"],
+                    ["secReport", "Report"], ["secChat", "Chat"], ["secTrace", "Trace"], ["secSql", "SQL"], ["secMemory", "Memory"]];
+  $("secnav").innerHTML = SECTIONS.map(([id, label]) => `<a href="#${id}" data-sec="${id}">${label}</a>`).join("");
+  function markSection(id) {
+    const nav = $("secnav");
+    for (const a of nav.querySelectorAll("a")) {
+      if (a.dataset.sec !== id) { a.removeAttribute("aria-current"); continue; }
+      a.setAttribute("aria-current", "true");
+      // keep the current link visible in a narrow bar. Only scrollLeft: scrollIntoView here would also scroll the page.
+      const l = a.offsetLeft - nav.offsetLeft, r = l + a.offsetWidth;
+      if (l < nav.scrollLeft) nav.scrollLeft = l - 8; else if (r > nav.scrollLeft + nav.clientWidth) nav.scrollLeft = r - nav.clientWidth + 8;
+    }
+  }
+  function goSection(id) {
+    const el = $(id); if (!el) return;
+    el.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start"});
+    // a section near the page end cannot scroll up to the bar: keep the clicked one marked until the reader scrolls again
+    secPinned = id; pinSettled = false;
+    clearTimeout(pinTimer); pinTimer = setTimeout(() => { pinSettled = true; }, 1500);   // fallback where "scrollend" is missing
+    markSection(id);
+  }
+  let secPinned = null, pinSettled = true, pinTimer = 0;
+  const unpin = () => { if (secPinned) { secPinned = null; updateSecnav(); } };
+  for (const t of ["wheel", "touchmove", "keydown"]) window.addEventListener(t, unpin, {passive: true});
+  window.addEventListener("scrollend", () => { pinSettled = true; });
+  window.addEventListener("scroll", () => { if (secPinned && pinSettled) unpin(); }, {passive: true});
+  $("secnav").addEventListener("click", (ev) => { const a = ev.target.closest("a[data-sec]"); if (!a) return; ev.preventDefault(); goSection(a.dataset.sec); });
+  const secVisible = new Set();
+  // "current" = of the sections crossing the upper part of the viewport, the one whose top is nearest the section bar
+  // (two columns can show two sections at once; the one you just scrolled to wins)
+  function updateSecnav() {
+    if (secPinned) { markSection(secPinned); return; }
+    const line = $("topbar").getBoundingClientRect().height + 10;
+    let best = null, bestD = Infinity;
+    for (const [id] of SECTIONS) if (secVisible.has(id)) { const d = Math.abs($(id).getBoundingClientRect().top - line); if (d < bestD) { bestD = d; best = id; } }
+    if (best) markSection(best);
+  }
+  let secObserver = null;
+  function observeSections() {
+    if (secObserver) secObserver.disconnect();
+    const top = Math.round($("topbar").getBoundingClientRect().height);
+    document.documentElement.style.setProperty("--topbar-h", top + "px");
+    secObserver = new IntersectionObserver((entries) => {
+      for (const e of entries) { if (e.isIntersecting) secVisible.add(e.target.id); else secVisible.delete(e.target.id); }
+      updateSecnav();
+    }, {rootMargin: `-${top + 4}px 0px -55% 0px`, threshold: 0});
+    for (const [id] of SECTIONS) secObserver.observe($(id));
+  }
+  new ResizeObserver(observeSections).observe($("topbar"));
 
   /* ---------- run ---------- */
   function flowRun() {
@@ -1849,13 +2178,13 @@
     const escf = isNum(res.qm_escf_kcal) ? res.qm_escf_kcal : st.qm_escf_kcal;
     const tot = isNum(res.total_energy_kcal) ? res.total_energy_kcal : st.total_energy_kcal;
     const ep = engineProv(st, isNum(escf) ? escf : null), tp = engineProv(st, isNum(tot) ? tot : null);
-    tile("Energy of the quantum part (ESCF)", isNum(escf) ? `${num(escf, 1)}<small>${glossify("kcal/mol")}</small>` : "—", ep,
+    tile("Energy of the quantum part", isNum(escf) ? `${num(escf, 1)}<small>${glossify("kcal/mol")}</small>` : "—", ep,
          [isNum(tot) ? fact(tp, `${glossify("whole system")}: ${num(tot, 1)} ${glossify("kcal/mol")}`) : fact("nc", `${glossify("whole system")}: —`)]
          .concat(ep === "nc" ? [`<div class="fact">${glossify(plainReason(st.errors || res.errors))}</div>`] : []));
     // 4. safety checks
     if (checks.length) {
       const passed = checks.filter((c) => c.passed).length;
-      const list = checks.map((c) => `<li data-prov="run">${c.passed ? "✓" : "!"} ${glossify(plainCheck(c.name))}<div class="fact">${glossify(c.detail || "")}${chip("run")}</div></li>`).join("");
+      const list = checks.map((c) => `<li data-prov="run">${c.passed ? "✓" : "!"} ${glossify(plainCheck(c.name))}<div class="fact">${glossify(plainWords(c.detail || ""))}${chip("run")}</div></li>`).join("");
       tile("Safety checks passed", `${passed} / ${checks.length}`, "run", [], `<details><summary>Which checks?</summary><ul>${list}</ul></details>`);
     } else tile("Safety checks passed", "—", "nc", [`<div class="fact">this run carried no checks</div>`]);
     return tiles.join("");
@@ -1885,17 +2214,16 @@
     const w = whyItems[i]; if (!w) return;
     const c = w.card, ev = Object.assign({}, c.evidence || {}); const source = ev.source; delete ev.source;
     const conf = isNum(c.confidence) ? `<span data-prov="run">${glossify("confidence")} ${num(c.confidence, 2)}${chip("run")}</span>` : `<span>${glossify("confidence")}: —${chip("nc")}</span>`;
-    const alts = (c.alternatives || []).map((a) => `<li><b>${glossify(a.name)}</b>: ${glossify(a.rejected_reason)}</li>`).join("");
-    const extra = (w.extra || []).length ? `<h3>What is inside the quantum region</h3><ul>${w.extra.map((x) => `<li>${glossify(x.target)}: ${glossify(x.choice)}</li>`).join("")}</ul>` : "";
+    const alts = (c.alternatives || []).map((a) => `<li><b>${glossify(plainWords(a.name))}</b>: ${glossify(plainWords(a.rejected_reason))}</li>`).join("");
+    const extra = (w.extra || []).length ? `<h3>What is inside the quantum region</h3><ul>${w.extra.map((x) => `<li>${glossify(x.target)}: ${glossify(plainWords(x.choice))}</li>`).join("")}</ul>` : "";
     showInfo(w.label, `<div data-prov="run">
       <div class="fact" data-card-id="${escapeHtml(c.decision_id)}">Every value on this card was written by the agents in this run, from the evidence below${chip("run")}</div>
-      <h3>What they chose</h3><p>${glossify(c.choice)}</p>
-      <h3>Why</h3><p>${glossify(c.rationale)}</p>
+      <h3>What they chose</h3><p>${glossify(plainWords(c.choice))}</p>
+      <h3>Why</h3><p>${glossify(plainWords(c.rationale))}</p>
       <p class="muted" style="font-size:13px">${conf}</p>
       ${alts ? `<h3>What they ruled out</h3><ul>${alts}</ul>` : ""}
       ${extra}
-      ${source ? `<h3>Evidence source</h3><p class="muted" style="font-size:13px">${glossify(source)}</p>` : ""}
-      <details style="margin-top:12px"><summary>Raw evidence and card id (for experts)</summary><pre>${escapeHtml(c.decision_id)}\n${escapeHtml(JSON.stringify(ev, null, 1))}</pre></details>
+      ${detHtml(`<span>card: ${escapeHtml(c.decision_id)}</span>${source ? `<span>evidence source: ${escapeHtml(source)}</span>` : ""}<pre>${escapeHtml(JSON.stringify(ev, null, 1))}</pre>`)}
       <p style="margin-top:14px"><button type="button" class="linkbtn" onclick="setExpert(true);switchTab('cards')">See every decision card (Expert view)</button></p></div>`);
   }
   function showInfo(title, html) {
@@ -1922,20 +2250,36 @@
 
   /* ---------- 3D, report, chat ---------- */
   async function open3D() {
-    const st = (flow.payload || {}).stats || lastStats || {};
+    const caseId = ((flow.payload || {}).stats || {}).case || activeCaseId || flowCase;
+    // this run's stats; failing that (no mask), the last finished run of the same case
+    let st = (flow.payload || {}).stats || lastStats || {};
+    if (!st.mask && runByCase[caseId]) st = runByCase[caseId];
     $("dlg3d").showModal();
     if (!flow.scene) {
       $("flowVsrc").innerText = "loading 3D…";
-      await loadSiteScene(structureIds(st).length ? structureIds(st) : [activeCaseId || flowCase], st.case || activeCaseId, st.run_id ? st : null, "flow");
+      await loadSiteScene(structureIds(st).length ? structureIds(st) : [caseId], st.case || caseId, st.run_id ? st : null, "flow");
       flow.scene = lastScene.flow;
     }
     const sc = lastScene.flow;
     $("flowSiteCorner").innerText = "";
-    $("flowLegend").innerHTML = sc && sc.mode === "qm"
-      ? `<span><span class="ball"></span>Balls = ${glossify("quantum region")} (this run's atoms)</span><span><span class="stick"></span>Sticks = nearby pocket (classical part)</span>`
-      : `<span><span class="ball"></span>Balls = the drug or metal ion</span><span><span class="stick"></span>Sticks = nearby pocket</span><span class="muted">The run's exact ${glossify("quantum region")} could not be drawn on this file.</span>`;
+    setFlowRep(flowRep);
     const pieces = sc ? [...new Set(sc.atoms.filter((a) => a.qm).map((a) => a.res))] : [];
     $("flowPieces").innerHTML = pieces.length ? `<b>Labelled pieces:</b> ${pieces.map((r) => glossify(r)).join(", ")}` : "";
+  }
+  function renderFlowLegend() {
+    const sc = lastScene.flow;
+    $("flowLegend").innerHTML = flowRep === "ribbon" ? ribbonLegendHtml(sc) : sc && sc.mode === "qm"
+      ? `<span><span class="ball"></span>Balls = ${glossify("quantum region")} (this run's atoms)</span><span><span class="stick"></span>Sticks = nearby pocket (classical part)</span>`
+      : `<span><span class="ball"></span>Balls = the drug or metal ion</span><span><span class="stick"></span>Sticks = nearby pocket</span>`;
+  }
+  function setFlowRep(mode) {
+    flowRep = mode;
+    document.querySelectorAll("[data-frep]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.frep === mode ? "true" : "false"));
+    renderCaption("flow", mode);
+    $("flowMol").classList.toggle("hidden", mode !== "ribbon");
+    $("flowSite").classList.toggle("hidden", mode === "ribbon");
+    renderFlowLegend();
+    if (mode === "ribbon") renderFlowRibbon();
   }
   function openReport() {
     const src = $("reportContent");
@@ -1953,7 +2297,7 @@
   function returnChat() {
     const panel = $("tabChat");
     if (panel.parentElement !== $("chatHome").parentElement) $("chatHome").after(panel);
-    panel.classList.toggle("hidden", !$("tabBtnChat").classList.contains("on"));
+    panel.classList.remove("hidden");
   }
   $("dlgChat").addEventListener("close", returnChat);
   for (const d of document.querySelectorAll("dialog")) d.addEventListener("close", hideTip);
@@ -1966,7 +2310,7 @@
 
 <script type="module">
 /* Three.js active-site renderer from the lab-notebook prototype: QM (or focus) atoms as balls, MM pocket as sticks,
-   labels on focus residues. One instance in the live column, one in the 3D Structure tab. */
+   labels on focus residues. One instance in Expert view's 3D section (Atoms mode), one in the default view's 3D dialog. */
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
@@ -2005,7 +2349,7 @@ function makeView(wrapId, legendId, words) {
   return {
     show(sc) {
       drop();
-      if (!sc.atoms.length) { msg.textContent = sc.note || "nothing to show"; msg.style.display = ""; return; }
+      if (!sc.atoms.length) { msg.textContent = "This structure has no drug or metal ion to centre on."; msg.style.display = ""; return; }
       msg.style.display = "none";
       group = new THREE.Group(); radius = Math.min(Math.max(sc.radius, 8), 26);
       const P = sc.atoms.map((a) => new THREE.Vector3(a.x, a.y, a.z));
@@ -2047,9 +2391,11 @@ function makeView(wrapId, legendId, words) {
   };
 }
 
-window.ActiveSiteView = {live: makeView("liveSite", "liveLegend"), tab: makeView("tabSite", "tabLegend"), flow: makeView("flowSite", "flowLegendEls", true)};
-window.ActiveSiteView.tab.spin(false);
-if (matchMedia("(prefers-reduced-motion: reduce)").matches) { window.ActiveSiteView.live.spin(false); window.ActiveSiteView.flow.spin(false); }
+// Expert view has one Three.js view now (the "Atoms" mode of its 3D section); "tab" stays as an alias for old callers.
+const liveView = makeView("liveSite", "liveLegend");
+window.ActiveSiteView = {live: liveView, tab: liveView, flow: makeView("flowSite", "flowLegendEls", true)};
+liveView.spin(false);
+if (matchMedia("(prefers-reduced-motion: reduce)").matches) window.ActiveSiteView.flow.spin(false);
 window.dispatchEvent(new Event("activesite-three"));
 </script>
 </body>

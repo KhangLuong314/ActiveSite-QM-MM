@@ -752,6 +752,40 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
   - `uv run --with "ruff==0.8.4" ruff check .`: All checks passed.
   - `uv run pytest -q -m "not slow"`: **200 passed, 3 deselected, 0 failures**.
 
+### [2026-10-26 20:45 CDT] — P26 UI polish: calm colours, ribbon 3D, findable Expert view (branch `feat/p26-ui-polish`)
+- **Tool / Environment:** Claude Code (Opus 5.5) sub-agent in an isolated worktree; app on port 8098 (`run.py --server --port 8098`, `CATALOG_OFFLINE=1 SAMPLE_MODE=true`); Playwright check kept outside the repo
+- **Target Component:** `activesite/server/index.html`, `tests/test_server.py`, `docs/assets/ui/polish/`
+- **Developer Prompt:**
+  > "Improve the single-file UI: (1) calm both themes, colour only for the four provenance chips, errors and 3D atoms, WCAG AA for every text/chip pair; (2) 3D ribbon view from Khang's recipe, default Ribbon with a Ribbon / Atoms toggle, QM atoms as sticks on top, check the I-PpoI cut-out visually; (3) findability: sticky section bar with IntersectionObserver in Expert view, 3D next to the result, prominent View in 3D on the result screen, next section peeks above the fold; (4) Expert two columns at >=1200px, long panels collapsed with counts, order result -> why -> 3D -> raw evidence, no horizontal scroll at 400px. No new dependencies, no push, no PR."
+- **Agent Action:**
+  - Replaced the style block with semantic tokens: neutral paper/ink, one ink-blue accent, run/replay/expert/not-computed chip pairs, error pair, 3D tokens. Dark theme is #1c1d20, not near-black. Confidence borders, readouts, badges, pipeline dots made neutral; the engine readout keeps chip colours because it states provenance.
+  - 3D: 3Dmol.js ribbon by default in both views (Atoms = the existing Three.js scene). QM atoms highlighted by PDB serial with `addStyle`, so the topology-serial mapping still drives it. I-PpoI (12 Å topology cut-out, no HELIX/SHEET) drew as fragments, so cut-outs get a thin faded ribbon and the legend says why; EGFR 1M17 ribbons cleanly. Cartoon selector fixed (`hetflag`, not `hetero`).
+  - Expert view: tabs became sections in two columns (left: result, 3D, report; right: pipeline, decision cards, trace, chat, SQL, memory), with a sticky section bar in the top bar. Decision cards, trace, SQL and memory are `<details>` with counts.
+  - Fixed two layout bugs found by the check: `body { overflow-x: hidden }` stopped the top bar sticking (now `clip`), and the section bar no longer scrolls the page when it updates.
+  - `test_dashboard_html`: the removed badge text "3Dmol.js Active" is now checked as "ribbon · 3Dmol.js".
+  - Rebased onto `origin/main` (PR #18) before the log entry; no overlap with #18.
+- **Verification:**
+  - Playwright, I-PpoI site A and EGFR + erlotinib × simple/Expert × light/dark × 1440/400 (16 runs): 0 page errors, 0 horizontal scroll, every number on the result screen and in the Why dialog has its provenance chip (9 on I-PpoI, 11 on EGFR), ribbon and atoms canvases non-blank, section bar marks the clicked/scrolled section, top bar sticks.
+  - WCAG AA: all 19 token pairs pass in both themes (lowest 5.05:1, dark faint-on-panel); 0 failures across 545-616 visible text elements per Expert page.
+  - `uv run pytest -q -m "not slow"`: 196 passed; `ruff check .`: all checks passed.
+
+---
+
+### [2026-10-26 21:20 CDT] — P26 follow-up: clean UI, technical detail behind "Details", 3D QM-region fix (branch `feat/p26-ui-polish`, PR #19)
+- **Tool / Environment:** Claude Code (Opus 5.5) sub-agent in an isolated worktree; app on port 8098 (`CATALOG_OFFLINE=1 SAMPLE_MODE=true`); Playwright check kept outside the repo
+- **Target Component:** `activesite/server/index.html`, `docs/assets/ui/polish/`
+- **Developer Prompt:**
+  > "/api/structure/ippoi_site_a · lab topology (atom numbers = run) … · 1172 atoms · 2 focus + 144 pocket shown · focus = HETATM ZN, MG (not the run's QM region) — information like this is actually not needed for the people that work with this application … clear that and make sure the ui is clean and show the information that is needed and the rest … show it on request." Plus: audit every visible string in both views, one disclosure pattern, fix the 3D focus fallback, one-line 3D caption.
+- **Agent Action:**
+  - One disclosure pattern for technical detail: native `<details class="det"><summary>Details</summary>` (closed by default, keyboard accessible, no script). Glossary tooltips stay for definitions only. Nothing deleted: endpoints, file kinds, atom counts, run ids, masks, trace file, data layer, model, engine time, raw evidence JSON and the report as written all sit behind Details.
+  - 3D: a finished run is remembered per case, so every entry point (result "View in 3D", Expert 3D after the run, a case card clicked later, Ribbon and Atoms) draws the agents' quantum region. With no run, the view centres on the case's catalytic Mg (not the structural Zn) or on the drug, and says "Run the agents to see the quantum region they chose." Caption is one line, e.g. "I-PpoI active site A · agents' quantum region (64 atoms) [from this run] in sticks · Zn and Mg as spheres".
+  - Found while verifying: 3Dmol drops hydrogens by default, so the ribbon highlighted 36 of 64 I-PpoI QM atoms (29 of 52 for EGFR). Ribbon models now load with `keepH: true`.
+  - Plain wording: Expert result hero (energy, whole system, charge with provenance chips; "corrections" instead of retries), expert-agreement rows with plain labels instead of raw keys, check names via the same plain sentences as the simple view, lifecycle rows show the plain sentence (raw summary stays in the Agent trace), card categories without underscores, "REMARK 465/470" shown as "missing-residue records", "qmcharge" as "charge of the quantum region", chat reply footers behind Details.
+- **Verification:**
+  - Playwright, I-PpoI site A and EGFR + erlotinib × simple/Expert × light/dark × 1440/400 (16 runs): none of "/api/", "HETATM", "REMARK", "focus =", "pocket shown", "served", "atom numbers = run", "not the run's QM region", "trace-2", ".jsonl" visible by default (page, Why dialogs, report dialog and fold, 3D dialog, cards opened); 0 page errors; 0 horizontal scroll; every result-screen number keeps its chip; WCAG AA 0 failures (lowest 5.55:1).
+  - QM highlight: 64 for I-PpoI A and 52 for EGFR at every entry point (dialog Ribbon and Atoms, Expert after the run, Expert Ribbon and Atoms, case card clicked after another case); 3Dmol atoms styled in the ribbon = 64 / 52.
+  - `uv run pytest -q -m "not slow"`: 196 passed; `ruff check .`: all checks passed.
+
 ---
 
 ### [Template for Future Entries]
