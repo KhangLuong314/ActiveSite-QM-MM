@@ -648,6 +648,23 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-26 21:20 CDT] — P26 follow-up: clean UI, technical detail behind "Details", 3D QM-region fix (branch `feat/p26-ui-polish`, PR #19)
+- **Tool / Environment:** Claude Code (Opus 5.5) sub-agent in an isolated worktree; app on port 8098 (`CATALOG_OFFLINE=1 SAMPLE_MODE=true`); Playwright check kept outside the repo
+- **Target Component:** `activesite/server/index.html`, `docs/assets/ui/polish/`
+- **Developer Prompt:**
+  > "/api/structure/ippoi_site_a · lab topology (atom numbers = run) … · 1172 atoms · 2 focus + 144 pocket shown · focus = HETATM ZN, MG (not the run's QM region) — information like this is actually not needed for the people that work with this application … clear that and make sure the ui is clean and show the information that is needed and the rest … show it on request." Plus: audit every visible string in both views, one disclosure pattern, fix the 3D focus fallback, one-line 3D caption.
+- **Agent Action:**
+  - One disclosure pattern for technical detail: native `<details class="det"><summary>Details</summary>` (closed by default, keyboard accessible, no script). Glossary tooltips stay for definitions only. Nothing deleted: endpoints, file kinds, atom counts, run ids, masks, trace file, data layer, model, engine time, raw evidence JSON and the report as written all sit behind Details.
+  - 3D: a finished run is remembered per case, so every entry point (result "View in 3D", Expert 3D after the run, a case card clicked later, Ribbon and Atoms) draws the agents' quantum region. With no run, the view centres on the case's catalytic Mg (not the structural Zn) or on the drug, and says "Run the agents to see the quantum region they chose." Caption is one line, e.g. "I-PpoI active site A · agents' quantum region (64 atoms) [from this run] in sticks · Zn and Mg as spheres".
+  - Found while verifying: 3Dmol drops hydrogens by default, so the ribbon highlighted 36 of 64 I-PpoI QM atoms (29 of 52 for EGFR). Ribbon models now load with `keepH: true`.
+  - Plain wording: Expert result hero (energy, whole system, charge with provenance chips; "corrections" instead of retries), expert-agreement rows with plain labels instead of raw keys, check names via the same plain sentences as the simple view, lifecycle rows show the plain sentence (raw summary stays in the Agent trace), card categories without underscores, "REMARK 465/470" shown as "missing-residue records", "qmcharge" as "charge of the quantum region", chat reply footers behind Details.
+- **Verification:**
+  - Playwright, I-PpoI site A and EGFR + erlotinib × simple/Expert × light/dark × 1440/400 (16 runs): none of "/api/", "HETATM", "REMARK", "focus =", "pocket shown", "served", "atom numbers = run", "not the run's QM region", "trace-2", ".jsonl" visible by default (page, Why dialogs, report dialog and fold, 3D dialog, cards opened); 0 page errors; 0 horizontal scroll; every result-screen number keeps its chip; WCAG AA 0 failures (lowest 5.55:1).
+  - QM highlight: 64 for I-PpoI A and 52 for EGFR at every entry point (dialog Ribbon and Atoms, Expert after the run, Expert Ribbon and Atoms, case card clicked after another case); 3Dmol atoms styled in the ribbon = 64 / 52.
+  - `uv run pytest -q -m "not slow"`: 196 passed; `ruff check .`: all checks passed.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
