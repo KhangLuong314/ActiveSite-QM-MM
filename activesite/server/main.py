@@ -259,6 +259,15 @@ async def pdb_search_endpoint(q: str = ""):
         raise HTTPException(status_code=503, detail=str(exc))
 
 
+@app.get("/api/pdb/suggest")
+async def pdb_suggest_endpoint(q: str = ""):
+    """Typeahead for the PDB search box: the repo's systems first, then RCSB suggestions. Never fails on RCSB errors."""
+    try:
+        return {"query": pdb_search.clean_prefix(q), "suggestions": await asyncio.to_thread(pdb_search.suggest, q)}
+    except uploads.UploadError as exc:
+        raise _upload_error(exc)
+
+
 @app.post("/api/structures/fetch")
 async def fetch_structure(req: FetchRequest):
     """Download a PDB entry and register it exactly like an upload."""

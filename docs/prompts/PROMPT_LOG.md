@@ -889,6 +889,18 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-27 CDT] — P29c: typeahead for "Search the Protein Data Bank" (branch `feat/p29-combined`)
+- **Tool / Environment:** Claude Code (Opus 5.5) sub-agent in an isolated worktree; app on port 8093 with the live network for RCSB
+- **Target Component:** `activesite/adapters/pdb_search.py`, `activesite/server/main.py`, `activesite/server/index.html`, `tests/test_pdb_search.py`
+- **Developer Prompt:**
+  > "When someone types 'os', the list should offer osimertinib." Merge the repo's own vocabulary with RCSB term suggestions (protein, chemical) and words from the basic suggester; ARIA combobox; offline still shows local suggestions.
+- **Agent Action:**
+  - `GET /api/pdb/suggest?q=` (2–40 chars, control characters stripped): the repo's drug / protein / ligand-code / PDB-id vocabulary from cases/*.json by prefix or word prefix (kind "verified example", with its case id; EcoRV as "keyword"), then RCSB term suggestions on `rcsb_polymer_entity.pdbx_description` ("protein") and `chem_comp.name` ("chemical"), and the single highlighted word from the basic suggester ("keyword"; author fields and `^[A-Z][a-z]+, [A-Z]\.` dropped). Parallel requests, 2 s timeouts, 204/400 ignored, 1 h cache (outages not cached), case-insensitive de-duplication (β = beta), at most 8, match offsets instead of HTML. Any RCSB failure leaves the local suggestions; typeahead never errors.
+  - Page: ARIA combobox (`role=combobox`, `aria-expanded`, `aria-controls`, `aria-activedescendant`, listbox of options), local matches instantly, remote appended after a 150 ms debounce (stale answers dropped; nothing under the cursor reorders), bold matched part, kind tag per row, ↑/↓ (past the end returns to the text box), Enter fills and runs the search (a verified example's own entry is pinned first in the results with "Open the verified example"), Esc and click outside close, reduced motion respected.
+- **Verification (live RCSB):** "os" → osimertinib first (verified example), shown before the network answer; "ima" → imatinib; "lac" → TEM-1 β-lactamase, LAC REPRESSOR, LACTIC ACID, LACCASE, lacosamide (lactate dehydrogenase appears from "lact"); "egf" → EGFR kinase; keyboard-only ↓↓↑ Enter → "osimertinib" searched, 4ZAU first; suggest endpoint aborted → "ib" still offers ibrutinib, no error; 1440 light and 400 dark: no horizontal scroll, AA contrast 0 failures. Earlier invariants matrix re-run. `uv run pytest -q -m "not slow"`: 238 passed; ruff 0.8.4 clean; Playwright UI tests 7 passed.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
