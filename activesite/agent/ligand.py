@@ -105,6 +105,13 @@ class LigandSetup:
 
         # container stages
         if self.sample_mode or not prep.prep_available():
+            if case.get("custom"):
+                # an uploaded structure is never matched to cached sample output: no prep, no energies
+                setup["prep_skipped"] = ("proposal only: engine not run (sample mode); uploaded structures are never "
+                                         "replayed from cached output" if self.sample_mode else
+                                         f"proposal only: Docker or {prep.PREP_IMAGE} not available, engine not run")
+                self._log("prep", "pdb2pqr/antechamber/tleap/sander", setup["prep_skipped"], status="skipped")
+                return setup
             cached = cached_prep(case.get("id", ""), self.work)
             # The cache is keyed by case id, not by input content. The pure stages above were just recomputed from
             # this run's PDB; keep them (so the cards cite this run's evidence) and refuse the cache when they lead to
