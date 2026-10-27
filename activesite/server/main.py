@@ -569,8 +569,9 @@ def format_chat_system_prompt(ctx: Dict[str, Any]) -> str:
             target = c.get("target", "")
             choice = c.get("choice", "")
             rat = c.get("rationale", "")[:120]
-            conf = c.get("confidence", 1.0)
-            lines.append(f"Card #{i} [{cat} -> {target}]: {choice} (conf: {conf:.2f}). Rationale: {rat}")
+            conf = c.get("confidence")
+            conf_txt = f"{conf:.2f}" if isinstance(conf, (int, float)) else "not given"
+            lines.append(f"Card #{i} [{cat} -> {target}]: {choice} (conf: {conf_txt}). Rationale: {rat}")
         cards_text = "\n".join(lines)
     else:
         cards_text = "No cards produced yet."
@@ -593,7 +594,7 @@ def format_chat_system_prompt(ctx: Dict[str, Any]) -> str:
         f"• Active System: {sys_name}\n"
         f"• QM Energy (ESCF): {f'{qm_escf:.4f} kcal/mol' if qm_escf is not None else 'not computed'}\n"
         f"• Total Energy: {f'{total_e:.2f} kcal/mol' if total_e is not None else 'not computed'}\n"
-        f"• QM Net Formal Charge: {qm_charge:+d}\n"
+        f"• QM Net Formal Charge: {f'{qm_charge:+d}' if isinstance(qm_charge, int) else 'not computed'}\n"
         "\n"
         f"{md_text}\n\n"
         "### METERLESS H-MEM EPISODIC MEMORY STATUS:\n"

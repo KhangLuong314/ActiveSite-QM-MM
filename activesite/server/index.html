@@ -1471,9 +1471,11 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: msg, run_id: currentRunId || activeCaseId, history: chatHistoryList })
       });
-      const data = await resp.json();
+      // a server failure can return a plain-text page, not JSON: never show the parser's error to the user
+      const data = await resp.json().catch(() => ({}));
       loadingMsg.remove();
-      if (!resp.ok) throw new Error(data.detail || resp.statusText);
+      if (!resp.ok) throw new Error(typeof data.detail === "string" ? data.detail
+        : "The server had a problem answering (HTTP " + resp.status + "). Please try again; your run is unaffected.");
       chatHistoryList.push({ role: "assistant", content: data.reply });
 
       const formatted = window.marked ? marked.parse(data.reply) : `<div style="white-space:pre-wrap">${escapeHtml(data.reply)}</div>`;
