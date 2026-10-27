@@ -629,6 +629,25 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-26 19:12 CDT] — Covalent Kinase Inhibitor Benchmarks (EGFR Osimertinib & BTK Ibrutinib)
+- **Tool / Environment:** Antigravity Biochemical Systems Specialist
+- **Target Component:** `cases/egfr_osimertinib.json`, `cases/btk_ibrutinib.json`, `activesite/agent/orchestrator.py`, `activesite/server/main.py`, `activesite/server/index.html`, `docs/BENCHMARK_SCIENTIFIC_EVALUATION.md`
+- **Developer Prompt:**
+  > "Yes, that will improve the credibility"
+- **Agent Action:**
+  - Created benchmark case for **EGFR Kinase Domain + Osimertinib (AZD9291)** (`cases/egfr_osimertinib.json`): PDB `4ZAU` ($1.55\text{ \AA}$), targeting irreversible covalent attack on Cys797 and Met769 hinge H-bond using ligand `YY3`.
+  - Created benchmark case for **BTK Kinase Domain + Ibrutinib (PCI-32765)** (`cases/btk_ibrutinib.json`): PDB `5P9J` ($1.43\text{ \AA}$), targeting covalent attachment to Cys481 ($1.85\text{ \AA}$ bond) and Met477 hinge interaction using bound-form ligand `8E8`.
+  - Updated `activesite/agent/orchestrator.py` `resolve_case_id` to route osimertinib and ibrutinib free-text queries to their respective cases.
+  - Updated `activesite/server/main.py` `/api/structure/{identifier}` to serve `4zau.pdb` and `5p9j.pdb`.
+  - Updated `activesite/server/index.html`: added 3D title recognition for `4ZAU` and `5P9J`, added `YY3` and `8E8` to 3Dmol.js ligand stick styling, and added 2 quick-query chips in AI Biochemist chat.
+  - Updated `docs/BENCHMARK_SCIENTIFIC_EVALUATION.md` with sections 4.5 and 4.6 and expanded comparative benchmark table.
+- **Verification:**
+  - `uv run pytest -q`: **153 passed, 3 skipped**.
+  - Verified RDKit ligand preparation for `YY3` (70 atoms with H, formula $\text{C}_{28}\text{H}_{33}\text{N}_7\text{O}_2$) and `8E8` (59 atoms with H, formula $\text{C}_{25}\text{H}_{26}\text{N}_6\text{O}_2$) runs with 0 errors.
+  - Verified 3D structure serving via `/api/structure` for `egfr_osimertinib` and `btk_ibrutinib`.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name

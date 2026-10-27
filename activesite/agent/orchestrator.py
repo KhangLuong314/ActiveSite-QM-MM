@@ -108,6 +108,10 @@ def resolve_case_id(query: str) -> str:
         return "ecorv_endonuclease"
     if "tem1" in plan.system_name or "tem" in q_lower or "penicillin" in q_lower or "1fqg" in q_lower:
         return "tem1_penicillin"
+    if "osimertinib" in q_lower or "azd9291" in q_lower or "4zau" in q_lower:
+        return "egfr_osimertinib"
+    if "ibrutinib" in q_lower or "btk" in q_lower or "5p9j" in q_lower or "pci-32765" in q_lower:
+        return "btk_ibrutinib"
     if plan.system_name == "egfr_erlotinib" or "egfr" in q_lower or "erlotinib" in q_lower or "1m17" in q_lower:
         return "egfr_erlotinib"
     if plan.system_name == "abl_imatinib" or "abl" in q_lower or "imatinib" in q_lower or "2hyy" in q_lower:

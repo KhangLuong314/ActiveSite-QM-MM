@@ -278,6 +278,16 @@ async def get_structure(identifier: str):
             Path("data/cache/1fqg.pdb"),
             Path("data/reference/egfr/1m17.pdb"),
         ]
+    elif clean_id in ("egfr_osimertinib", "4zau", "osimertinib"):
+        candidates = [
+            Path("data/cache/4zau.pdb"),
+            Path("data/reference/egfr/1m17.pdb"),
+        ]
+    elif clean_id in ("btk_ibrutinib", "5p9j", "ibrutinib"):
+        candidates = [
+            Path("data/cache/5p9j.pdb"),
+            Path("data/reference/egfr/1m17.pdb"),
+        ]
     elif clean_id in ("ecorv_endonuclease", "1rva", "1b95"):
         candidates = [
             Path("data/cache/1rva.pdb"),

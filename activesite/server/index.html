@@ -249,6 +249,12 @@
             <button onclick="sendQuickQuery('Set up a QM/MM model for β-lactam ring opening during benzylpenicillin hydrolysis at the active site of TEM-1 β-lactamase (Ser70)')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
               💊 <span>TEM-1 β-lactamase setup</span>
             </button>
+            <button onclick="sendQuickQuery('Prepare EGFR kinase with osimertinib (AZD9291) from 4ZAU and explain the Cys797 covalent binding geometry and Met769 hinge contact.')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
+              🎯 <span>EGFR + Osimertinib (Cys797)</span>
+            </button>
+            <button onclick="sendQuickQuery('Prepare BTK kinase with ibrutinib from 5P9J and explain the Cys481 covalent bond and Met477 hinge interaction.')" class="text-xs px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 transition text-left flex items-center gap-1.5">
+              🧬 <span>BTK + Ibrutinib (Cys481)</span>
+            </button>
           </div>
         </div>
 
@@ -634,6 +640,8 @@
         else if (targetId.includes("ippoi")) titleEl.innerText = "I-PpoI Endonuclease Site A (Mg :371)";
         else if (targetId.includes("ecorv") || targetId.includes("1rva")) titleEl.innerText = "EcoRV Endonuclease + DNA + Mg²⁺ (PDB 1RVA)";
         else if (targetId.includes("tem1") || targetId.includes("1fqg")) titleEl.innerText = "TEM-1 β-lactamase + Benzylpenicillin (PDB 1FQG)";
+        else if (targetId.includes("osimertinib") || targetId.includes("4zau")) titleEl.innerText = "EGFR Kinase + Osimertinib AZD9291 (PDB 4ZAU)";
+        else if (targetId.includes("ibrutinib") || targetId.includes("5p9j")) titleEl.innerText = "BTK Kinase + Ibrutinib (PDB 5P9J)";
         else if (targetId.includes("abl") || targetId.includes("2hyy")) titleEl.innerText = "ABL Kinase + Imatinib (PDB 2HYY)";
         else if (targetId.length === 4) titleEl.innerText = "Macromolecular Structure (PDB " + targetId.toUpperCase() + ")";
         else titleEl.innerText = "EGFR Kinase + Erlotinib (PDB 1M17)";
@@ -686,17 +694,17 @@
       if (mode === "cartoon") {
         molViewerInstance.setStyle({ hetflag: false }, { cartoon: { color: "spectrum", opacity: 0.9 } });
         molViewerInstance.setStyle({ hetflag: true }, { stick: { colorscheme: "cyanCarbon", radius: 0.28 } });
-        molViewerInstance.setStyle({ resn: ["AQ4", "LIG", "STI", "PNM", "UNL"] }, { stick: { colorscheme: "magentaCarbon", radius: 0.35 } });
+        molViewerInstance.setStyle({ resn: ["AQ4", "LIG", "STI", "PNM", "UNL", "YY3", "8E8"] }, { stick: { colorscheme: "magentaCarbon", radius: 0.35 } });
         molViewerInstance.setStyle({ resn: ["MG", "MN", "ZN", "FE", "CA"] }, { sphere: { color: "green", radius: 1.2 } });
       } else if (mode === "stick") {
         molViewerInstance.setStyle({}, { stick: { colorscheme: "default", radius: 0.18 } });
         molViewerInstance.setStyle({ hetflag: true }, { stick: { colorscheme: "cyanCarbon", radius: 0.28 } });
-        molViewerInstance.setStyle({ resn: ["AQ4", "LIG", "STI", "PNM", "UNL"] }, { stick: { colorscheme: "magentaCarbon", radius: 0.35 } });
+        molViewerInstance.setStyle({ resn: ["AQ4", "LIG", "STI", "PNM", "UNL", "YY3", "8E8"] }, { stick: { colorscheme: "magentaCarbon", radius: 0.35 } });
         molViewerInstance.setStyle({ resn: ["MG", "MN", "ZN", "FE", "CA"] }, { sphere: { color: "green", radius: 1.2 } });
       } else if (mode === "surface") {
         molViewerInstance.setStyle({ hetflag: false }, { cartoon: { color: "slate", opacity: 0.6 } });
         molViewerInstance.setStyle({ hetflag: true }, { stick: { colorscheme: "cyanCarbon", radius: 0.3 } });
-        molViewerInstance.setStyle({ resn: ["AQ4", "LIG", "STI", "PNM", "UNL"] }, { stick: { colorscheme: "magentaCarbon", radius: 0.35 } });
+        molViewerInstance.setStyle({ resn: ["AQ4", "LIG", "STI", "PNM", "UNL", "YY3", "8E8"] }, { stick: { colorscheme: "magentaCarbon", radius: 0.35 } });
         molViewerInstance.setStyle({ resn: ["MG", "MN", "ZN", "FE", "CA"] }, { sphere: { color: "green", radius: 1.2 } });
         molViewerInstance.addSurface($3Dmol.SurfaceType.VDW, { opacity: 0.65, color: "teal" }, { hetflag: false });
       }

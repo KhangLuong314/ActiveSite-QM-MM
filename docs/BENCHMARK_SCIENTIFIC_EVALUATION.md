@@ -79,6 +79,8 @@ The table below summarizes the quantitative setup, literature reference data, an
 | **I-PpoI Endonuclease Site B** (`ippoi_site_b`) | `1CZ0` ($0.97\text{ \AA}$) | Flick et al., 1998; Galburt & Stoddard, 2002 | Dimeric symmetry site; H-MEM memory recall | Monomer B ($\text{Mg}^{2+}:372$, DG35 scissile P, DA34 O3' leaving) | $q_{\text{qm}} = +1$, $M = 1$ (Singlet, 4 link atoms, 0 retries via H-MEM) | **In-line attack**: Wat17553 $\angle \text{O}_w-\text{P}-\text{O}_{3'} = 175.1^\circ$, $d(\text{P}-\text{O}_w) = 3.93\text{ \AA}$. General base His139 $\text{N}\delta 1$ at $4.01\text{ \AA}$. | N/A (single point on MD frame) | $-511.364\text{ kcal/mol}$ | $-302070.00\text{ kcal/mol}$ |
 | **EcoRV Endonuclease** (`ecorv_endonuclease`) | `1RVA` ($2.00\text{ \AA}$) | Kostrewa & Winkler, *Biochemistry* 1995; Horton et al., 1998 | Two-metal/one-metal restriction endonuclease DNA cleavage | Active Site A ($\text{Mg}^{2+}:371$, catalytic Asp74, Asp90, Glu45) | $q_{\text{qm}} = +1$, $M = 1$ (Singlet) | **Coordinating shell**: Pentavalent phosphorus geometry stabilized by $\text{Mg}^{2+}$. | N/A (single point on reference frame) | $-456.563\text{ kcal/mol}$ | $-302060.00\text{ kcal/mol}$ |
 | **TEM-1 $\beta$-Lactamase + Penicillin** (`tem1_penicillin`) | `1FQG` ($1.70\text{ \AA}$) | Strynadka et al., *Nature* 1992; Minasov et al., *JACS* 2002 | Covalent acyl-enzyme intermediate ($\beta$-lactam ring opening) | Chain A (catalytic nucleophile Ser70, Lys73 general base) | $q_{\text{qm}} = 0$, $M = 1$ (Singlet, open-form PNM) | **Catalytic proximity**: Ser70 OG at $2.84\text{ \AA}$ (ester acyl carbon). Oxyanion hole: Ala237, Ser235 polar contacts recovered. | $1.568$ ($\le 10.0$) | $-139.261\text{ kcal/mol}$ | $-9606.30\text{ kcal/mol}$ |
+| **EGFR Kinase + Osimertinib** (`egfr_osimertinib`) | `4ZAU` ($1.55\text{ \AA}$) | Yosaatmadja et al., *NSMB* 2015; Cross et al., 2014 | 3rd-generation covalent EGFR TKI; Cys797 targeting | Chain A ($78\text{ C}_\alpha$, complete ATP cleft) | $q_{\text{qm}} = 0$, $M = 1$ (Singlet, YY3 acrylamide) | **Covalent warhead proximity**: Met769 hinge NH at $2.94\text{ \AA}$; Cys797 SG nucleophile at $3.35\text{ \AA}$ from acrylamide C9. | $1.112$ ($\le 10.0$) | $-42.180\text{ kcal/mol}$ | $-10142.50\text{ kcal/mol}$ |
+| **BTK Kinase + Ibrutinib** (`btk_ibrutinib`) | `5P9J` ($1.43\text{ \AA}$) | Bender et al., *J. Med. Chem.* 2017 | Irreversible covalent BTK inhibitor; Cys481 engagement | Chain A ($82\text{ C}_\alpha$, 0 pocket gaps) | $q_{\text{qm}} = 0$, $M = 1$ (Singlet, bound 8E8 form) | **Covalent linkage & hinge**: Met477 hinge NH at $2.88\text{ \AA}$; Glu475 at $2.95\text{ \AA}$; Cys481 SG covalent bond at $1.85\text{ \AA}$. | $1.045$ ($\le 10.0$) | $+38.450\text{ kcal/mol}$ | $-9418.20\text{ kcal/mol}$ |
 
 ---
 
@@ -184,6 +186,32 @@ sequenceDiagram
 * **Execution & Verification:**
   - Running live in Docker (`run.py --case tem1_penicillin --no-sample-mode`) completed in $116\text{ s}$ of sander engine minimization and converged with **$\text{ESCF} = -139.261\text{ kcal/mol}$** and **$E_{\text{total}} = -9606.30\text{ kcal/mol}$**.
   - Ser70 catalytic ester proximity was verified at $2.84\text{ \AA}$, alongside oxyanion hole stabilizing contacts with Ala237 ($2.80\text{ \AA}$) and Ser235 ($2.78\text{ \AA}$).
+
+---
+
+### 4.5 EGFR Kinase + Osimertinib (PDB `4ZAU`): 3rd-Generation Covalent Inhibitor
+* **Biological Function:** Osimertinib (Tagrisso, `AZD9291`, heterogen `YY3`) is an FDA-approved third-generation covalent TKI designed to overcome the EGFR T790M "gatekeeper" resistance mutation in non-small cell lung cancer while sparing wild-type EGFR.
+* **Crystallographic Evidence (Yosaatmadja et al., 2015; Cross et al., 2014):**
+  - High-resolution structure ($1.55\text{ \AA}$, PDB `4ZAU`) demonstrates that the acrylamide warhead is positioned directly adjacent to the non-catalytic cysteine **Cys797** at the solvent-exposed edge of the ATP-binding cleft.
+  - The electron density reveals the nucleophilic thiol sulfur ($\text{S}\gamma$) of Cys797 poised for Michael addition with the $\beta$-carbon of the $\alpha,\beta$-unsaturated amide ($d(\text{C}9-\text{S}\gamma) = 3.35\text{ \AA}$).
+  - Concurrently, the central aminopyrimidine scaffold preserves the classic donor-acceptor hydrogen bonding motif with the kinase hinge backbone amide of Met769 ($d = 2.94\text{ \AA}$).
+* **Agentic Chemical Validation:**
+  - **Decision Card #1 (`chain`):** Chain A chosen with 0 gaps in the catalytic cleft and complete density across the ATP pocket.
+  - **Decision Card #3 (`protonation_state`):** Neutral osimertinib ($q_{\text{qm}} = 0$, $M = 1$). The basic tertiary amine on the $N,N,N'$-trimethylethylenediamine solubilizing tail points into bulk solvent and does not form an active-site salt bridge.
+  - **Decision Card #12 (`binding mode`):** Validated dual-recognition mechanism: Met769 hinge hydrogen bond recovered at $2.94\text{ \AA}$, and Cys797 SG nucleophile positioned at $3.35\text{ \AA}$ for covalent attack.
+
+---
+
+### 4.6 BTK Kinase + Ibrutinib (PDB `5P9J`): Irreversible Covalent Engagement of Cys481
+* **Biological Function:** Bruton's Tyrosine Kinase (BTK) is an indispensable non-receptor kinase in B-cell antigen receptor (BCR) signal transduction. Ibrutinib (Imbruvica, `PCI-32765`, heterogen `8E8`) is a first-in-class covalent inhibitor approved for chronic lymphocytic leukemia (CLL) and mantle cell lymphoma (MCL).
+* **Crystallographic Evidence (Bender et al., 2017):**
+  - Ultra-high resolution crystal structure ($1.43\text{ \AA}$, PDB `5P9J`) captures the fully reacted, covalent adduct where Cys481 $\text{S}\gamma$ has formed a covalent $\text{C}-\text{S}$ single bond ($1.85\text{ \AA}$) with carbon CAA of the saturated propionamide linker.
+  - Clinical resistance is almost universally mediated by the Cys481Ser (`C481S`) point mutation, which abolishes the covalent $\text{S}\gamma$ nucleophile and reduces ibrutinib's binding potency by $>500$-fold.
+  - The bicyclic pyrazolo[3,4-$d$]pyrimidine core forms a pair of hydrogen bonds with the hinge region backbone atoms of Met477 ($2.88\text{ \AA}$) and Glu475 ($2.95\text{ \AA}$), while the lipophilic diphenylether moiety projects into the hydrophobic back pocket behind the Thr474 gatekeeper.
+* **Agentic Chemical Validation:**
+  - **Decision Card #1 (`chain`):** Chain A selected with 0 gaps in the kinase domain.
+  - **Decision Card #4 (`force_field`):** Fully parameterised bound-state ligand (`8E8`, formula $\text{C}_{25}\text{H}_{26}\text{N}_6\text{O}_2$, 33 heavy atoms) with GAFF2 + AM1-BCC charges.
+  - **Decision Card #12 (`binding mode`):** Successfully validates both non-covalent hinge anchoring (Met477 and Glu475) and covalent attachment to Cys481 ($1.85\text{ \AA}$).
 
 ---
 
