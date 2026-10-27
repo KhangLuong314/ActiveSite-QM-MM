@@ -350,3 +350,17 @@ def test_get_structure_btk_never_serves_egfr(client):
         assert r.status_code == 404
 
 
+
+
+def test_chat_after_a_proposal_only_run_does_not_crash(client, monkeypatch):
+    # an uploaded structure in sample mode has no charge or energy yet; the chat must still answer (was HTTP 500)
+    ctx = {"stats": {"case": "custom", "qmcharge": None, "qm_escf_kcal": None}, "result": {},
+           "cards": [{"category": "custom_structure", "target": "Setup", "choice": "your uploaded structure",
+                      "rationale": "proposal only", "confidence": None}]}
+    monkeypatch.setattr(server, "get_current_simulation_context", lambda run_id=None: ctx)
+    prompt = server.format_chat_system_prompt(ctx)
+    assert "QM Net Formal Charge: not computed" in prompt and "conf: not given" in prompt
+    monkeypatch.setattr(server.ModelClient, "available", True)
+    monkeypatch.setattr(server.ModelClient, "chat_detailed", lambda self, msgs, **kw: {"reply": "Proposal only.", "thinking": None})
+    r = client.post("/api/chat", json={"message": "explain my last run"})
+    assert r.status_code == 200 and r.json()["reply"] == "Proposal only."
