@@ -279,6 +279,14 @@ async def get_structure(identifier: str):
         candidates = [
             Path("data/cache/1fqg.pdb"),
         ]
+    elif clean_id in ("egfr_osimertinib", "4zau", "osimertinib"):
+        candidates = [
+            Path("data/cache/4zau.pdb"),
+        ]
+    elif clean_id in ("btk_ibrutinib", "5p9j", "ibrutinib"):
+        candidates = [
+            Path("data/cache/5p9j.pdb"),
+        ]
     elif clean_id in ("ecorv_endonuclease", "1rva", "1b95"):
         candidates = []   # unsupported case: no structure exists, never serve another protein instead
     elif "ippoi" in clean_id:
@@ -949,11 +957,23 @@ async def chat_endpoint(req: ChatRequest):
                     messages.append({"role": str(h["role"]), "content": str(h["content"])})
         messages.append({"role": "user", "content": req.message})
 
-        reply = client.chat(messages, max_tokens=800)
+        reply = None
+        thinking = None
+        try:
+            detailed = client.chat_detailed(messages, max_tokens=1500)
+            reply = detailed.get("reply")
+            thinking = detailed.get("thinking")
+        except Exception:
+            reply = None
+
+        if not reply:
+            reply = client.chat(messages, max_tokens=800)
+
         if reply:
             reply, unverified = guard(reply, run_context)
             return {
                 "reply": reply,
+                "thinking": thinking,
                 "model": client.model,
                 "source": "nemotron",
                 "run_id": req.run_id,
@@ -965,6 +985,7 @@ async def chat_endpoint(req: ChatRequest):
     reply, unverified = guard(reply, run_context)
     return {
         "reply": reply,
+        "thinking": None,
         "model": "none (rule-based offline answers; set MODEL_API_KEY for Nemotron)",
         "source": "rule_based_fallback",
         "run_id": req.run_id,

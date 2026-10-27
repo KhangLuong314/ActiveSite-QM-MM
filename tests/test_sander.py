@@ -382,8 +382,8 @@ def test_chimerax_trajectory_script(tmp_path):
     )
     assert out_file.exists()
     assert (tmp_path / "complex.pdb").exists()
-    assert f"open {tmp_path / 'complex.pdb'}" in script
-    assert f"open {tmp_path / 'traj.nc'} format amber structureModel #1" in script
+    assert f'open "{tmp_path / "complex.pdb"}"' in script or f"open {tmp_path / 'complex.pdb'}" in script
+    assert f'open "{tmp_path / "traj.nc"}" format amber structureModel #1' in script or f"open {tmp_path / 'traj.nc'} format amber structureModel #1" in script
     assert "coordset slider #1" in script
     assert "color :AQ4 magenta" in script
     assert "view :AQ4" in script

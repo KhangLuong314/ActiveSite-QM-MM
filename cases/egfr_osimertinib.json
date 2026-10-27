@@ -1,0 +1,20 @@
+{
+  "id": "egfr_osimertinib",
+  "kind": "ligand",
+  "system": "egfr_osimertinib",
+  "site": "A",
+  "chain": "A",
+  "question": "Prepare EGFR kinase domain complexed with osimertinib from the 4ZAU crystal structure and compute the PM6 QM/MM energy in its pocket. Explain the Cys797 covalent binding geometry, Met769 hinge hydrogen bond, and setup choices.",
+  "pdb": "data/cache/4zau.pdb",
+  "pdb_query": "EGFR kinase osimertinib AZD9291",
+  "ligand": "YY3",
+  "ligand_smiles": "Cn1cc(c2c1cccc2)c3ccnc(n3)Nc4cc(c(cc4OC)N(C)CCN(C)C)NC(=O)C=C",
+  "smiles_source": "RCSB chemcomp YY3 (PDB 4ZAU osimertinib)",
+  "literature_contacts": {
+    "MET769": "hinge backbone NH to pyrimidine N",
+    "CYS797": "covalent target Cys797 SG nucleophile to acrylamide warhead"
+  },
+  "literature_source": "Yosaatmadja et al. 2015, J Struct Biol 192:539; PDB 4ZAU, 2.80 Å EGFR in complex with osimertinib",
+  "ph": 7.4,
+  "min_steps": 500
+}
