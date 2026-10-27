@@ -1,0 +1,344 @@
+[
+  {
+    "decision_id": "DEC_CHAIN_A",
+    "category": "residue_inclusion",
+    "target": "chain",
+    "choice": "chain A (requested)",
+    "alternatives": [],
+    "rationale": "67 CA within 12 \u00c5 of the ligand; 0 gaps adjacent, 0 residues with missing atoms in the pocket, 0 missing residues in the chain",
+    "confidence": 1.0,
+    "evidence": {
+      "table": [
+        {
+          "chain": "A",
+          "ligand_atoms": 23,
+          "pocket_residues": 67,
+          "gaps_adjacent_to_pocket": 0,
+          "missing_residues_adjacent": [],
+          "missing_atom_residues_in_pocket": [],
+          "missing_residues": 0,
+          "score": [
+            0,
+            0,
+            0,
+            "A"
+          ]
+        }
+      ],
+      "source": "REMARK 465/470 of 1fqg.pdb"
+    }
+  },
+  {
+    "decision_id": "DEC_PROTONATION_PDB2PQR",
+    "category": "protonation_state",
+    "target": "protein protonation",
+    "choice": "PDB2PQR + PROPKA at pH 7.4: 10 non-default states, His {'HIS26': 'HID', 'HIS96': 'HID', 'HIS112': 'HID', 'HIS153': 'HID', 'HIS158': 'HID', 'HIS287': 'HIE'}",
+    "alternatives": [],
+    "rationale": "77 titratable groups predicted; 0 His within 1.0 pKa of the pH",
+    "confidence": 1.0,
+    "evidence": {
+      "states": {
+        "26": "HID",
+        "73": "LYN",
+        "77": "CYX",
+        "96": "HID",
+        "112": "HID",
+        "123": "CYX",
+        "153": "HID",
+        "158": "HID",
+        "233": "ASH",
+        "287": "HIE"
+      },
+      "pkas": {
+        "ASP35": 2.9,
+        "ASP38": 3.14,
+        "ASP50": 2.74,
+        "ASP85": 2.89,
+        "ASP101": 3.52,
+        "ASP115": 3.81,
+        "ASP131": 3.83,
+        "ASP157": 2.81,
+        "ASP163": 2.38,
+        "ASP176": 1.93,
+        "ASP179": 4.67,
+        "ASP209": 3.83,
+        "ASP214": 4.43,
+        "ASP233": 8.73,
+        "ASP252": 4.0,
+        "ASP271": 3.89,
+        "GLU28": 4.4,
+        "GLU37": 3.91,
+        "GLU48": 5.11,
+        "GLU58": 4.06,
+        "GLU63": 4.68,
+        "GLU64": 3.18,
+        "GLU89": 2.8,
+        "GLU104": 4.61,
+        "GLU110": 4.72,
+        "GLU121": 3.67,
+        "GLU147": 4.56,
+        "GLU168": 4.36,
+        "GLU171": 3.97,
+        "GLU177": 4.38,
+        "GLU197": 4.5,
+        "GLU212": 5.3,
+        "GLU239": 4.79,
+        "GLU272": 3.68,
+        "GLU279": 4.52,
+        "C-288": 2.34,
+        "HIS96": 6.12,
+        "HIS112": 5.71,
+        "HIS153": 5.76,
+        "HIS158": 6.22,
+        "HIS287": 5.66,
+        "CYS77": 99.99,
+        "CYS123": 99.99,
+        "TYR46": 14.94,
+        "TYR97": 12.05,
+        "TYR105": 11.23,
+        "TYR262": 13.22,
+        "LYS32": 10.66,
+        "LYS34": 11.6,
+        "LYS55": 10.42,
+        "LYS73": 5.4,
+        "LYS111": 10.19,
+        "LYS146": 10.52,
+        "LYS192": 9.9,
+        "LYS215": 10.39,
+        "LYS234": 8.17,
+        "LYS254": 10.43,
+        "LYS286": 10.14,
+        "ARG43": 12.15,
+        "ARG61": 14.83,
+        "ARG65": 11.62,
+        "ARG83": 12.14,
+        "ARG93": 14.02,
+        "ARG94": 12.52,
+        "ARG120": 12.19,
+        "ARG161": 14.31,
+        "ARG164": 13.44,
+        "ARG178": 13.98,
+        "ARG191": 12.17,
+        "ARG204": 12.13,
+        "ARG222": 13.58,
+        "ARG240": 12.47,
+        "ARG243": 10.19,
+        "ARG257": 13.43,
+        "ARG273": 11.36,
+        "ARG275": 12.05,
+        "N+26": 8.72
+      },
+      "gap_warnings": [],
+      "source": "pdb2pqr/propka in activesite-prep:at26"
+    }
+  },
+  {
+    "decision_id": "DEC_LIGAND_NEUTRAL",
+    "category": "protonation_state",
+    "target": "ligand",
+    "choice": "kept neutral",
+    "alternatives": [],
+    "rationale": "no tertiary amine (N with three C neighbours) has a backbone O within 3.3 \u00c5",
+    "confidence": 0.8,
+    "evidence": {
+      "source": "crystal geometry",
+      "rule": "tertiary amine + backbone O < 3.3 \u00c5"
+    }
+  },
+  {
+    "decision_id": "DEC_LIGAND_PARAMETERS",
+    "category": "theory_selection",
+    "target": "ligand force field",
+    "choice": "GAFF2 + AM1-BCC, net charge +0 (cached)",
+    "alternatives": [],
+    "rationale": "charge sum +0.0000, residual spread -0.0010 e over 43 atoms",
+    "confidence": 0.9,
+    "evidence": {
+      "charge_sum": 0.0,
+      "charge_residual_spread": -0.001002,
+      "ligand_atoms": 43,
+      "cached": true,
+      "cache_key": "7183ceb7b85e9f85",
+      "source": "antechamber/parmchk2"
+    }
+  },
+  {
+    "decision_id": "DEC_QM_REGION_LIGAND",
+    "category": "link_atom",
+    "target": "QM region",
+    "choice": "whole ligand (:LIG), no link atoms",
+    "alternatives": [
+      {
+        "name": "ligand + pocket side chains",
+        "rejected_reason": "covalent cuts add link atoms and PM6 cost; the question is the ligand's energy in its pocket"
+      }
+    ],
+    "rationale": "a closed-shell whole ligand needs no boundary treatment",
+    "confidence": 1.0,
+    "evidence": {
+      "mask": ":LIG",
+      "link_atoms": 0,
+      "source": "setup"
+    }
+  },
+  {
+    "decision_id": "DEC_SOLVENT_GB",
+    "category": "solvent_handling",
+    "target": "solvent",
+    "choice": "implicit solvent (igb=5, mbondi2) for the QM/MM single point",
+    "alternatives": [
+      {
+        "name": "explicit TIP3P box + PME",
+        "rejected_reason": "hours of equilibration; crystal waters (incl. the Thr766 bridge) are removed either way"
+      }
+    ],
+    "rationale": "trade-off: fast and judge-runnable, but bridging waters and bulk screening are approximated",
+    "confidence": 0.5,
+    "evidence": {
+      "igb": 5,
+      "cut": 999.0,
+      "source": "design choice"
+    }
+  },
+  {
+    "decision_id": "DEC_CHECK_LIGAND_CHARGE_SUM",
+    "category": "critic_correction",
+    "target": "ligand_charge_sum",
+    "choice": "passed: |charge sum +0.0000 - formal +0| = 0.00e+00",
+    "alternatives": [],
+    "rationale": "LigandCritic precheck",
+    "confidence": 0.5,
+    "evidence": {
+      "margin": 0.001,
+      "passed": true,
+      "blocking": false,
+      "source": "LigandCritic.precheck"
+    }
+  },
+  {
+    "decision_id": "DEC_CHECK_POCKET_BUILT",
+    "category": "critic_correction",
+    "target": "pocket_built",
+    "choice": "passed: centroid shift 0.0 \u00c5 (limit 1.0), closest protein heavy atom 1.375 \u00c5 (limit 4.0)",
+    "alternatives": [],
+    "rationale": "LigandCritic precheck (blocking)",
+    "confidence": 1.0,
+    "evidence": {
+      "margin": 1.0,
+      "passed": true,
+      "blocking": true,
+      "source": "LigandCritic.precheck"
+    }
+  },
+  {
+    "decision_id": "DEC_CHECK_POCKET_MIN",
+    "category": "critic_correction",
+    "target": "pocket_min",
+    "choice": "passed: centroid shift 0.069 \u00c5 (limit 1.0), closest protein heavy atom 2.565 \u00c5 (limit 4.0)",
+    "alternatives": [],
+    "rationale": "LigandCritic precheck (blocking)",
+    "confidence": 0.966,
+    "evidence": {
+      "margin": 0.931,
+      "passed": true,
+      "blocking": true,
+      "source": "LigandCritic.precheck"
+    }
+  },
+  {
+    "decision_id": "DEC_CHECK_COMPLEX_INTEGER_CHARGE",
+    "category": "critic_correction",
+    "target": "complex_integer_charge",
+    "choice": "passed: total charge -6.0000, fraction 1.30e-05",
+    "alternatives": [],
+    "rationale": "LigandCritic precheck",
+    "confidence": 0.5,
+    "evidence": {
+      "margin": 0.000987,
+      "passed": true,
+      "blocking": false,
+      "source": "LigandCritic.precheck"
+    }
+  },
+  {
+    "decision_id": "DEC_CHECK_MINIMISATION_RELAXED",
+    "category": "critic_correction",
+    "target": "minimisation_relaxed",
+    "choice": "passed: final GMAX 1.568 kcal/mol/\u00c5 (limit 10.0)",
+    "alternatives": [],
+    "rationale": "LigandCritic precheck",
+    "confidence": 1.0,
+    "evidence": {
+      "margin": 8.432,
+      "passed": true,
+      "blocking": false,
+      "source": "LigandCritic.precheck"
+    }
+  },
+  {
+    "decision_id": "DEC_BINDING_MODE",
+    "category": "validation",
+    "target": "binding mode",
+    "choice": "1/2 published contacts present",
+    "alternatives": [],
+    "rationale": "SER70 at 2.84 \u00c5 (catalytic nucleophile Ser70 OG attacking beta-lactam carbonyl); missed ['LYS73']",
+    "confidence": 0.5,
+    "evidence": {
+      "recovered": {
+        "SER70": 2.837
+      },
+      "missed": [
+        "LYS73"
+      ],
+      "extra": [
+        "ALA237",
+        "ARG243",
+        "ASN132",
+        "LYS234",
+        "SER130",
+        "SER235"
+      ],
+      "source": "minimised model polar contacts, literature Strynadka et al. 2000, PDB 1FQG, acyl-enzyme intermediate in TEM-1 beta-lactamase"
+    }
+  },
+  {
+    "decision_id": "DEC_STRUCTURE_SOURCE",
+    "category": "validation",
+    "target": "structure source",
+    "choice": "5KMW at 1.1 \u00c5 (best of 10 entries)",
+    "alternatives": [],
+    "rationale": "Q3 ordered by resolution via catalog-STANDIN (DuckDB) (Zetaris unreachable: ConnectError)",
+    "confidence": 0.909,
+    "evidence": {
+      "rows": [
+        {
+          "pdb_id": "5KMW",
+          "resolution": 1.1,
+          "title": "TOHO1 Beta lactamase mutant E166A/R274N/R276N -benzyl penicillin complex"
+        },
+        {
+          "pdb_id": "3HUO",
+          "resolution": 1.5,
+          "title": "X-ray crystallographic structure of CTX-M-9 S70G in complex with benzylpenicillin"
+        },
+        {
+          "pdb_id": "1UOF",
+          "resolution": 1.6,
+          "title": "Deacetoxycephalosporin C synthase complexed with Penicillin G"
+        },
+        {
+          "pdb_id": "1FQG",
+          "resolution": 1.7,
+          "title": "MOLECULAR STRUCTURE OF THE ACYL-ENZYME INTERMEDIATE IN TEM-1 BETA-LACTAMASE"
+        },
+        {
+          "pdb_id": "1JWZ",
+          "resolution": 1.8,
+          "title": "Crystal structure of TEM-64 beta-lactamase in complex with a boronic acid inhibitor (105)"
+        }
+      ],
+      "sql": "SELECT pdb_id, resolution, title FROM rcsb_entries WHERE system = 'tem1_penicillin' ORDER BY resolution ASC",
+      "source": "catalog-STANDIN (DuckDB) (Zetaris unreachable: ConnectError)"
+    }
+  }
+]

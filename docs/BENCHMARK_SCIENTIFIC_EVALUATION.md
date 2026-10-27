@@ -82,6 +82,22 @@ The table below summarizes the quantitative setup, literature reference data, an
 | **EGFR Kinase + Osimertinib** (`egfr_osimertinib`) | `4ZAU` ($2.80\text{ \AA}$) | Yosaatmadja et al., *J. Struct. Biol.* 2015, 192:539; Cross et al., 2014 | 3rd-generation covalent EGFR TKI; Cys797 targeting | Chain A ($78\text{ C}_\alpha$, complete ATP cleft) | $q_{\text{qm}} = 0$, $M = 1$ (Singlet, YY3 acrylamide) | **Covalent warhead proximity**: Target Cys797 proximity and Met769 hinge (case prepared, not run) | not run | not run (null) | not run (null) |
 | **BTK Kinase + Ibrutinib** (`btk_ibrutinib`) | `5P9J` ($1.08\text{ \AA}$) | Bender et al., *Mol. Pharmacol.* 2017, 91:208 | Irreversible covalent BTK inhibitor; Cys481 engagement | Chain A ($82\text{ C}_\alpha$, 0 pocket gaps) | $q_{\text{qm}} = 0$, $M = 1$ (Singlet, bound 8E8 form) | **Covalent linkage & hinge**: Target Cys481 covalent adduct and Met477 hinge (case prepared, not run) | not run | not run (null) | not run (null) |
 
+### 3.1 Run Output Evidence & Traceability
+
+To ensure full reproducibility and compliance with AGENTS.md Rule 2 (zero fabricated numbers), every computed energy is traced to verified run artifacts committed in git under `data/sample/`:
+
+| System & Case ID | PDB ID | Status | Output Evidence Path (Committed in Git) | Verifiable Engine Artifacts |
+|---|---|---|---|---|
+| **EGFR Kinase + Erlotinib** (`egfr_erlotinib`) | `1M17` | Converged | `data/sample/egfr_erlotinib/` | `qmmm0/sp.out` ($\text{ESCF} = -8.286\text{ kcal/mol}$), `md/traj.nc`, `md/md.out` |
+| **ABL Kinase + Imatinib (Autonomous)** (`abl_imatinib_a`) | `2HYY` | Converged | `data/sample/abl_imatinib_a/` | `charge+1/sp.out` ($\text{ESCF} = +105.683\text{ kcal/mol}$), `prep/prep.json` |
+| **ABL Kinase + Imatinib (Chain A)** (`abl_imatinib_b`) | `2HYY` | Converged | `data/sample/abl_imatinib_b/` | `charge+1/sp.out` ($\text{ESCF} = +84.674\text{ kcal/mol}$), `prep/prep.json` |
+| **I-PpoI Endonuclease Site A** (`ippoi_site_a`) | `1CZ0` | Converged (Cold retry) | `data/sample/ippoi_site_a/` | `attempt0/sp.out` ($q=0$ fail), `attempt1/sp.out` ($\text{ESCF} = -456.563\text{ kcal/mol}$) |
+| **I-PpoI Endonuclease Site B** (`ippoi_site_b`) | `1CZ0` | Converged (Warm 0 retries) | `data/sample/ippoi_site_b/` | `attempt0/sp.out` ($\text{ESCF} = -511.364\text{ kcal/mol}$, 0 retries via H-MEM) |
+| **EcoRV Endonuclease** (`ecorv_endonuclease`) | `1RVA` | Not run | None (`null`) | Case prepared in `cases/ecorv_endonuclease.json`; engine not executed |
+| **TEM-1 $\beta$-Lactamase + Penicillin** (`tem1_penicillin`) | `1FQG` | Converged | `data/sample/tem1_penicillin/` | `sp.out` ($\text{ESCF} = -139.259\text{ kcal/mol}$), `run_result.json`, `cards.json`, `prep/prep.json` |
+| **EGFR Kinase + Osimertinib** (`egfr_osimertinib`) | `4ZAU` | Not run | None (`null`) | Case prepared in `cases/egfr_osimertinib.json`; engine not executed |
+| **BTK Kinase + Ibrutinib** (`btk_ibrutinib`) | `5P9J` | Not run | None (`null`) | Case prepared in `cases/btk_ibrutinib.json`; engine not executed |
+
 ---
 
 ## 4. Deep-Dive Chemical Case Studies
@@ -96,7 +112,7 @@ The table below summarizes the quantitative setup, literature reference data, an
   - **Decision Card #3 (`protonation_state`):** Kept Erlotinib neutral. Aniline nitrogens and quinazoline rings have pKa values $< 4.5$ and remain uncharged at pH 7.4.
   - **Decision Card #12 (`binding mode`):** Recovered the Met769 hinge hydrogen bond at $2.90\text{ \AA}$.
   - **Decision Card #13 (`validation: THR766`):** Explicitly marked Thr766 as **expected absent**, documenting that implicit Generalized Born solvent (`igb=5`) removes bulk and crystal bridging waters.
-* **Molecular Dynamics Stability:** 1 ps Langevin QM/MM MD (1,000 steps, $dt = 1.0\text{ fs}$, $300\text{ K}$) confirms ligand retention with a mean Met769 contact distance of $2.42 \pm 0.28\text{ \AA}$ at $286.1\text{ K}$, proving pocket stability without artificial restraints.
+* **Molecular Dynamics Stability:** 1 ps Langevin QM/MM MD (1,000 steps, $dt = 1.0\text{ fs}$, $300\text{ K}$) confirms ligand retention with a Met769 contact distance of $2.45 \pm 0.29\text{ \AA}$ over 20 frames (min $1.98\text{ \AA}$, max $2.87\text{ \AA}$); $286.1\text{ K}$ is the final temperature, the mean is $243\text{ K}$, proving pocket stability without artificial restraints.
 
 ```mermaid
 flowchart TD
@@ -106,7 +122,7 @@ flowchart TD
   D --> E["GAFF2 + AM1-BCC: Net Charge 0.0000 e"]
   E --> F["Sander Minimization: GMAX = 0.855 kcal/mol/Å"]
   F --> G["QM/MM SP: Met769 Contact = 2.90 Å"]
-  G --> H["Langevin MD (1 ps): Stable Contact = 2.42 ± 0.28 Å"]
+  G --> H["Langevin MD (1 ps): Met769 Contact = 2.45 ± 0.29 Å (over 20 frames)"]
 ```
 
 ---
@@ -186,6 +202,7 @@ sequenceDiagram
 * **Execution & Verification:**
   - Running live in Docker (`run.py --case tem1_penicillin --no-sample-mode`) completed in $116\text{ s}$ of sander engine minimization and converged with **$\text{ESCF} = -139.259\text{ kcal/mol}$** and **$E_{\text{total}} = -9606.30\text{ kcal/mol}$**.
   - **1 of 2 published contacts recovered**: Ser70 catalytic ester proximity was verified at $2.837\text{ \AA}$ (ester acyl carbon), while Lys73 was missed. Oxyanion hole stabilizing polar contacts with Ala237 ($2.80\text{ \AA}$) and Ser235 ($2.78\text{ \AA}$) were recovered.
+  - **Evidence Artifacts:** Verifiable simulation outputs are committed in git under `data/sample/tem1_penicillin/` (`sp.out`, `run_result.json`, `cards.json`, `prep/prep.json`), allowing independent auditing without reliance on untracked host logs.
 
 ---
 

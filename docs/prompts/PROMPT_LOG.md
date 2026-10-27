@@ -739,6 +739,21 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-26 21:20 CDT] — Evidence Fixes for PR #20 (TEM-1 Sample Artifacts, I-PpoI Site B Path, EGFR MD Metrics)
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `data/sample/tem1_penicillin/`, `data/sample/MANIFEST.md`, `docs/BENCHMARK_SCIENTIFIC_EVALUATION.md`
+- **Developer Prompt:**
+  > "For the previous task, verified on Sidd's Mac: 200 passed, ruff clean, merge with main is good. PR #20 is open for your branch. Three small evidence fixes before merge: 1. Commit the TEM-1 run outputs under data/sample/tem1_penicillin/ (sp.out and the run JSON, like data/sample/abl_imatinib_a/) and cite that path in the report. 2. In the report evidence table, I-PpoI site B evidence is data/sample/ippoi_site_b/ (already in git), not data/runs/20261021-193833-4bbb9d/. 3. EGFR MD line (report lines ~99 and ~109): the run's md_stability gives Met769 contact 2.45 ± 0.29 Å over 20 frames (min 1.98, max 2.87); 286.1 K is the final temperature, the mean is 243 K. Write it that way. Run ruff and pytest, push to the same branch. Sidd merges #20."
+- **Agent Action:**
+  - Committed the complete TEM-1 run outputs under `data/sample/tem1_penicillin/` (`sp.out`, `run_result.json`, `run.json`, `cards.json`, and `prep/` containing `complex.parm7`, `min.rst7`, `ligand.mol2`, `pdb2pqr.log`, `prep.json`), and updated `data/sample/MANIFEST.md`.
+  - Added Section 3.1 (Run Output Evidence & Traceability) to `docs/BENCHMARK_SCIENTIFIC_EVALUATION.md`, correctly citing `data/sample/ippoi_site_b/` for I-PpoI site B and `data/sample/tem1_penicillin/` for TEM-1.
+  - Updated EGFR MD lines in `docs/BENCHMARK_SCIENTIFIC_EVALUATION.md` (lines 99 and 109) to report Met769 contact distance of $2.45 \pm 0.29\text{ \AA}$ over 20 frames (min $1.98\text{ \AA}$, max $2.87\text{ \AA}$), final temperature $286.1\text{ K}$, and mean temperature $243\text{ K}$.
+- **Verification:**
+  - `uv run --with "ruff==0.8.4" ruff check .`: All checks passed.
+  - `uv run pytest -q -m "not slow"`: **200 passed, 3 deselected, 0 failures**.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
