@@ -150,6 +150,7 @@
   .h-big { font: 700 26px/1.1 var(--serif); letter-spacing: -.02em; margin-top: 4px; }
   .h-val { font: 500 22px/1.2 var(--mono); color: var(--ink); margin-top: 8px; }
   .h-val.nc, .metric .v.nc { color: var(--faint); font-style: italic; }
+  .h-val small { font: 500 14px var(--sans); color: var(--muted); }
   .h-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
   .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px 20px; margin-top: 14px; }
   .metric { min-width: 0; } .metric .k { font-size: 11.5px; color: var(--muted); }
@@ -208,6 +209,18 @@
   details > summary { cursor: pointer; color: var(--muted); font-size: 13.5px; list-style: none; }
   details > summary::-webkit-details-marker { display: none; }
   details:not(.fold) > summary::before { content: "▸ "; } details:not(.fold)[open] > summary::before { content: "▾ "; }
+  /* One pattern for technical detail everywhere (file names, endpoints, run ids, masks, atom counts, raw JSON):
+     a small native <details> whose summary says "Details". Closed by default, keyboard accessible, no script. */
+  details.det { margin-top: 8px; font-size: 12px; min-width: 0; }
+  details.det > summary { font: 400 12.5px/1.5 var(--sans); letter-spacing: normal; text-transform: none; display: inline-block; margin-top: 0; }
+  details.det[open] > summary { margin-bottom: 4px; }
+  .det-body { font-family: var(--mono); font-size: 11px; line-height: 1.5; color: var(--muted); overflow-wrap: anywhere; display: flex; flex-direction: column; gap: 3px; }
+  .det-body pre { margin-top: 2px; }
+  .cap3d { font-size: 13.5px; color: var(--ink-2); margin: 3px 0 0; overflow-wrap: anywhere; }
+  .note3d { font-size: 13.5px; color: var(--muted); margin-top: 8px; }
+  .readouts details.det { margin-top: 0; text-align: right; }
+  .readouts .det-body { align-items: flex-end; margin-top: 4px; }
+  @media (max-width: 760px) { .readouts details.det { text-align: left; } .readouts .det-body { align-items: flex-start; } }
 
   /* chat */
   .chat-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid var(--rule-2); }
@@ -513,17 +526,19 @@
 <dialog class="modal" id="dlg3d" aria-labelledby="dlg3dTitle">
   <div class="dlg-head"><h2 id="dlg3dTitle">The active site in 3D</h2><button type="button" class="xbtn" onclick="this.closest('dialog').close()">Close</button></div>
   <div class="dlg-body">
-    <div class="seg" role="group" aria-label="3D style" style="margin-bottom:10px">
+    <div class="seg" role="group" aria-label="3D style" style="margin-bottom:8px">
       <button type="button" data-frep="ribbon" aria-pressed="true" onclick="setFlowRep('ribbon')">Ribbon</button>
       <button type="button" data-frep="atoms" aria-pressed="false" onclick="setFlowRep('atoms')">Atoms</button>
     </div>
+    <p class="cap3d" id="flowCaption" style="margin:0 0 8px"></p>
     <div class="molbox" id="flowMol"><div class="loading" id="flowMolLoading">Loading the structure…</div></div>
     <div class="chamber hidden" id="flowSite"><span class="corner" style="top:8px;left:10px" id="flowSiteCorner"></span><span class="corner" style="bottom:8px;right:10px">DRAG TO TURN · SCROLL TO ZOOM</span></div>
+    <div class="note3d hidden" id="flowMsg"></div>
     <div class="legend3d" id="flowLegend"></div>
     <div class="legend3d" id="flowLegendEls"></div>
     <div class="vwarn hidden" id="flowVwarn"></div>
     <div id="flowPieces" style="margin-top:10px;font-size:13.5px"></div>
-    <details style="margin-top:10px"><summary>Where this picture comes from</summary><div class="vsrc" id="flowVsrc"></div></details>
+    <details class="det"><summary>Details</summary><div class="det-body" id="flowVsrc"></div></details>
   </div>
 </dialog>
 <dialog class="modal drawer" id="dlgChat" aria-label="AI chemist chat">
@@ -546,47 +561,56 @@
     </div>
     <div class="readouts">
       <span class="readout grey" id="engineReadout"><span id="engineBadgeDot" class="dot"></span><span id="engineBadge">engine: not run yet</span></span>
-      <span class="readout plain">data layer: catalog-STANDIN (DuckDB)</span>
-      <span class="readout plain">AmberTools 26 / xtb · Meterless H-MEM</span>
+      <details class="det"><summary>Details</summary><div class="det-body">
+        <span class="readout plain">data layer: catalog-STANDIN (DuckDB)</span>
+        <span class="readout plain">AmberTools 26 / xtb · Meterless H-MEM</span>
+      </div></details>
     </div>
   </header>
 
   <section class="xsec xo1" id="secSetup" aria-labelledby="secSetupH">
-    <div class="section-title"><h2 id="secSetupH">Benchmark cases</h2><span class="aside">zero-key evaluation · pick one, or write a request</span></div>
+    <div class="section-title"><h2 id="secSetupH">Benchmark cases</h2><span class="aside">pick a case, or describe your own · no API keys needed</span></div>
     <div class="cases" id="caseButtons">
-      <button type="button" class="case" onclick="selectCase('ippoi_site_a')" data-case="ippoi_site_a"><span class="k">metal + DNA</span><span class="t">I-PpoI site A</span><span class="q">Mg:371 &bull; cold run</span></button>
-      <button type="button" class="case" onclick="selectCase('ippoi_site_b')" data-case="ippoi_site_b"><span class="k">metal + DNA</span><span class="t">I-PpoI site B</span><span class="q">Mg:372 &bull; warm run</span></button>
+      <button type="button" class="case" onclick="selectCase('ippoi_site_a')" data-case="ippoi_site_a"><span class="k">metal + DNA</span><span class="t">I-PpoI site A</span><span class="q">Mg 371 &bull; memory empty</span></button>
+      <button type="button" class="case" onclick="selectCase('ippoi_site_b')" data-case="ippoi_site_b"><span class="k">metal + DNA</span><span class="t">I-PpoI site B</span><span class="q">Mg 372 &bull; reuses site A's lesson</span></button>
       <button type="button" class="case" onclick="selectCase('egfr_erlotinib')" data-case="egfr_erlotinib"><span class="k">drug in pocket</span><span class="t">EGFR + Erlotinib</span><span class="q">PDB 1M17 &bull; pH 7.4</span></button>
       <button type="button" class="case" onclick="selectCase('abl_imatinib_a')" data-case="abl_imatinib_a"><span class="k">drug in pocket</span><span class="t">ABL + Imatinib</span><span class="q">PDB 2HYY &bull; Chain B</span></button>
     </div>
     <div class="sheet request">
-      <label class="label" for="promptInput">Conversational setup request</label>
+      <label class="label" for="promptInput">Or describe your own system</label>
       <textarea id="promptInput" rows="2" placeholder="e.g. Set up a QM/MM model for I-PpoI active site A (Mg :371) and explain every setup choice."></textarea>
       <div class="toggles">
-        <label><input type="checkbox" id="sampleModeToggle" checked> <span>Offline Sample Mode</span></label>
-        <label><input type="checkbox" id="mdToggle"> <span>Run 1 ps QM/MM MD (100 frames)</span></label>
+        <label><input type="checkbox" id="sampleModeToggle" checked> <span>Sample mode (offline: replays a saved real run)</span></label>
+        <label><input type="checkbox" id="mdToggle"> <span>Also run 1 ps of molecular dynamics</span></label>
       </div>
       <div class="runbar">
         <button class="run" id="runBtn" type="button" onclick="runSimulation()"><span class="led"></span><span>Run Autonomous Setup &amp; Explanation</span></button>
-        <button class="ghost" id="resetBtn" type="button" onclick="resetMemory()" title="Delete the H-MEM db and ledger so the next run is cold">Reset memory</button>
+        <button class="ghost" id="resetBtn" type="button" onclick="resetMemory()" title="Clear the agents' memory so the next run starts with nothing remembered">Reset memory</button>
         <span id="streamStatus" class="pill">Idle</span>
       </div>
     </div>
   </section>
 
   <section class="xsec xo3" id="secResult" aria-labelledby="secResultH">
-    <div class="section-title"><h2 id="secResultH">Result</h2><span class="aside mono wrap-any" style="font-size:11.5px">Trace file: <a id="traceLink" href="#">none yet</a></span></div>
+    <div class="section-title"><h2 id="secResultH">Result</h2></div>
     <div class="sheet hero">
       <div>
-        <div class="label">QM/MM single point</div>
+        <div class="label">QM/MM energy (single point)</div>
         <div class="h-big" id="hTitle">No run yet</div>
+        <div class="h-sub" id="metricEnergyK">Energy of the quantum part</div>
         <div class="h-val nc" id="metricEnergy">not computed</div>
-        <div class="h-sub mono" id="metricTotal">total: not computed</div>
+        <div class="h-sub" id="metricTotal">whole system: not computed</div>
         <div class="metrics">
-          <div class="metric"><div class="k">Engine</div><div class="v" id="metricEngine">not run yet</div><div class="s" id="metricEngineTime">engine time: not computed</div></div>
-          <div class="metric"><div class="k">qmcharge / retries</div><div class="v" id="metricCharge">--</div><div class="s" id="metricRetries">retries: -- &bull; memory used: --</div></div>
-          <div class="metric"><div class="k">Catalog / model</div><div class="v" id="metricCatalog">--</div><div class="s" id="metricModel">model: --</div></div>
+          <div class="metric"><div class="k">Engine</div><div class="v" id="metricEngine">not run yet</div></div>
+          <div class="metric"><div class="k">Charge of the quantum region</div><div class="v" id="metricCharge">--</div><div class="s" id="metricRetries">corrections: -- &bull; memory used: --</div></div>
         </div>
+        <details class="det" id="resultDet"><summary>Details</summary><div class="det-body">
+          <span>run: <span id="metricRunId">none yet</span></span>
+          <span>trace file: <a id="traceLink" href="#">none yet</a></span>
+          <span id="metricEngineTime">engine time: not computed</span>
+          <span>data layer: <span id="metricCatalog">--</span></span>
+          <span id="metricModel">model: --</span>
+        </div></details>
       </div>
       <div>
         <div class="label" id="vTitle">Accuracy check</div>
@@ -598,8 +622,8 @@
   <section class="xsec xo5 sheet pad" id="sec3d" aria-labelledby="sec3dH">
     <div class="viewer-head">
       <div>
-        <h2 id="sec3dH">3D Structure <span id="structureBadge" class="badge" style="vertical-align:4px">ribbon · 3Dmol.js</span></h2>
-        <div id="structureSubTitle" class="muted wrap-any" style="font-size:12.5px">No structure loaded yet.</div>
+        <h2 id="sec3dH">3D Structure</h2>
+        <p id="structureSubTitle" class="cap3d">No structure loaded yet.</p>
       </div>
       <div class="seg" role="group" aria-label="3D style">
         <button type="button" data-rep="ribbon" aria-pressed="true" onclick="setRepresentation('ribbon')">Ribbon</button>
@@ -625,14 +649,18 @@
     <div id="molViewer" class="molbox" role="img" aria-label="Interactive 3D Molecular Viewer">
       <div id="molViewerLoading" class="loading">Loading the structure…</div>
     </div>
+    <div class="note3d hidden" id="liveMsg"></div>
     <div class="legend3d" id="ribbonLegend"></div>
     <div class="legend hidden" id="liveLegend" style="margin-top:8px"></div>
-    <div class="vsrc" id="liveVsrc">loading 3D…</div>
     <div class="vwarn hidden" id="liveVwarn"></div>
-    <div class="muted" style="font-size:11.5px;margin-top:8px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div class="muted" style="font-size:11.5px;margin-top:8px">
       <span><b>Mouse:</b> drag to rotate · scroll to zoom · right-drag to move (Ribbon, Cartoon, Sticks, Surface)</span>
-      <span id="molAtomCount" class="mono"></span>
     </div>
+    <details class="det"><summary>Details</summary><div class="det-body">
+      <span>drawn as: <span id="structureBadge">ribbon · 3Dmol.js</span></span>
+      <span id="liveVsrc">loading 3D…</span>
+      <span id="molAtomCount"></span>
+    </div></details>
   </section>
 
   <section class="xsec xo6 sheet" id="secReport" aria-label="Report">
@@ -661,7 +689,7 @@
 
   <section class="xsec xo8 sheet" id="secTrace" aria-label="Agent trace">
     <details class="fold" id="traceFold">
-      <summary>Agent trace <span class="cnt" id="eventCount">(0 events)</span><span class="aside">live SSE, nothing pre-filled</span></summary>
+      <summary>Agent trace <span class="cnt" id="eventCount">(0 events)</span><span class="aside">live feed from the server, nothing pre-filled</span></summary>
       <div class="fold-body"><div id="thoughtStream"><div class="placeholder">Waiting for a run. Each line below arrives from the server as the agent acts; nothing is pre-filled.</div></div></div>
     </details>
   </section>
@@ -672,9 +700,9 @@
       <div class="chat-head">
         <div>
           <h3>AI Biochemist</h3>
-          <div class="muted" style="font-size:12.5px">Computational chemistry reasoning &amp; Decision Card auditor. Numbers not carried by a run are marked <span class="flag">⚠ not from a run</span>.</div>
+          <div class="muted" style="font-size:12.5px">Ask why the agents made a choice or what a number means. Numbers not carried by a run are marked <span class="flag">⚠ not from a run</span>.</div>
         </div>
-        <span class="readout grey" id="chatModelChip">model: shown after the first reply</span>
+        <span class="readout grey hidden" id="chatModelChip"></span>
       </div>
       <div style="margin-top:10px">
         <span class="label">Quick inquiries</span>
@@ -734,6 +762,7 @@
   let chatHistoryList = [];
   let caseInfo = {};          // from GET /api/cases: kind, ligand, system per case id
   let lastStats = null;       // stats of the last finished run (mask, chain, case)
+  const runByCase = {};       // case id -> stats of the last finished run of that case (the 3D view draws its quantum region)
   let nodesDone = new Set();
   let stageState = new Map(); // action -> {state, text, n}
   let eventCount = 0;
@@ -835,7 +864,9 @@
       const prev = stageState.get(e.action);
       let state = stageFrom(e);
       if (prev && prev.state === "error" && state === "ok") state = "warn";   // caught and fixed: amber, not green
-      stageState.set(e.action, {state, text: e.output_summary || "", n: (prev ? prev.n : 0) + 1});
+      // the lifecycle row says what happened in plain words; the raw summary (masks, file names) stays in the Agent trace
+      const plain = window.sentenceFor ? sentenceFor(e) : null;
+      stageState.set(e.action, {state, text: plain ? plain[1] : (prev ? prev.text : ""), n: (prev ? prev.n : 0) + 1});
       renderStages();
     }
 
@@ -850,6 +881,7 @@
       const link = $("traceLink");
       link.href = `/api/trace/${e.run_id}`;
       link.innerText = `trace-${e.run_id}.jsonl`;
+      $("metricRunId").innerText = e.run_id;
     }
     if (window.flowStep) flowStep(e);   // default view: same event, rewritten as a plain sentence
   }
@@ -878,16 +910,24 @@
     const st = payload.stats || {};
     const res = payload.result || {};
     lastStats = st;
+    if (st.case) runByCase[st.case] = st;     // every 3D entry point for this case now draws the run's quantum region
     currentRunId = st.run_id || currentRunId;
     currentScriptPath = payload.chimerax_script || st.chimerax_script || null;
 
     $("hTitle").innerText = CASE_TITLES[st.case] || (caseInfo[st.case] || {}).system || st.case || "Run";
-    setNc($("metricEnergy"), res.qm_escf_kcal === null || res.qm_escf_kcal === undefined ? "not computed" : `${fmt(res.qm_escf_kcal, 3)} kcal/mol`);
-    $("metricTotal").innerText = "total: " + (res.total_energy_kcal === null || res.total_energy_kcal === undefined ? "not computed" : `${fmt(res.total_energy_kcal, 2)} kcal/mol`);
+    // every number carries its provenance chip, as on the result screen
+    const ep = engineProv(st, res.qm_escf_kcal), tp = engineProv(st, res.total_energy_kcal);
+    const eEl = $("metricEnergy");
+    eEl.classList.toggle("nc", ep === "nc");
+    eEl.innerHTML = (ep === "nc" ? "not computed" : `${escapeHtml(fmt(res.qm_escf_kcal, 3))} <small>${glossify("kcal/mol")}</small>`) + chip(ep);
+    $("metricTotal").innerHTML = `${glossify("whole system")}: ` + (tp === "nc" ? "not computed" : `${escapeHtml(fmt(res.total_energy_kcal, 2))} kcal/mol`) + chip(tp);
     setEngineBadge(st.engine_label || "engine unavailable");
     $("metricEngineTime").innerText = "engine time: " + (st.engine_time_s === null || st.engine_time_s === undefined ? "not computed" : `${st.engine_time_s} s`);
-    $("metricCharge").innerText = st.qmcharge === null || st.qmcharge === undefined ? "null" : (st.qmcharge >= 0 ? "+" : "") + st.qmcharge;
-    $("metricRetries").innerText = `retries: ${st.retries} • memory used: ${st.memory_used}`;
+    const q = signed(st.qmcharge);
+    $("metricCharge").innerHTML = (q === null ? "not computed" : escapeHtml(q)) + chip(q === null ? "nc" : "run");
+    const yes = (b) => b === true ? "yes" : b === false ? "no" : "not reported";
+    $("metricRetries").innerText = `corrections: ${isNum(st.retries) ? st.retries : "not reported"} • memory used: ${yes(st.memory_used)}`;
+    $("metricRunId").innerText = st.run_id || "none";
     $("metricCatalog").innerText = st.catalog || "--";
     $("metricModel").innerText = `model: ${st.model_mode} (${st.model_calls} calls)`;
     renderAccuracy(payload);
@@ -895,6 +935,8 @@
     $("cardsCount").innerText = (payload.cards || []).length;
     if (window.marked && payload.report_markdown) {
       $("reportContent").innerHTML = marked.parse(payload.report_markdown);
+      cleanReport($("reportContent"), payload.report_markdown, st);
+      glossifyDom($("reportContent"));
     } else {
       $("reportContent").innerText = payload.report_markdown || "No report generated yet.";
     }
@@ -908,6 +950,43 @@
     if (window.flowResult) flowResult(payload);
   }
 
+  /* ---------- plain words on screen, technical detail one click away ---------- */
+  // Record-keeping tokens the server writes, said plainly where a chemist reads them. The raw text stays in a Details block.
+  const PLAIN_WORDS = [[/REMARK 465\/470/g, "missing-residue records"], [/(?<![A-Za-z_])qmcharge(?![A-Za-z_])/g, "charge of the quantum region"]];
+  const plainWords = (s) => PLAIN_WORDS.reduce((t, [re, w]) => t.replace(re, (m, off) => off === 0 ? w[0].toUpperCase() + w.slice(1) : w), String(s ?? ""));
+  // the one disclosure pattern: <details class="det"><summary>Details</summary> … </details>
+  const detHtml = (inner) => `<details class="det"><summary>Details</summary><div class="det-body">${inner}</div></details>`;
+  function detEl(inner) { const t = document.createElement("template"); t.innerHTML = detHtml(inner); return t.content.firstElementChild; }
+
+  // The server writes the report for the record (run id, file paths, atom masks, raw evidence JSON). On screen it reads
+  // plainly: raw parts fold behind Details, and the report exactly as written stays available at its end.
+  function cleanReport(root, md, st) {
+    const h1 = root.querySelector("h1");
+    if (h1) h1.textContent = "Report: " + (CASE_TITLES[st.case] || st.case || "this run");
+    for (const li of root.querySelectorAll("li")) {
+      const raw = /^Evidence:/.test(li.textContent.trim()) ||
+                  [...li.querySelectorAll("code")].some((c) => /[\/\\]|\.(?:jsonl|cxc|pdb|parm7|ncrst|nc)\b/i.test(c.textContent));
+      if (raw) { const inner = li.innerHTML; li.innerHTML = ""; li.appendChild(detEl(inner)); }
+    }
+    // a section that is only a file name (the trace) folds whole
+    for (const h2 of [...root.querySelectorAll("h2")]) {
+      if (!/^trace$/i.test(h2.textContent.trim())) continue;
+      const body = [];
+      for (let n = h2.nextElementSibling; n && n.tagName !== "H2"; n = n.nextElementSibling) body.push(n);
+      const d = detEl(`<span>trace file:</span>`); const box = d.querySelector(".det-body");
+      for (const n of body) box.appendChild(n);
+      h2.replaceWith(d);
+    }
+    for (const h3 of root.querySelectorAll("h3")) h3.textContent = h3.textContent.replace(/_/g, " ");
+    // skip only the raw blocks made above (the report itself may sit inside a folding <details>)
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {acceptNode: (n) => {
+      const raw = n.parentElement && n.parentElement.closest("details, pre, code");
+      return raw && root.contains(raw) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; }});
+    const texts = []; while (walker.nextNode()) texts.push(walker.currentNode);
+    for (const n of texts) { const p = plainWords(n.nodeValue); if (p !== n.nodeValue) n.nodeValue = p; }
+    root.appendChild(detEl(`<span>run: ${escapeHtml(st.run_id || "not reported")}</span><span>the report exactly as written (Markdown):</span><pre>${escapeHtml(md)}</pre>`));
+  }
+
   // GET /api/structure/<run_id> only finds a file when the run wrote md/complex.pdb (an MD run); other runs use the case structure.
   function structureIds(st) { return [st && (st.md || st.md_result) ? st.run_id : null, st && st.case].filter(Boolean); }
 
@@ -919,13 +998,14 @@
     let h = "";
     if (checks.length) {
       const passed = checks.filter(c => c.passed).length;
-      h += `<div class="label" style="margin-bottom:2px">checks ${passed}/${checks.length} passed</div>`;
-      h += checks.map(c => row(!!c.passed, `<b>${escapeHtml(c.name)}</b> <span class="muted">${escapeHtml(c.detail || "")}</span>`)).join("");
+      h += `<div class="label" style="margin-bottom:2px">safety checks ${passed}/${checks.length} passed ${chip("run")}</div>`;
+      h += checks.map(c => row(!!c.passed, `<b>${glossify(plainCheck(c.name))}</b> <span class="muted">${glossify(plainWords(c.detail || ""))}</span>`)).join("");
     }
     if (v && typeof v === "object" && "recovered" in v) {
       $("vTitle").innerText = "Binding mode vs published contacts";
       const rec = v.recovered || {};
       const n = Object.keys(rec).length;
+      h += `<div class="label" style="margin:8px 0 2px">compared with the published structure ${chip(isNum(v.published) ? "expert" : "nc")}</div>`;
       h += row(v.published === undefined || v.published === null ? null : n === v.published,
                `<b>${n}/${v.published ?? "not computed"}</b> published contacts present`);
       h += Object.entries(rec).map(([k, d]) => row(true, `${escapeHtml(k)} <span class="mono muted">${escapeHtml(d)} Å</span>`)).join("");
@@ -936,14 +1016,28 @@
       $("vTitle").innerText = "Agreement with the expert setup";
       const keys = Object.keys(v || {});
       if (v && v.expert_mask_present === false) h += row(null, "no expert setup on file for this case: agreement <b>not computed</b>");
+      // known keys in plain words; anything else is listed as the server named it. The raw values are under Details.
+      const PLAIN_VAL = {
+        jaccard: (x) => [null, `overlap with the expert's atoms: <b>${num(x, 2)}</b> (${glossify("Jaccard")}; 1.00 = identical)`],
+        expert_atoms: (x) => [null, `the expert's quantum region: ${escapeHtml(x)} atoms`],
+        charge_match: (x) => [x, x ? "charge matches the expert's" : "charge differs from the expert's"],
+        expert_qmcharge: (x) => [null, `the expert's charge: ${escapeHtml(signed(x) ?? "not computed")}`],
+        only_ours: (x) => [Array.isArray(x) ? x.length === 0 : null, `atoms only in the agents' region: ${Array.isArray(x) ? x.length : "not computed"}`],
+        only_expert: (x) => [Array.isArray(x) ? x.length === 0 : null, `atoms only in the expert's region: ${Array.isArray(x) ? x.length : "not computed"}`],
+      };
+      let plainRows = "";
       for (const k of keys) {
-        if (k === "expert_mask_present" && v[k] === false) continue;
+        if (k === "expert_mask_present") continue;
         const val = v[k];
-        const shown = val === null || val === undefined ? "not computed" : typeof val === "object" ? JSON.stringify(val) : String(val);
-        h += row(typeof val === "boolean" ? val : null, `${escapeHtml(k)}: <span class="mono">${escapeHtml(shown)}</span>`);
+        if (val === null || val === undefined) { plainRows += row(null, `${escapeHtml(k.replace(/_/g, " "))}: not computed`); continue; }
+        if (PLAIN_VAL[k]) { const [state, html] = PLAIN_VAL[k](val); plainRows += row(state, html); continue; }
+        const shown = typeof val === "object" ? JSON.stringify(val) : String(val);
+        plainRows += row(typeof val === "boolean" ? val : null, `${escapeHtml(k.replace(/_/g, " "))}: <span class="mono">${escapeHtml(shown)}</span>`);
       }
+      if (plainRows) h += `<div class="label" style="margin:8px 0 2px">compared with the lab expert ${chip("expert")}</div>` + plainRows;
       if (!keys.length) h += row(null, "validation: not computed");
     }
+    if (h && v && Object.keys(v).length) h += detHtml(`<pre>${escapeHtml(JSON.stringify(v, null, 1))}</pre>`);
     $("validation").innerHTML = h || `<div class="empty">This run carried no checks or validation.</div>`;
   }
 
@@ -960,11 +1054,10 @@
       const alts = (card.alternatives || []).map(a => `<li><b>${escapeHtml(a.name)}</b>: ${escapeHtml(a.rejected_reason)}</li>`).join("");
       el.innerHTML = `
         <span class="c">confidence ${card.confidence === null || card.confidence === undefined ? "not computed" : Number(card.confidence).toFixed(2)}</span>
-        <div class="kk">${idx + 1}. ${escapeHtml(card.category)} · ${escapeHtml(card.target)}</div>
-        <div class="d">${escapeHtml(card.choice)}</div>
-        <div class="e">${escapeHtml(card.rationale)}</div>
-        <div class="s">source: ${escapeHtml(source)}</div>
-        <details><summary>Evidence</summary><pre>${escapeHtml(JSON.stringify(ev, null, 1))}</pre></details>
+        <div class="kk">${idx + 1}. ${escapeHtml(String(card.category || "").replace(/_/g, " "))} · ${escapeHtml(plainWords(card.target))}</div>
+        <div class="d">${escapeHtml(plainWords(card.choice))}</div>
+        <div class="e">${escapeHtml(plainWords(card.rationale))}</div>
+        ${detHtml(`<span>card: ${escapeHtml(card.decision_id || "not reported")}</span><span>evidence source: ${escapeHtml(source)}</span><pre>${escapeHtml(JSON.stringify(ev, null, 1))}</pre>`)}
         ${alts ? `<div class="alts"><div class="label">Rejected alternatives</div><ul>${alts}</ul></div>` : ""}`;
       container.appendChild(el);
     });
@@ -1104,11 +1197,12 @@
       aiMsg.className = "msg ai";
       aiMsg.innerHTML = `<div class="md chat-md">${flagged}</div>` +
         (unv.length ? `<div class="unverified">⚠ ${unv.length} number(s) not from a run: ${escapeHtml(unv.join(", "))}</div>` : "") +
-        `<div class="foot"><span>${escapeHtml(data.model || "model not reported")}</span><span>${escapeHtml(data.source || "")} · unverified numbers: ${unv.length}</span></div>`;
+        detHtml(`<span>model: ${escapeHtml(data.model || "not reported")}</span><span>answered by: ${escapeHtml(data.source || "not reported")} · numbers not from a run: ${unv.length}</span>`);
       historyEl.appendChild(aiMsg);
       $("chatModelChip").innerText = `last reply: ${data.source || "source not reported"}`;
+      $("chatModelChip").classList.remove("hidden");
       $("chatModelChip").title = data.model || "";
-      $("chatModelChip").className = "readout " + (data.source === "nemotron" ? "blue" : "amber");
+      $("chatModelChip").className = "readout " + (data.source === "nemotron" ? "blue" : "amber");   // also drops "hidden"
     } catch (err) {
       if (loadingMsg) loadingMsg.remove();
       const errEl = document.createElement("div");
@@ -1189,21 +1283,27 @@
     } else if (stats && stats.mask) {
       note = `run mask ${String(stats.mask).slice(0, 40)}${String(stats.mask).length > 40 ? "…" : ""} indexes topology atoms; not mappable onto this file`;
     }
+    let focusKind = mode === "qm" ? "qm" : null;
     if (!focus.length) {
+      // No run region to draw: centre on the case's own metal ion or drug. Technical note only (shown under Details).
       let het = atoms.filter(a => a.het && !WATERS.has(a.resn));
       if (stats && stats.chain) { const c = het.filter(a => a.chain === stats.chain); if (c.length) het = c; }
-      if (het.length) {
-        const first = het[0];
-        const groupKey = (a) => `${a.resn}|${a.chain}|${a.resi}`;
-        const ligandKey = groupKey(het.find(a => !METALS.has(a.el)) || first);
-        const metals = het.filter(a => METALS.has(a.el));
-        focus = het.filter(a => groupKey(a) === ligandKey);
-        if (metals.length && METALS.has(first.el)) focus = metals.slice(0, 2);
-        mode = "het";
-        note = (note ? note + " · " : "") + `focus = HETATM ${[...new Set(focus.map(a => a.resn))].join(", ")} (not the run's QM region)`;
+      const info = caseInfo[caseId] || {};
+      const metals = het.filter(a => METALS.has(a.el));
+      const ligs = het.filter(a => !METALS.has(a.el));
+      const groupKey = (a) => `${a.resn}|${a.chain}|${a.resi}`;
+      if (metals.length && (info.kind === "metal" || !ligs.length)) {
+        focus = [metals.find(a => a.el === "Mg") || metals[0]];        // the catalytic Mg of the I-PpoI cases, not a structural Zn
+        focusKind = "metal";
+      } else if (ligs.length) {
+        const want = [String(info.ligand || "").toUpperCase(), "LIG"];
+        const key = groupKey(ligs.find(a => want.includes(a.resn.toUpperCase())) || ligs[0]);
+        focus = ligs.filter(a => groupKey(a) === key);
+        focusKind = "ligand";
       }
+      if (focus.length) { mode = "het"; note = (note ? note + " · " : "") + `centred on HETATM ${[...new Set(focus.map(a => a.resn))].join(", ")}`; }
     }
-    if (!focus.length) return {atoms: [], bonds: [], radius: 10, mode, note: note || "no ligand or metal in this file to centre on", focusSerials: []};
+    if (!focus.length) return {atoms: [], bonds: [], radius: 10, mode, focusKind: null, note: note || "no HETATM ligand or metal in this file", focusSerials: []};
     const fset = new Set(focus);
     const near = 5.0 * 5.0;
     const resKey = (a) => `${a.chain}|${a.resi}|${a.resn}`;
@@ -1225,17 +1325,60 @@
       if (dx * dx + dy * dy + dz * dz < lim * lim) bonds.push([i, j]);
     }
     const radius = Math.sqrt(Math.max(...out.map(a => a.x * a.x + a.y * a.y + a.z * a.z)));
-    return {atoms: out, bonds, radius, mode, note, focusSerials: focus.map(a => a.serial).filter(Number.isFinite)};
+    return {atoms: out, bonds, radius, mode, focusKind, note, focusSerials: focus.map(a => a.serial).filter(Number.isFinite)};
   }
 
-  // Data-driven warning: the served file should contain this case's ligand or a metal ion.
+  // Data-driven warning: the structure should contain this case's drug or a metal ion. Plain line on screen; codes under Details.
   function mismatchWarning(pdb, caseId) {
     const info = caseInfo[caseId];
-    if (!info) return "";
+    if (!info) return {plain: "", tech: ""};
     const resn = new Set(pdb.atoms.map(a => a.resn.toUpperCase()));
-    if (info.kind === "metal" && !pdb.atoms.some(a => METALS.has(a.el))) return `The served file (${pdb.serialsTopology ? "lab topology (atom numbers = run)" : `PDB ${pdb.idcode || "no HEADER"}`}) contains no metal ion, so it is not the active site of ${caseId}; the server fell back to another structure.`;
-    if (info.kind === "ligand" && info.ligand && !resn.has(String(info.ligand).toUpperCase()) && !resn.has("LIG")) return `The served file has no ${info.ligand} or LIG residue, so it may not be this case's complex.`;
-    return "";
+    if (info.kind === "metal" && !pdb.atoms.some(a => METALS.has(a.el)))
+      return {plain: `This structure has no metal ion, so it is not the active site of ${siteName(caseId)}.`, tech: `no metal element in the file (${pdb.serialsTopology ? "lab topology" : `PDB ${pdb.idcode || "no HEADER"}`})`};
+    if (info.kind === "ligand" && info.ligand && !resn.has(String(info.ligand).toUpperCase()) && !resn.has("LIG"))
+      return {plain: "This structure does not contain the drug, so it may not be this case's complex.", tech: `no ${info.ligand} or LIG residue in the file`};
+    return {plain: "", tech: ""};
+  }
+  const SITE_NAMES = {ippoi_site_a: "I-PpoI active site A", ippoi_site_b: "I-PpoI active site B", egfr_erlotinib: "EGFR kinase with erlotinib",
+                      abl_imatinib_a: "ABL kinase with imatinib", abl_imatinib_b: "ABL kinase with imatinib (chain A)", ecorv_endonuclease: "EcoRV endonuclease"};
+  const siteName = (id) => SITE_NAMES[id] || CASE_TITLES[id] || (caseInfo[id] || {}).system || id || "this structure";
+  const andList = (xs) => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
+
+  // One caption line for the 3D view: what you are looking at, in plain words. Counts of the file, the source and the
+  // serial mapping are under Details. rep: "ribbon" | "atoms" | another 3Dmol style.
+  function caption3d(sc, rep) {
+    if (!sc) return "";
+    const parts = [escapeHtml(siteName(sc.caseId))];
+    const metals = sc.metalNames || [];
+    if (rep !== "ribbon" && rep !== "atoms") {
+      parts.push(`${escapeHtml({cartoon: "cartoon", stick: "all atoms as sticks", surface: "surface"}[rep] || rep)} view (Ribbon and Atoms highlight the agents' ${glossify("quantum region")})`);
+      return parts.join(" · ");
+    }
+    if (sc.mode === "qm") {
+      const n = sc.atoms.filter(a => a.qm).length;
+      parts.push(`agents' ${glossify("quantum region")} (${n} atoms)${chip("run")} ${rep === "atoms" ? "as balls" : "in sticks"}`);
+      if (rep === "atoms") parts.push("nearby pocket as thin sticks");
+    } else if (sc.focusKind === "metal") {
+      const m = (sc.atoms.find(a => a.qm) || {}).el || "metal";
+      parts.push(rep === "atoms" ? `the ${escapeHtml(m)} ion as a ball, nearby pocket as sticks` : `centred on the ${escapeHtml(m)} ion`);
+    } else if (sc.focusKind === "ligand") {
+      parts.push(rep === "atoms" ? "the drug as balls, nearby pocket as sticks" : "centred on the drug, in sticks");
+    }
+    if (rep === "ribbon" && metals.length) parts.push(`${escapeHtml(andList(metals))} as sphere${metals.length > 1 ? "s" : ""}`);
+    return parts.join(" · ");
+  }
+  // The plain message under the picture when the agents' region is not drawn.
+  function message3d(sc) {
+    if (!sc || sc.mode === "qm") return "";
+    if (!sc.atoms.length) return "This structure has no drug or metal ion to centre on.";
+    if (!sc.hasRun) return "Run the agents to see the quantum region they chose.";
+    return `The agents' quantum region could not be drawn on this structure, so the view is centred on the ${sc.focusKind === "metal" ? "metal ion" : "drug"}.`;
+  }
+  function renderCaption(P, rep) {
+    const sc = lastScene[P];
+    $(P === "flow" ? "flowCaption" : "structureSubTitle").innerHTML = caption3d(sc, rep) || "No structure loaded yet.";
+    const msg = message3d(sc), el = $(P + "Msg");
+    el.innerText = msg; el.classList.toggle("hidden", !msg);
   }
 
   let lastScene = {live: null, flow: null};
@@ -1246,8 +1389,13 @@
     const mv = $("molViewer"); mv.className = mv.className.replace(/\btone-\S+/g, "").trim() + (t ? " tone-" + t : "");
   }
 
-  function describe(served, pdb, scene) {
-    return `/api/structure/${served} · ${pdb.serialsTopology ? "lab topology (atom numbers = run)" : `PDB ${pdb.idcode || "no HEADER"}`}${pdb.klass ? " (" + pdb.klass.toLowerCase() + ")" : ""} · ${pdb.atoms.length} atoms · ${scene.atoms.filter(a => a.qm).length} focus + ${scene.atoms.filter(a => !a.qm).length} pocket shown`;
+  // Technical lines for the 3D Details block: where the file came from, what it holds, how the region was mapped.
+  function describe(served, pdb, scene, stats) {
+    const kind = pdb.serialsTopology ? "lab topology, 12 Å cut-out (atom numbers = run topology)" : `PDB ${pdb.idcode || "no HEADER"}`;
+    return [`file: /api/structure/${served}`, `contents: ${kind}${pdb.klass ? " (" + pdb.klass.toLowerCase() + ")" : ""}`,
+            `${pdb.atoms.length} atoms in the file · ${scene.atoms.filter(a => a.qm).length} highlighted + ${scene.atoms.filter(a => !a.qm).length} pocket atoms in the Atoms view`,
+            stats && stats.run_id ? `run: ${stats.run_id}${stats.mask ? ` · mask ${stats.mask}` : ""}` : "run: none yet for this case",
+            scene.note, scene.cutout ? "the ribbon is faded because a cut-out holds the chain in short pieces" : ""].filter(Boolean);
   }
 
   async function loadSiteScene(ids, caseId, stats, target) {
@@ -1256,19 +1404,25 @@
       const {id, text} = await fetchStructure(ids);
       const pdb = parsePDB(text);
       const scene = buildScene(pdb, stats, caseId);
-      scene.source = describe(id, pdb, scene);
+      scene.caseId = caseId;
+      scene.hasRun = !!(stats && stats.run_id);
       scene.hasMetal = pdb.atoms.some(a => METAL_RESN.includes(a.resn.toUpperCase()));
+      scene.metalNames = [...new Set(pdb.atoms.filter(a => METAL_RESN.includes(a.resn.toUpperCase())).map(a => a.el))];
       scene.cutout = pdb.serialsTopology;
-      lastScene[P] = scene; lastPdb[P] = text;
-      $(P + "Vsrc").innerText = scene.source + (scene.note ? " · " + scene.note : "");
       const warn = mismatchWarning(pdb, caseId);
-      $(P + "Vwarn").innerText = warn; $(P + "Vwarn").classList.toggle("hidden", !warn);
-      $(P + "SiteCorner").innerText = scene.mode === "qm" ? "QM = BALLS · MM POCKET = STICKS" : "LIGAND/METAL = BALLS · POCKET = STICKS";
+      scene.source = describe(id, pdb, scene, stats).concat(warn.tech ? [warn.tech] : []);
+      lastScene[P] = scene; lastPdb[P] = text;
+      $(P + "Vsrc").innerHTML = scene.source.map(s => `<span>${escapeHtml(s)}</span>`).join("");
+      $(P + "Vwarn").innerText = warn.plain; $(P + "Vwarn").classList.toggle("hidden", !warn.plain);
+      $(P + "SiteCorner").innerText = scene.mode === "qm" ? "QM = BALLS · MM POCKET = STICKS" : "DRUG / METAL = BALLS · POCKET = STICKS";
+      renderCaption(P, P === "flow" ? flowRep : currentRepresentation);
       withViews(V => V[P].show(scene));
       return {id, pdb, text};
     } catch (err) {
+      lastScene[P] = null;
       $(P + "Vsrc").innerText = "3D unavailable: " + err.message;
-      withViews(V => V[P].clear("3D unavailable: " + err.message));
+      renderCaption(P, "ribbon");
+      withViews(V => V[P].clear("The 3D structure is not available for this case."));
       return null;
     }
   }
@@ -1318,10 +1472,9 @@
   function ribbonLegendHtml(scene) {
     const has = scene && (scene.focusSerials || []).length;
     const sticks = !has ? "" : scene.mode === "qm"
-      ? `<span><span class="qmstick"></span>Sticks = ${glossify("quantum region")} (this run's atoms)</span>`
-      : `<span><span class="qmstick"></span>Sticks = the drug or metal ion (the run's exact ${glossify("quantum region")} could not be mapped onto this file)</span>`;
-    const cut = scene && scene.cutout ? "; faded because this file is a 12 Å cut-out, so the chain is in pieces" : "";
-    return `<span><span class="ribbon"></span>Ribbon = protein / DNA backbone (the rainbow only tracks position along the chain${cut})</span>` + sticks +
+      ? `<span><span class="qmstick"></span>Sticks = the agents' ${glossify("quantum region")}</span>`
+      : `<span><span class="qmstick"></span>Sticks = the drug and other small molecules</span>`;
+    return `<span><span class="ribbon"></span>Ribbon = protein / DNA backbone (colour follows position along the chain)</span>` + sticks +
            (scene && scene.hasMetal ? `<span><span class="metal"></span>Spheres = metal ions</span>` : "");
   }
   function renderRibbonLegend() {
@@ -1332,12 +1485,13 @@
 
   async function loadStructureViewer(caseId, stats) {
     caseId = caseId || activeCaseId || "egfr_erlotinib";
+    // opened from a case card or before this run finished: a finished run of the same case still decides the highlight
+    if (!stats || !stats.mask) stats = runByCase[caseId] || stats || null;
     const ids = stats ? structureIds(stats) : [caseId];   // a run id has no PDB of its own unless the run wrote one
     const got = await loadSiteScene(ids, caseId, stats, "live");
     if (!got) { $("structureSubTitle").innerText = "No structure available."; $("molViewerLoading").style.display = "flex"; $("molViewerLoading").innerText = "No structure available."; return; }
     loadedPdbData = got.text;
-    $("structureSubTitle").innerText = `${CASE_TITLES[caseId] || caseId} · served: ${got.pdb.serialsTopology ? "lab topology (12 Å cut-out)" : `PDB ${got.pdb.idcode || "no HEADER"}`}${got.id !== caseId ? ` (via ${got.id})` : ""}`;
-    $("molAtomCount").innerText = `${got.pdb.atoms.length} atoms in file`;
+    $("molAtomCount").innerText = got.id !== caseId ? `structure from run ${got.id} (it wrote its own file)` : "";
     renderRibbonLegend();
     render3Dmol();
   }
@@ -1352,7 +1506,9 @@
       if (!molViewerInstance) molViewerInstance = $3Dmol.createViewer($("molViewer"), { backgroundColor: css("--chamber-b") || "white" });
       molViewerInstance.resize();
       molViewerInstance.clear();
-      const m = molViewerInstance.addModel(loadedPdbData, "pdb");
+      // keepH: 3Dmol drops hydrogens by default, so the ribbon's quantum-region sticks would miss their H atoms
+      // (36 of 64 for I-PpoI A). The other styles draw every atom alike and stay without H.
+      const m = molViewerInstance.addModel(loadedPdbData, "pdb", {keepH: currentRepresentation === "ribbon"});
       // 3Dmol 2.0.4's PDB parser already assigns helices/sheets when a file has no HELIX/SHEET records; the model method
       // from the recipe is called where a 3Dmol build has it (it is absent in 2.0.4, so this is a no-op there).
       if (m && typeof m.computeSecondaryStructure === "function") m.computeSecondaryStructure();
@@ -1403,6 +1559,7 @@
     $("molViewer").classList.toggle("hidden", atoms);
     $("liveLegend").classList.toggle("hidden", !atoms);
     $("structureBadge").innerText = atoms ? "atoms · Three.js" : `${mode} · 3Dmol.js`;
+    renderCaption("live", mode);
     renderRibbonLegend();
     if (!atoms) render3Dmol();
   }
@@ -1430,7 +1587,7 @@
       if (!flowMol) flowMol = $3Dmol.createViewer($("flowMol"), { backgroundColor: css("--chamber-b") || "white" });
       flowMol.resize();
       flowMol.clear();
-      const m = flowMol.addModel(lastPdb.flow, "pdb");
+      const m = flowMol.addModel(lastPdb.flow, "pdb", {keepH: true});   // every quantum-region atom, hydrogens included
       if (m && typeof m.computeSecondaryStructure === "function") m.computeSecondaryStructure();
       styleRibbon(flowMol, lastScene.flow);
       zoomRibbon(flowMol, lastScene.flow);
@@ -2017,13 +2174,13 @@
     const escf = isNum(res.qm_escf_kcal) ? res.qm_escf_kcal : st.qm_escf_kcal;
     const tot = isNum(res.total_energy_kcal) ? res.total_energy_kcal : st.total_energy_kcal;
     const ep = engineProv(st, isNum(escf) ? escf : null), tp = engineProv(st, isNum(tot) ? tot : null);
-    tile("Energy of the quantum part (ESCF)", isNum(escf) ? `${num(escf, 1)}<small>${glossify("kcal/mol")}</small>` : "—", ep,
+    tile("Energy of the quantum part", isNum(escf) ? `${num(escf, 1)}<small>${glossify("kcal/mol")}</small>` : "—", ep,
          [isNum(tot) ? fact(tp, `${glossify("whole system")}: ${num(tot, 1)} ${glossify("kcal/mol")}`) : fact("nc", `${glossify("whole system")}: —`)]
          .concat(ep === "nc" ? [`<div class="fact">${glossify(plainReason(st.errors || res.errors))}</div>`] : []));
     // 4. safety checks
     if (checks.length) {
       const passed = checks.filter((c) => c.passed).length;
-      const list = checks.map((c) => `<li data-prov="run">${c.passed ? "✓" : "!"} ${glossify(plainCheck(c.name))}<div class="fact">${glossify(c.detail || "")}${chip("run")}</div></li>`).join("");
+      const list = checks.map((c) => `<li data-prov="run">${c.passed ? "✓" : "!"} ${glossify(plainCheck(c.name))}<div class="fact">${glossify(plainWords(c.detail || ""))}${chip("run")}</div></li>`).join("");
       tile("Safety checks passed", `${passed} / ${checks.length}`, "run", [], `<details><summary>Which checks?</summary><ul>${list}</ul></details>`);
     } else tile("Safety checks passed", "—", "nc", [`<div class="fact">this run carried no checks</div>`]);
     return tiles.join("");
@@ -2053,17 +2210,16 @@
     const w = whyItems[i]; if (!w) return;
     const c = w.card, ev = Object.assign({}, c.evidence || {}); const source = ev.source; delete ev.source;
     const conf = isNum(c.confidence) ? `<span data-prov="run">${glossify("confidence")} ${num(c.confidence, 2)}${chip("run")}</span>` : `<span>${glossify("confidence")}: —${chip("nc")}</span>`;
-    const alts = (c.alternatives || []).map((a) => `<li><b>${glossify(a.name)}</b>: ${glossify(a.rejected_reason)}</li>`).join("");
-    const extra = (w.extra || []).length ? `<h3>What is inside the quantum region</h3><ul>${w.extra.map((x) => `<li>${glossify(x.target)}: ${glossify(x.choice)}</li>`).join("")}</ul>` : "";
+    const alts = (c.alternatives || []).map((a) => `<li><b>${glossify(plainWords(a.name))}</b>: ${glossify(plainWords(a.rejected_reason))}</li>`).join("");
+    const extra = (w.extra || []).length ? `<h3>What is inside the quantum region</h3><ul>${w.extra.map((x) => `<li>${glossify(x.target)}: ${glossify(plainWords(x.choice))}</li>`).join("")}</ul>` : "";
     showInfo(w.label, `<div data-prov="run">
       <div class="fact" data-card-id="${escapeHtml(c.decision_id)}">Every value on this card was written by the agents in this run, from the evidence below${chip("run")}</div>
-      <h3>What they chose</h3><p>${glossify(c.choice)}</p>
-      <h3>Why</h3><p>${glossify(c.rationale)}</p>
+      <h3>What they chose</h3><p>${glossify(plainWords(c.choice))}</p>
+      <h3>Why</h3><p>${glossify(plainWords(c.rationale))}</p>
       <p class="muted" style="font-size:13px">${conf}</p>
       ${alts ? `<h3>What they ruled out</h3><ul>${alts}</ul>` : ""}
       ${extra}
-      ${source ? `<h3>Evidence source</h3><p class="muted" style="font-size:13px">${glossify(source)}</p>` : ""}
-      <details style="margin-top:12px"><summary>Raw evidence and card id (for experts)</summary><pre>${escapeHtml(c.decision_id)}\n${escapeHtml(JSON.stringify(ev, null, 1))}</pre></details>
+      ${detHtml(`<span>card: ${escapeHtml(c.decision_id)}</span>${source ? `<span>evidence source: ${escapeHtml(source)}</span>` : ""}<pre>${escapeHtml(JSON.stringify(ev, null, 1))}</pre>`)}
       <p style="margin-top:14px"><button type="button" class="linkbtn" onclick="setExpert(true);switchTab('cards')">See every decision card (Expert view)</button></p></div>`);
   }
   function showInfo(title, html) {
@@ -2090,11 +2246,14 @@
 
   /* ---------- 3D, report, chat ---------- */
   async function open3D() {
-    const st = (flow.payload || {}).stats || lastStats || {};
+    const caseId = ((flow.payload || {}).stats || {}).case || activeCaseId || flowCase;
+    // this run's stats; failing that (no mask), the last finished run of the same case
+    let st = (flow.payload || {}).stats || lastStats || {};
+    if (!st.mask && runByCase[caseId]) st = runByCase[caseId];
     $("dlg3d").showModal();
     if (!flow.scene) {
       $("flowVsrc").innerText = "loading 3D…";
-      await loadSiteScene(structureIds(st).length ? structureIds(st) : [activeCaseId || flowCase], st.case || activeCaseId, st.run_id ? st : null, "flow");
+      await loadSiteScene(structureIds(st).length ? structureIds(st) : [caseId], st.case || caseId, st.run_id ? st : null, "flow");
       flow.scene = lastScene.flow;
     }
     const sc = lastScene.flow;
@@ -2107,11 +2266,12 @@
     const sc = lastScene.flow;
     $("flowLegend").innerHTML = flowRep === "ribbon" ? ribbonLegendHtml(sc) : sc && sc.mode === "qm"
       ? `<span><span class="ball"></span>Balls = ${glossify("quantum region")} (this run's atoms)</span><span><span class="stick"></span>Sticks = nearby pocket (classical part)</span>`
-      : `<span><span class="ball"></span>Balls = the drug or metal ion</span><span><span class="stick"></span>Sticks = nearby pocket</span><span class="muted">The run's exact ${glossify("quantum region")} could not be drawn on this file.</span>`;
+      : `<span><span class="ball"></span>Balls = the drug or metal ion</span><span><span class="stick"></span>Sticks = nearby pocket</span>`;
   }
   function setFlowRep(mode) {
     flowRep = mode;
     document.querySelectorAll("[data-frep]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.frep === mode ? "true" : "false"));
+    renderCaption("flow", mode);
     $("flowMol").classList.toggle("hidden", mode !== "ribbon");
     $("flowSite").classList.toggle("hidden", mode === "ribbon");
     renderFlowLegend();
@@ -2185,7 +2345,7 @@ function makeView(wrapId, legendId, words) {
   return {
     show(sc) {
       drop();
-      if (!sc.atoms.length) { msg.textContent = sc.note || "nothing to show"; msg.style.display = ""; return; }
+      if (!sc.atoms.length) { msg.textContent = "This structure has no drug or metal ion to centre on."; msg.style.display = ""; return; }
       msg.style.display = "none";
       group = new THREE.Group(); radius = Math.min(Math.max(sc.radius, 8), 26);
       const P = sc.atoms.map((a) => new THREE.Vector3(a.x, a.y, a.z));
