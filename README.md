@@ -53,7 +53,7 @@ docker build -t activesite . && docker run --rm -p 8088:8088 activesite   # dash
 curl -s -X POST localhost:8088/run -H 'content-type: application/json' -d '{"case_id":"ippoi_site_a"}'
 ```
 The image runs in sample mode: every agent runs for real and the engine step replays recorded real `sander` output,
-labelled `cached engine output (sample mode)`. To use live Zetaris and NVIDIA Nemotron, add `--env-file .env`.
+labelled `cached engine output (sample mode)`. Add `--env-file .env` for live NVIDIA Nemotron; Zetaris is used live only when a Zetaris instance is reachable at `ZETARIS_REST_URL` (otherwise the run uses the labelled DuckDB stand-in and says so).
 
 With Python and `uv` instead:
 ```bash

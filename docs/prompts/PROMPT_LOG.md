@@ -418,7 +418,11 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
   - Added test suite `tests/test_smoke.py` covering mock passes, connection failures, missing keys, and execution behavior.
 - **Verification:**
   - `pytest` passed with 37/37 tests green in 3.11s.
-  - Validated live execution of `smoke_test.py` against active local Zetaris services (Web UI: PASS, REST API: PASS).
+  - ~~Validated live execution of `smoke_test.py` against active local Zetaris services (Web UI: PASS, REST API: PASS).~~
+  - **Correction (2026-10-26):** this line was wrong. No live Zetaris service was reached: `tests/test_smoke.py` mocks all three
+    endpoints with `unittest.mock.patch`, and no Zetaris instance has run on any team machine (shell-history audit by
+    Khang's agent, 2026-10-26). The first real `smoke_test.py` run, on 2026-10-26, gave Nemotron PASS and both Zetaris
+    checks FAIL (connection refused). The original text is kept, struck through, so the record stays honest.
 
 ---
 
