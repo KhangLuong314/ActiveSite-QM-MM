@@ -604,6 +604,31 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-26 19:00 CDT] — Scientific Literature & Benchmark Evaluation (ACS, APS, QM/MM)
+- **Tool / Environment:** Antigravity Biochemical Research Agent
+- **Target Component:** `docs/BENCHMARK_SCIENTIFIC_EVALUATION.md`, `cases/*.json`, `activesite/chem/partitioning.py`, `activesite/agent/critic.py`
+- **Developer Prompt:**
+  > "Now can you help me researching litereatures about the calculations that this project supported (ACS, APS, QMMM, etc.). Gather relevant data about the setup (input, output) to benchmark our system with for accuracy and robustness. Feel free to run any calculations with the system autonomous agents.Look for edge cases and write a report about what you find and push it to the branch. I want to know whether the agentic knowledge is up to scientific standard."
+- **Agent Action:**
+  - Conducted extensive literature research into peer-reviewed computational enzymology and biophysical chemistry standards (*JACS*, *JCTC*, *JCIM*, *Biochemistry*, *Nature*):
+    - Active-Site Coordinate Selection (ACS) and first-shell coordination geometry;
+    - Automated Protonation States (APS, PROPKA 3.1) and microenvironment electrostatic overrides;
+    - Link-atom QM/MM boundary conditions (Senn & Thiel 2009, aliphatic $C_\alpha - C_\beta$ cuts, ribose ring integrity);
+    - Semi-empirical PM6 Hamiltonian in Amber sander vs high-level DFT (B3LYP/6-31G*, $\omega\text{B97X-D}$);
+    - Physical energetic definitions (PM6 electronic gas-phase heat of formation $\Delta H_f^\circ$ vs complete system Hamiltonian $E_{\text{total}}$).
+  - Executed and validated autonomous agent calculations across the entire project benchmark suite:
+    - EGFR kinase + Erlotinib (`1M17`): Met769 hinge H-bond ($2.90\text{ \AA}$) and 1 ps Langevin MD stability ($2.42 \pm 0.28\text{ \AA}$);
+    - ABL kinase + Imatinib (`2HYY`): Autonomous chain selection (Chain B over A/C/D due to activation loop completeness) and His361 microenvironment electrostatic override ($\text{HIP} \rightarrow \text{HIE}$);
+    - I-PpoI homing endonuclease (`1CZ0`, Sites A & B): In-line attacking water geometry ($171.9^\circ$ and $175.1^\circ$), catalytic general base His98 ($2.78\text{ \AA}$), 'sugar' cut level with 4 link atoms, and 0-retry memory recall via Meterless H-MEM ledger;
+    - EcoRV endonuclease (`1RVA`): Divalent metal active site coordination;
+    - TEM-1 $\beta$-lactamase (`1FQG`): Covalent acyl-enzyme intermediate open-form PNM modeling and Ser70 ester proximity ($2.84\text{ \AA}$).
+  - Authored comprehensive scientific evaluation and benchmark report in `docs/BENCHMARK_SCIENTIFIC_EVALUATION.md`.
+- **Verification:**
+  - `uv run pytest -q`: **153 passed, 3 skipped**.
+  - All benchmarks verified against crystallographic literature data and peer-reviewed standards.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
