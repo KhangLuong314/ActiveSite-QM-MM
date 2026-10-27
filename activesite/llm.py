@@ -28,6 +28,29 @@ PLANNER_SYSTEM = (
 )
 
 
+RETRY_TOKENS = 6000
+
+
+def _split_reasoning(msg: Dict[str, Any]) -> tuple[str, str]:
+    """(answer, reasoning) from a chat message: reasoning_content, closed <think>/<thought> blocks, or an unclosed
+    <think> whose answer never came (everything after the open tag is reasoning)."""
+    content = msg.get("content") or ""
+    reasoning = msg.get("reasoning_content") or ""
+    content = content.strip() if isinstance(content, str) else ""
+    thinking = reasoning.strip() if isinstance(reasoning, str) else ""
+    for tag in ("thought", "think"):
+        pattern = rf"<{tag}>(.*?)</{tag}>"
+        found = re.search(pattern, content, flags=re.DOTALL)
+        if found:
+            thinking = thinking or found.group(1).strip()
+            content = re.sub(pattern, "", content, flags=re.DOTALL).strip()
+        open_tag = re.search(rf"<{tag}>", content)
+        if open_tag:
+            thinking = thinking or content[open_tag.end():].strip()
+            content = content[:open_tag.start()].strip()
+    return content, thinking
+
+
 class ModelClient:
     def __init__(self, base_url: Optional[str] = None, model: Optional[str] = None, api_key: Optional[str] = None,
                  timeout: float = 60.0):
@@ -82,41 +105,25 @@ class ModelClient:
             return {"reply": None, "thinking": None}
         self.calls += 1
         model_name = model or os.getenv("NEMOTRON_MODEL") or self.model or "nvidia/nemotron-3.5-lightning-30b-a3b"
-        payload = {
-            "model": model_name,
-            "messages": messages,
-            "temperature": 0.2,
-            "max_tokens": int(max_tokens),
-        }
+        headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
         try:
-            r = httpx.post(f"{self.base_url}/chat/completions", json=payload,
-                           headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
-                           timeout=self.timeout)
-            r.raise_for_status()
-            data = r.json()
-            msg = data["choices"][0]["message"]
-            raw_content = msg.get("content") or ""
-            reasoning = msg.get("reasoning_content") or ""
-
-            thinking = reasoning.strip() if isinstance(reasoning, str) else ""
-            content = raw_content.strip() if isinstance(raw_content, str) else ""
-
-            # Check if thinking/thought tags are embedded in content
-            for tag in ("thought", "think"):
-                pattern = rf"<{tag}>(.*?)</{tag}>"
-                m = re.search(pattern, content, flags=re.DOTALL)
-                if m:
-                    extracted = m.group(1).strip()
-                    if not thinking:
-                        thinking = extracted
-                    content = re.sub(pattern, "", content, flags=re.DOTALL).strip()
-
-            # If content was empty but reasoning exists, use reasoning as reply fallback
-            if not content and thinking:
-                content = thinking
-                thinking = ""
-
-            return {"reply": content if content else None, "thinking": thinking if thinking else None}
+            # Nemotron reasons before it answers, and both count against max_tokens. If the budget runs out
+            # (finish_reason "length") the answer is cut off or missing, so retry once with a larger budget.
+            for budget in (int(max_tokens), max(int(max_tokens) * 3, RETRY_TOKENS)):
+                payload = {"model": model_name, "messages": messages, "temperature": 0.2, "max_tokens": budget}
+                r = httpx.post(f"{self.base_url}/chat/completions", json=payload, headers=headers, timeout=self.timeout)
+                r.raise_for_status()
+                choice = r.json()["choices"][0]
+                content, thinking = _split_reasoning(choice["message"])
+                truncated = choice.get("finish_reason") == "length"
+                if content and not truncated:
+                    break
+            if not content:
+                # never show the model's working as if it were the answer
+                return {"reply": None, "thinking": thinking or None}
+            if truncated:
+                content += "\n\n(answer cut off at the length limit)"
+            return {"reply": content, "thinking": thinking or None}
         except Exception as exc:
             self.last_error = f"{type(exc).__name__}: {exc}"[:300]
             return {"reply": None, "thinking": None}

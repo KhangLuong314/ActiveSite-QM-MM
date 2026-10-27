@@ -493,7 +493,9 @@ def format_chat_system_prompt(ctx: Dict[str, Any]) -> str:
         "minimized pocket, all Decision Cards, and 1 ps MD stability.\n"
         "3. Provide deep biochemical and quantum physical explanations for setup choices (neutral Erlotinib, "
         "Cα–Cβ non-polar link-atom boundaries, 1.0 fs MD step due to no SHAKE on QM atoms, 300 K Langevin bath).\n"
-        "4. Always cite exact numbers and specific Decision Card numbers where appropriate."
+        "4. Always cite exact numbers and specific Decision Card numbers where appropriate.\n"
+        "5. Keep every answer under 180 words: short paragraphs or up to 6 bullets. Think briefly; the reader wants "
+        "the answer, not the working."
     )
     return prompt
 
@@ -960,14 +962,13 @@ async def chat_endpoint(req: ChatRequest):
         reply = None
         thinking = None
         try:
-            detailed = client.chat_detailed(messages, max_tokens=1500)
+            # chat_detailed retries once with a larger budget if the model runs out of tokens while reasoning, and
+            # never returns its reasoning as the reply; no reply means the honest rule-based answer below is used
+            detailed = client.chat_detailed(messages, max_tokens=2500)
             reply = detailed.get("reply")
             thinking = detailed.get("thinking")
         except Exception:
             reply = None
-
-        if not reply:
-            reply = client.chat(messages, max_tokens=800)
 
         if reply:
             reply, unverified = guard(reply, run_context)
