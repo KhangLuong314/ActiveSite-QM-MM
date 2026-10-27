@@ -59,7 +59,7 @@ def test_dashboard_html(client):
     resp = client.get("/")
     assert resp.status_code == 200
     for needle in ("ActiveSite", "Track 02", "catalog-STANDIN (DuckDB)", "What the system remembers", "SQL sent through the data layer",
-                   "Reset memory", "/run/stream", "not computed", "traceLink", "Pipeline", "3D Structure", "3Dmol.js Active",
+                   "Reset memory", "/run/stream", "not computed", "traceLink", "Pipeline", "3D Structure", "ribbon · 3Dmol.js",
                    "Interactive 3D Molecular Viewer", "marked.min.js", "3Dmol-min.js"):
         assert needle in resp.text
     assert "Zetaris MCP" not in resp.text
