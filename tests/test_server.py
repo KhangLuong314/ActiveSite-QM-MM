@@ -201,6 +201,11 @@ def test_chimerax_launch_endpoint(client, tmp_path, monkeypatch):
     assert fallback_resp.json()["status"] == "launched"
     assert "trajectory.cxc" in fallback_resp.json()["script_path"]
 
+    # GET /api/chimerax/{run_id} finds md/trajectory.cxc and sample fallback
+    dl_sample = client.get("/api/chimerax/sample_run")
+    assert dl_sample.status_code == 200
+    assert "complex.pdb" in dl_sample.text
+
 
 def test_run_with_md_toggle(client):
     resp = client.post("/api/run", json={"case_id": "egfr_erlotinib", "sample_mode": True, "md": True})

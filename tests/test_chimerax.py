@@ -37,6 +37,8 @@ def test_chimerax_script_generation(tmp_path: Path):
     assert "color :769 cyan" in script
     assert "shape sphere center 12.500,34.200,56.100" in script
     assert "hbonds" in script
+    assert "clip off" in script
+    assert "lighting soft shadows false depthCue false" in script
 
 
 def test_chimerax_trajectory_script_format(tmp_path: Path):
@@ -65,3 +67,5 @@ def test_chimerax_trajectory_script_format(tmp_path: Path):
     assert "cartoon" in script
     assert "hbonds :AQ4 reveal true makePseudobonds true color yellow radius 0.08" in script
     assert "view :AQ4" in script
+    assert "clip off" in script
+    assert "lighting soft shadows false depthCue false" in script

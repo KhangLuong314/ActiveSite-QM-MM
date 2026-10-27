@@ -822,6 +822,28 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-27 00:38 CDT] — ChimeraX Clipping Plane & Shadow Fix, Endpoint Resolution
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/chem/chimerax.py`, `activesite/server/main.py`, `tests/test_chimerax.py`, `tests/test_server.py`, `data/sample/egfr_erlotinib/md/`
+- **Developer Prompt:**
+  > "This is what the chimerax window looks like after the update. Looks like the QM part is highlighed in pink and the rest is gray. And it seems that something is obscuring the view like there is a shadow that make the full system not rendered fully. Also, I receive this error from the terminal
+  > INFO: 127.0.0.1:61459 - "GET /api/chimerax/20261027-052813-d3f64a HTTP/1.1" 404 Not Found
+  > INFO: 127.0.0.1:61459 - "POST /api/chimerax/launch HTTP/1.1" 200 OK
+  > [10731:259:1027/002840.879052:ERROR:service_utils.cc(339)] Skia Graphite backend = "" not found - falling back to Ganesh!"
+- **Agent Action:**
+  - Diagnosed ChimeraX visual obstruction:
+    1. `view :AQ4` tightly centered the camera's front/back clipping slab around the ligand, severing outer protein loops and front helices. Added `clip off` immediately after `view :AQ4` so the full protein structure is completely visible without slicing.
+    2. `lighting soft` enabled ambient occlusion and deep shadows that, when combined with black background and depth cueing, created black shadow blotches inside ribbon crevices. Switched to `lighting soft shadows false depthCue false`.
+    3. Removed `transparency 50 cartoon`, which made ribbons appear dark and murky due to 50% opacity blending over black.
+  - Resolved `GET /api/chimerax/{run_id}` 404 error: `download_chimerax_script` previously checked only `visualize.cxc`, missing `md/trajectory.cxc` produced by MD runs. Added candidate resolution across `md/trajectory.cxc`, `trajectory.cxc`, `visualize.cxc`, and sample fallback.
+  - Noted Chromium `Skia Graphite` stderr log is a harmless standard Qt WebEngine message on macOS.
+- **Verification:**
+  - Script tested live in ChimeraX-1.12 with `clip off` and shadowless soft lighting: exit code 0.
+  - `pytest tests/test_chimerax.py tests/test_server.py -v`: 27 passed in 2.43s.
+  - `pytest -q -m "not slow"`: **205 passed, 3 deselected, 0 failures**.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name

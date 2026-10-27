@@ -74,7 +74,6 @@ class ChimeraXGenerator:
             "hide",
             "cartoon",
             "color #1 lightgray",
-            "transparency 50 cartoon",
             "",
             "# 3. Highlight QM Region",
         ])
@@ -129,7 +128,8 @@ class ChimeraXGenerator:
             "",
             "# 6. Center view on QM region",
             f"view {all_qm_spec}",
-            "lighting soft",
+            "clip off",
+            "lighting soft shadows false depthCue false",
             f"echo 'ActiveSite: QM/MM partitioned region displayed with {len(partition.link_atoms)} link atoms.'",
         ])
 
@@ -215,13 +215,13 @@ class ChimeraXGenerator:
             "hide",
             "cartoon",
             "color #1 lightgray",
-            "transparency 50 cartoon",
             f"show :{ligand_resname} atoms",
             f"color :{ligand_resname} magenta",
             f"style :{ligand_resname} ball",
             f"hbonds :{ligand_resname} reveal true makePseudobonds true color yellow radius 0.08",
             f"view :{ligand_resname}",
-            "lighting soft",
+            "clip off",
+            "lighting soft shadows false depthCue false",
         ]
         script_content = "\n".join(lines) + "\n"
 
