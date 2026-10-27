@@ -10,6 +10,8 @@ partitioning) work on an Amber topology with MM charges, and there is no step ye
 """
 from __future__ import annotations
 
+import re
+
 from typing import Any, Dict, List, Optional
 
 from activesite.adapters.chemcomp import SMILES_RE, lookup_smiles
@@ -38,6 +40,10 @@ def build_custom_case(spec: Dict[str, Any], lookup=lookup_smiles) -> Dict[str, A
         raise UploadError("ph must be a number")
     if not 0.0 <= ph <= 14.0:
         raise UploadError("ph must be between 0 and 14")
+    # the user's own question (free text from the composer): display/report text only, never parsed or executed
+    user_q = " ".join(re.sub(r"[\x00-\x1f\x7f]", " ", str(spec.get("question") or "")).split())
+    if len(user_q) > 500:
+        raise UploadError("the question is longer than 500 characters")
     resname = spec.get("ligand_resname")
     ligands = record.get("ligands") or []
     picked_automatically = False
@@ -80,10 +86,10 @@ def build_custom_case(spec: Dict[str, Any], lookup=lookup_smiles) -> Dict[str, A
                   "parent_id": record.get("parent_id"), "mutations": mutations, "method": record.get("method"),
                   "smiles": smiles, "smiles_source": smiles_source, "ligand_resname": resname,
                   "ligand_picked_automatically": picked_automatically, "format": record.get("format"),
-                  "upload_warnings": record.get("warnings") or []}
+                  "upload_warnings": record.get("warnings") or [], "user_question": user_q or None}
     return {
         "id": f"custom_{short}", "kind": "ligand", "system": f"custom_{short}", "site": "A", "chain": chain,
-        "question": (f"Prepare your uploaded structure {name}" + (f" (mutations {', '.join(mutations)})" if mutations else "")
+        "question": (f"{user_q} " if user_q else "") + (f"Prepare your uploaded structure {name}" + (f" (mutations {', '.join(mutations)})" if mutations else "")
                      + f" with ligand {resname} and compute the PM6 QM/MM energy of the ligand in its pocket at pH {ph}. "
                        "Explain every protonation and setup choice."),
         "pdb": str(path), "ligand": resname, "ligand_smiles": smiles, "smiles_source": smiles_source,

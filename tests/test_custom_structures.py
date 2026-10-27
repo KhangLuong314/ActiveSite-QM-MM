@@ -225,6 +225,17 @@ def test_custom_run_sample_mode_is_proposal_only(client):
     assert custom.PROPOSAL_LABEL in report and "your uploaded structure" in report and "ESCF `null`" in report
 
 
+def test_custom_case_carries_the_users_question(client):
+    sid = _upload(client).json()["structure_id"]
+    look = lambda r: (AQ4_SMILES, "mock")   # noqa: E731
+    case = custom.build_custom_case({"structure_id": sid, "ligand_resname": "AQ4", "question": " Why does T790M\x07 resist   erlotinib? "}, lookup=look)
+    assert case["question"].startswith("Why does T790M resist erlotinib? Prepare your uploaded structure")
+    assert case["custom"]["user_question"] == "Why does T790M resist erlotinib?"
+    assert "user_question" in custom.build_custom_case({"structure_id": sid, "ligand_resname": "AQ4"}, lookup=look)["custom"]
+    with pytest.raises(custom.UploadError, match="longer than 500"):
+        custom.build_custom_case({"structure_id": sid, "ligand_resname": "AQ4", "question": "x" * 501}, lookup=look)
+
+
 def test_custom_run_stream_and_errors(client):
     sid = _upload(client).json()["structure_id"]
     r = client.post("/api/run", json={"custom": {"structure_id": sid, "ligand_smiles": AQ4_SMILES}, "sample_mode": True})

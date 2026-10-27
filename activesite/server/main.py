@@ -82,6 +82,7 @@ class CustomRunRequest(BaseModel):
     metal_resi: Optional[int] = None
     chain: Optional[str] = None
     ph: Optional[float] = 7.4
+    question: Optional[str] = None   # the user's own words from the composer; the structure is the file
 
 
 class SimulationRequest(BaseModel):

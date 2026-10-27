@@ -405,8 +405,6 @@
   .lib-group > h3 { margin: 0 0 6px; font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
   .lib-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 10px; }
   .libitem { text-align: left; cursor: pointer; padding: 12px 14px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; box-shadow: var(--shadow); min-width: 0; width: 100%; color: var(--ink); }
-  .libitem:hover { border-color: var(--ink-2); }
-  .libitem[aria-pressed="true"], .libitem.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .libitem .t { display: block; font: 600 16.5px/1.25 var(--serif); }
   .libitem .s { display: block; font-size: 13px; color: var(--muted); margin-top: 4px; overflow-wrap: anywhere; }
   .libitem .m { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin-top: 7px; font: 400 11.5px var(--mono); color: var(--muted); }
@@ -416,6 +414,74 @@
   .lchip { display: inline-flex; font: 500 10.5px/1.6 var(--mono); padding: 0 8px; border-radius: 999px; white-space: nowrap; }
   .lchip.verified { color: var(--exp-fg); background: var(--exp-bg); } .lchip.replay { color: var(--rep-fg); background: var(--rep-bg); }
   .lchip.docker { color: var(--run-fg); background: var(--run-bg); } .lchip.unsupported { color: var(--nc-fg); background: var(--nc-bg); border: 1px solid var(--nc-rule); }
+  /* selected system: unmistakable (accent border all round, tint, check badge), not just a thin ring */
+  /* Selected = tint + 2px accent ring (box-shadow, so the 4px status edge on the left is kept) + check badge + lift.
+     Hover = darker hairline only. Focus-visible = ink outline offset outside the ring. Three states, three looks. */
+  .libitem, .pdb-row { position: relative; transition: background-color .12s ease, box-shadow .12s ease, transform .12s ease, border-color .12s ease; }
+  .libitem:hover, .pdb-row:hover { border-top-color: var(--ink-2); border-right-color: var(--ink-2); border-bottom-color: var(--ink-2); }
+  .libitem[aria-checked="true"], .libitem.on, .pdb-row.on {
+    background: var(--accent-bg); box-shadow: 0 0 0 2px var(--accent), 0 6px 16px rgba(16, 32, 46, .14); transform: translateY(-1px); padding-right: 40px;
+    border-top-color: transparent; border-right-color: transparent; border-bottom-color: transparent; }
+  .libitem[aria-checked="true"]::after, .libitem.on::after, .pdb-row.on::after {
+    content: "✓"; position: absolute; top: 9px; right: 9px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--accent); color: var(--on-accent); font: 700 12px/1 var(--sans); box-shadow: 0 1px 2px rgba(0, 0, 0, .2); }
+  .libitem:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+  .seg button[aria-pressed="true"]::before { content: "✓ "; font-weight: 700; }
+  @media (prefers-reduced-motion: reduce) { .libitem, .pdb-row { transition: none !important; } .libitem.on, .pdb-row.on, .libitem[aria-checked="true"] { transform: none; } }
+  /* the composer: a notebook entry with an attachment */
+  .composer-wrap { margin-top: 22px; }
+  .composer-h { margin: 0 0 6px; font: 600 18px/1.2 var(--serif); }
+  .composer { background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; box-shadow: var(--shadow); padding: 8px 10px 6px; transition: border-color .12s, box-shadow .12s; }
+  .composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+  .composer.drag { border-color: var(--accent); border-style: dashed; background: var(--accent-bg); }
+  .composer textarea { display: block; width: 100%; border: 0; background: transparent; resize: vertical; min-height: 56px; padding: 6px 4px; font-size: 14.5px; line-height: 1.5; }
+  .composer textarea:focus { outline: none; }
+  .composer-bar { display: flex; align-items: center; gap: 4px 10px; flex-wrap: wrap; border-top: 1px solid var(--rule-2); padding-top: 6px; margin-top: 2px; }
+  .clip { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--rule); background: var(--sheet-2); color: var(--ink-2); cursor: pointer; }
+  .clip:hover { color: var(--accent); border-color: var(--accent); }
+  .clip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .linkbtn.small { font-size: 13px; }
+  .composer-hint { font-size: 12px; color: var(--muted); margin-left: auto; }
+  @media (max-width: 520px) { .composer-hint { margin-left: 0; flex-basis: 100%; } }
+  #attachChip:empty { display: none; }
+  .att { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; flex-wrap: wrap; background: var(--accent-bg); color: var(--ink); border: 1px solid var(--accent);
+         border-radius: 8px; padding: 4px 6px 4px 8px; margin: 2px 0 4px; font-size: 13px; }
+  .att svg { color: var(--accent); flex: none; }
+  .att-meta { color: var(--ink-2); font-size: 12px; overflow-wrap: anywhere; }
+  .att-x { border: 0; background: none; color: var(--ink-2); cursor: pointer; font-size: 13px; width: 24px; height: 24px; border-radius: 6px; }
+  .att-x:hover { background: var(--sheet); color: var(--err-fg); }
+  .att-x:focus-visible { outline: 2px solid var(--accent); }
+  .byo { margin-top: 12px; padding: 12px 14px; background: var(--sheet); border: 1px solid var(--rule); border-left: 4px solid var(--b-agent); border-radius: 6px; }
+  .byo-title { margin: 0 0 4px; font: 600 15px/1.3 var(--sans); }
+  body.expert #composerBlock:not(.attached) .primary-row { display: none; }
+  body.expert #composerBlock .composer-h::after { content: " (attach a structure here)"; font: 400 13px var(--sans); color: var(--muted); }
+  .picked { font-size: 13.5px; color: var(--ink-2); overflow-wrap: anywhere; }
+  /* one chooser, three paths */
+  .chooser { margin-top: 4px; }
+  .chooser-h { margin: 0 0 8px; font: 600 20px/1.2 var(--serif); }
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--rule); margin-bottom: 14px; }
+  .tabs [role="tab"] { border: 1px solid transparent; border-bottom: 0; background: none; padding: 9px 14px; font-size: 14px; font-weight: 500; color: var(--muted);
+                       cursor: pointer; border-radius: 6px 6px 0 0; margin-bottom: -1px; }
+  .tabs [role="tab"]:hover { color: var(--ink); }
+  .tabs [role="tab"][aria-selected="true"] { color: var(--accent); background: var(--sheet); border-color: var(--rule); border-bottom: 2px solid var(--sheet); box-shadow: inset 0 3px 0 var(--accent); font-weight: 600; }
+  .tabs [role="tab"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  @media (max-width: 520px) { .tabs [role="tab"] { padding: 8px 10px; font-size: 13px; } }
+  .pane-note { font-size: 13.5px; color: var(--muted); margin: 0 0 10px; }
+  .pane-status { font-size: 13.5px; margin: 4px 0 8px; color: var(--ink-2); }
+  .pane-status:empty { display: none; }
+  .pane-status.err { color: var(--err-fg); background: var(--err-bg); border-left: 4px solid var(--b-err); padding: 7px 10px; border-radius: 4px; }
+  .hidden-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .pdb-results { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
+  .pdb-row { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: start; }
+  .pdb-row .id { font: 600 15px var(--mono); }
+  .pdb-row .tt { font-size: 13.5px; color: var(--ink); overflow-wrap: anywhere; }
+  .pdb-row .mt { font-size: 12.5px; color: var(--muted); margin-top: 3px; overflow-wrap: anywhere; }
+  .pdb-row .chips2 { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+  .pdb-row .note { font-size: 12.5px; color: var(--ink); background: var(--rep-bg); border-left: 4px solid var(--b-warn); padding: 3px 8px; border-radius: 3px; margin-top: 5px; }
+  @media (max-width: 520px) { .pdb-row { grid-template-columns: minmax(0, 1fr); } }
+  .examples { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  .byo-help { font-size: 13px; color: var(--muted); margin-top: 10px; }
+  .byo-help summary { font-size: 13px; }
   /* Expert view: the same library, compact (question + chips; the system line stays for search) */
   #caseButtons .lib-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 8px; }
   #caseButtons .libitem { padding: 9px 11px; }
@@ -427,7 +493,6 @@
   .lib-note:empty { display: none; }
 
   /* bring your own structure */
-  .byo { padding: 14px 16px; margin-bottom: 16px; }
   .byo h2 { margin: 0; font: 600 18px/1.25 var(--serif); }
   .byo .sub { font-size: 13.5px; color: var(--muted); margin: 3px 0 0; }
   .drop { margin-top: 10px; border: 1.5px dashed var(--dot); border-radius: 6px; padding: 14px; display: flex; gap: 10px 14px; align-items: center; flex-wrap: wrap; background: var(--sheet-2); }
@@ -460,8 +525,6 @@
   .screen .lede { color: var(--muted); margin: 0 0 18px; max-width: 720px; }
   .qcases { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
   .qcase { text-align: left; cursor: pointer; padding: 14px 16px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; box-shadow: var(--shadow); min-width: 0; }
-  .qcase:hover { border-color: var(--ink-2); }
-  .qcase[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .qcase .k { display: block; font: 500 10.5px var(--mono); color: var(--faint); letter-spacing: .08em; text-transform: uppercase; }
   .qcase .t { display: block; font: 600 18px/1.25 var(--serif); margin-top: 3px; }
   .qcase .s { display: block; font-size: 13px; color: var(--muted); margin-top: 4px; }
@@ -582,26 +645,65 @@
   <!-- Screen 1: choose -->
   <section class="screen" id="screen1" aria-labelledby="s1h">
     <h1 id="s1h" tabindex="-1">What do you want to study?</h1>
-    <p class="lede">Pick a system, or bring your own structure. AI agents set up a quantum-chemistry model of the active site (the part of the molecule where the chemistry happens), check their own work, and explain every choice with its evidence.</p>
-    <div id="byoHostFlow"></div>
-    <div class="lib-search"><label class="label" for="flowLibSearch" style="white-space:nowrap">Find a system</label>
-      <input type="search" id="flowLibSearch" placeholder="Name, PDB id, drug or enzyme class (e.g. kinase, 1M17, penicillin)" autocomplete="off" oninput="renderLibrary('flow')">
-      <span class="lib-count" id="flowLibCount" aria-live="polite"></span></div>
-    <div id="flowCases" role="group" aria-label="System library"></div>
-    <p class="lib-note" id="flowLibNote" role="status"></p>
-    <section class="sheet own">
-      <label class="label" for="flowPrompt">Or describe your own system</label>
-      <textarea id="flowPrompt" rows="2" placeholder="e.g. How does erlotinib bind EGFR? The agents pick the closest supported case."></textarea>
+    <p class="lede">AI agents set up a quantum-chemistry model of the active site (the part of the molecule where the chemistry happens), check their own work, and explain every choice with its evidence.</p>
+    <section class="chooser" aria-labelledby="chooserH">
+      <h2 id="chooserH" class="chooser-h">Choose a system</h2>
+      <div class="tabs" role="tablist" aria-labelledby="chooserH" id="chooserTabs">
+        <button type="button" role="tab" id="tab-search" aria-controls="pane-search" aria-selected="true" tabindex="0" onclick="setChooser('search')">Search the Protein Data Bank</button>
+        <button type="button" role="tab" id="tab-verified" aria-controls="pane-verified" aria-selected="false" tabindex="-1" onclick="setChooser('verified')">Verified examples</button>
+      </div>
+
+      <div role="tabpanel" id="pane-search" aria-labelledby="tab-search" class="pane">
+        <form class="lib-search" onsubmit="event.preventDefault(); pdbSearch()">
+          <label class="hidden-label" for="pdbQuery">Search the Protein Data Bank</label>
+          <input type="search" id="pdbQuery" maxlength="80" autocomplete="off" placeholder="Any enzyme, drug or PDB ID, e.g. lactate dehydrogenase, imatinib, 4ZAU">
+          <button type="submit" class="run" id="pdbGo">Search</button>
+        </form>
+        <p class="pane-note">Finds experimentally solved structures in the Protein Data Bank (rcsb.org). Predicting a structure from a sequence is not part of this tool.</p>
+        <div id="pdbStatus" class="pane-status" role="status" aria-live="polite"></div>
+        <ul class="pdb-results" id="pdbResults" aria-label="Search results"></ul>
+      </div>
+
+      <div role="tabpanel" id="pane-verified" aria-labelledby="tab-verified" class="pane" hidden>
+        <p class="pane-note">Each of these has an expert answer or published data to compare the agents against.</p>
+        <div class="lib-search"><label class="label" for="flowLibSearch" style="white-space:nowrap">Filter</label>
+          <input type="search" id="flowLibSearch" placeholder="Name, PDB id, drug or enzyme class (e.g. kinase, 1M17, penicillin)" autocomplete="off" oninput="renderLibrary('flow')">
+          <span class="lib-count" id="flowLibCount" aria-live="polite"></span></div>
+        <div id="flowCases" role="radiogroup" aria-label="Verified examples"></div>
+        <p class="lib-note" id="flowLibNote" role="status"></p>
+      </div>
     </section>
+
+    <!-- The composer: your words are the question; an attached file (or a PDB pick) is the structure. One run button for every path. -->
+    <div id="composerHostFlow">
+    <section class="composer-wrap" id="composerBlock" aria-labelledby="composerH">
+      <h2 class="composer-h" id="composerH"><label for="flowPrompt">Or describe your own system</label></h2>
+      <div class="composer" id="composer">
+        <div id="attachChip"></div>
+        <textarea id="flowPrompt" rows="2" placeholder="Ask your question, e.g. Why does T790M make EGFR resistant to erlotinib? Attach a structure with the paperclip, or drop a file here."></textarea>
+        <div class="composer-bar">
+          <button type="button" class="clip" id="attachBtn" aria-label="Attach a structure file (PDB or mmCIF)" title="Attach a structure file (PDB or mmCIF)" onclick="$('byoFile').click()">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.9-8.9a3.7 3.7 0 0 1 5.2 5.2l-8.9 8.9a1.8 1.8 0 0 1-2.6-2.6l8.2-8.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button type="button" class="linkbtn small" id="exampleBtn" onclick="byoExample('egfr_1m17')">Try an example file</button>
+          <span class="composer-hint">PDB or mmCIF: a lab mutant, a designed protein, a predicted model</span>
+          <input type="file" id="byoFile" accept=".pdb,.ent,.cif,.mmcif" hidden onchange="byoUpload(this.files[0]); this.value = ''">
+        </div>
+      </div>
+      <div id="attachStatus" class="pane-status" role="status" aria-live="polite"></div>
+      <div id="byoHostFlow"></div>
+      <div class="primary-row">
+        <button type="button" class="primary" id="flowRunBtn" onclick="flowRun()">Set it up and explain</button>
+        <span class="picked" id="flowPicked" aria-live="polite"></span>
+        <span class="inline-err" id="flowPickErr" role="alert"></span>
+      </div>
+    </section>
+    </div>
     <details class="options">
       <summary>Options</summary>
       <div class="opt"><input type="checkbox" id="flowSample" checked><label for="flowSample">Sample mode: no engine runs now; energies are replayed from a saved real run (works offline).</label></div>
       <div class="opt"><input type="checkbox" id="flowMd"><label for="flowMd">Also run a short molecular dynamics simulation (1 ps, 100 frames).</label></div>
     </details>
-    <div class="primary-row">
-      <button type="button" class="primary" id="flowRunBtn" onclick="flowRun()">Set it up and explain</button>
-      <span class="inline-err" id="flowPickErr" role="alert"></span>
-    </div>
   </section>
 
   <!-- Screen 2: agents work -->
@@ -692,9 +794,8 @@
 <div id="glossTip" role="tooltip" hidden></div>
 
 <!-- Bring your own structure. One card; it moves between the default view's library and Expert view's setup. -->
-<section class="sheet byo lb-agent" id="byoCard" aria-labelledby="byoTitle">
-  <h2 id="byoTitle">Your own structure</h2>
-  <p class="sub">Upload a PDB or mmCIF file: a lab mutant, a designed protein, a predicted model.</p>
+<section class="byo" id="byoCard" aria-labelledby="byoTitle" hidden>
+  <h3 id="byoTitle" class="byo-title">Set up the attached structure</h3>
   <div id="byoBody"></div>
 </section>
 
@@ -746,7 +847,7 @@
     <div class="lib-search"><label class="label" for="xLibSearch" style="white-space:nowrap">Find a system</label>
       <input type="search" id="xLibSearch" placeholder="Name, PDB id, drug or enzyme class" autocomplete="off" oninput="renderLibrary('x')">
       <span class="lib-count" id="xLibCount" aria-live="polite"></span></div>
-    <div id="caseButtons" role="group" aria-label="System library"></div>
+    <div id="caseButtons" role="radiogroup" aria-label="System library"></div>
     <p class="lib-note" id="xLibNote" role="status"></p>
     <div class="sheet request">
       <label class="label" for="promptInput">Or describe your own system</label>
@@ -956,13 +1057,13 @@
     activeCaseId = caseId;
     customRun = null;
     $("promptInput").value = PROMPTS[caseId] || (caseInfo[caseId] || {}).question || "";
-    document.querySelectorAll("#caseButtons button[data-case]").forEach(b => { b.classList.toggle("on", b.dataset.case === caseId); b.setAttribute("aria-pressed", b.dataset.case === caseId ? "true" : "false"); });
+    if (window.markPicked) markPicked("x", caseId);
     $("mdToggle").checked = (caseId === "egfr_erlotinib");
     loadStructureViewer(caseId, null);
   }
   $("promptInput").addEventListener("input", () => {
     activeCaseId = null;
-    document.querySelectorAll("#caseButtons button[data-case]").forEach(b => { b.classList.remove("on"); b.setAttribute("aria-pressed", "false"); });
+    if (window.markPicked) markPicked("x", null);
   });
 
   /* ---------- pipeline + lifecycle + trace ---------- */
@@ -2021,8 +2122,9 @@
     const item = (s) => {
       const label = s.status ? LIB_STATUS[s.status](s) : "status not on file";
       const meta = [s.pdb ? `PDB ${escapeHtml(s.pdb)}` : escapeHtml(s.source || "no PDB id"), s.ligand ? escapeHtml(s.ligand) : ""].filter(Boolean).join(" · ");
-      return `<button type="button" class="${P === "flow" ? "qcase" : "case"} libitem st-${s.status || "unsupported"}${s.id === picked ? " on" : ""}" data-case="${s.id}" aria-pressed="${s.id === picked}"
-        onclick="libPick('${P}', '${s.id}')"><span class="t">${escapeHtml(s.q)}</span><span class="s">${escapeHtml(s.title)}${s.note ? `; ${escapeHtml(s.note)}` : ""}</span>
+      // a radio group: one Tab stop (the picked item, else the first), arrow keys move and pick
+      return `<button type="button" role="radio" class="${P === "flow" ? "qcase" : "case"} libitem st-${s.status || "unsupported"}${s.id === picked ? " on" : ""}" data-case="${s.id}" aria-checked="${s.id === picked}"
+        tabindex="-1" onclick="libPick('${P}', '${s.id}')"><span class="t">${escapeHtml(s.q)}</span><span class="s">${escapeHtml(s.title)}${s.note ? `; ${escapeHtml(s.note)}` : ""}</span>
         <span class="m"><span>${meta}</span><span class="lchip ${s.status || "unsupported"}" title="${escapeHtml(s.status ? LIB_STATUS_WHY[s.status](s) : "")}">${escapeHtml(label)}</span></span></button>`;
     };
     box.innerHTML = groups.map((g) => {
@@ -2030,6 +2132,19 @@
       return items.length ? `<div class="lib-group" role="group" aria-labelledby="${P}-g-${g.id}"><h3 id="${P}-g-${g.id}">${escapeHtml(g.label)}</h3><div class="lib-list">${items.map(item).join("")}</div></div>` : "";
     }).join("") || `<div class="lib-empty">No system matches “${escapeHtml(q)}”. Try a protein, a drug, a PDB id, or describe your own system below.</div>`;
     $(P + "LibCount").innerText = q ? `${shown.length} of ${all.length}` : `${all.length} systems`;
+    markPicked(P, picked);
+  }
+  // radio-group keys: arrows move and pick (skipping nothing; an unsupported item explains itself), Home/End jump
+  for (const P of ["flow", "x"]) {
+    $(P === "flow" ? "flowCases" : "caseButtons").addEventListener("keydown", (ev) => {
+      const items = [...ev.currentTarget.querySelectorAll("button[data-case]")];
+      const i = items.indexOf(document.activeElement); if (i < 0) return;
+      const next = {ArrowDown: i + 1, ArrowRight: i + 1, ArrowUp: i - 1, ArrowLeft: i - 1, Home: 0, End: items.length - 1}[ev.key];
+      if (next === undefined) return;
+      ev.preventDefault();
+      const b = items[(next + items.length) % items.length];
+      b.focus(); b.click();
+    });
   }
   function libPick(P, id) {
     const s = libSystems().find((x) => x.id === id) || {};
@@ -2039,17 +2154,39 @@
       return;
     }
     note.innerText = s.status === "docker" ? `${s.title}: ${LIB_STATUS_WHY.docker(s)}` : "";
-    if (P === "flow") flowPick(id); else selectCase(id);
+    if (P === "flow") { if (byo.summary) detachQuiet(); flowPick(id); } else selectCase(id);
   }
   // mark the pick in place (re-rendering would drop keyboard focus from the button just pressed)
   function markPicked(P, id) {
-    for (const b of $(P === "flow" ? "flowCases" : "caseButtons").querySelectorAll("button[data-case]")) {
-      b.classList.toggle("on", b.dataset.case === id); b.setAttribute("aria-pressed", b.dataset.case === id ? "true" : "false");
+    const items = [...$(P === "flow" ? "flowCases" : "caseButtons").querySelectorAll("button[data-case]")];
+    for (const b of items) {
+      const on = b.dataset.case === id;
+      b.classList.toggle("on", on); b.setAttribute("aria-checked", on ? "true" : "false"); b.removeAttribute("aria-pressed");
+      b.tabIndex = on ? 0 : -1;
     }
+    if (items.length && !items.some((b) => b.tabIndex === 0)) items[0].tabIndex = 0;
+    if (P === "flow") showPicked();
+  }
+  // the Run area names what will run
+  // the Run button echoes the choice: "Run: EGFR + erlotinib", "Run: 4ZAU · YY3", "Run: match my description"
+  function showPicked() {
+    const s = flowCase && libSystems().find((x) => x.id === flowCase);
+    const text = $("flowPrompt").value.trim();
+    const att = typeof byo !== "undefined" && byo.summary;
+    let label, line;
+    if (att) {
+      const pick = (document.querySelector("input[name=byoTarget]:checked") || {}).value || "";
+      const lig = pick[0] === "l" ? (att.ligands || [])[Number(pick.slice(1))] : null, met = pick[0] === "m" ? (att.metals || [])[Number(pick.slice(1))] : null;
+      label = `Run: ${att.name || "attached structure"}${lig ? " · " + lig.resname : met ? " · " + (met.element || met.resname) : ""}`;
+      line = text ? "Your text is the question; the attached file is the structure." : "Add a question above if you like; the attached file is the structure.";
+    } else if (s) { label = `Run: ${s.title}`; line = `Selected: ${s.title}`; }
+    else if (text) { label = "Run: match my description"; line = "Will match your description to the closest supported system."; }
+    else { label = "Set it up and explain"; line = "Nothing selected yet: search, pick a verified example, or describe your system."; }
+    $("flowRunBtn").innerText = label; $("flowPicked").innerText = line;
   }
   function renderFlowCases() { markPicked("flow", flowCase); }
   function flowPick(id) { flowCase = id; customRun = null; $("flowPrompt").value = ""; $("flowPickErr").innerText = ""; renderFlowCases(); }
-  $("flowPrompt").addEventListener("input", () => { if ($("flowPrompt").value.trim()) { flowCase = null; renderFlowCases(); } });
+  $("flowPrompt").addEventListener("input", () => { if ($("flowPrompt").value.trim()) flowCase = null; renderFlowCases(); });
   // keep the two sets of toggles (Options here, Expert view's panel) in step
   for (const [a, b] of [["flowSample", "sampleModeToggle"], ["flowMd", "mdToggle"]]) {
     $(a).addEventListener("change", () => { $(b).checked = $(a).checked; });
@@ -2141,6 +2278,7 @@
   /* ---------- run ---------- */
   function flowRun() {
     if (flow.running) return;
+    if (byo.summary) { byoRun(); return; }          // an attached structure (file, example or PDB pick) runs with the text as its question
     const text = $("flowPrompt").value.trim();
     if (!flowCase && !text) { $("flowPickErr").innerText = "Pick a question or describe your system first."; return; }
     if (flowCase) selectCase(flowCase);
@@ -2618,13 +2756,108 @@
   /* ---------- bring your own structure: upload -> summary -> pick a ligand or metal -> optional SMILES and mutations -> run ----------
      Endpoints (built on another branch): POST /api/structures/upload, POST /api/structures/{id}/mutate, GET /api/structures/{id}/file,
      POST /api/run {custom}. A 404 means this server does not have them yet: the card says so and nothing else changes. */
-  const byo = {state: "idle", summary: null, parent: null, error: "", busy: false};
+  const byo = {state: "idle", summary: null, parent: null, error: "", busy: false, source: null};
+
+  /* ---------- screen 1: one chooser, three paths (tabs: arrow keys move, Home/End jump; one Tab stop) ---------- */
+  let chooserTab = "search";
+  function setChooser(tab, focus) {
+    chooserTab = tab;
+    for (const t of ["search", "verified"]) {
+      const b = $("tab-" + t), on = t === tab;
+      b.setAttribute("aria-selected", on ? "true" : "false"); b.tabIndex = on ? 0 : -1;
+      $("pane-" + t).hidden = !on;
+    }
+    if (focus) $("tab-" + tab).focus();
+    placeByo();
+  }
+  $("chooserTabs").addEventListener("keydown", (ev) => {
+    const order = ["search", "verified"], i = order.indexOf(chooserTab);
+    const j = {ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: order.length - 1}[ev.key];
+    if (j === undefined) return;
+    ev.preventDefault();
+    setChooser(order[(j + order.length) % order.length], true);
+  });
+
+  /* ---------- search the Protein Data Bank -> pick an entry -> the server downloads it -> the own-structure flow ---------- */
+  let pdbRows = [];
+  async function pdbSearch() {
+    const q = $("pdbQuery").value.trim();
+    const st = $("pdbStatus");
+    st.className = "pane-status";
+    if (!q) { st.innerText = "Type a protein, a drug or a PDB id."; return; }
+    st.innerHTML = `<span class="spinner"></span> Searching the Protein Data Bank…`;
+    $("pdbGo").disabled = true;
+    try {
+      const resp = await fetch("/api/pdb/search?q=" + encodeURIComponent(q));
+      if (resp.status === 404) throw new Error("Search is not available on this server yet. Try a verified example or upload a file.");
+      if (!resp.ok) throw new Error(await errText(resp));
+      pdbRows = (await resp.json()).results || [];
+      st.innerText = pdbRows.length ? `${pdbRows.length} entr${pdbRows.length === 1 ? "y" : "ies"} for “${q}”. Pick one with a small molecule bound.` : `No entries for “${q}”. Try another name, a drug, or a PDB id.`;
+      renderPdbRows();
+    } catch (err) {
+      pdbRows = []; renderPdbRows();
+      st.className = "pane-status err"; st.innerText = err.message;
+    } finally { $("pdbGo").disabled = false; }
+  }
+  function renderPdbRows() {
+    const picked = byo.source === "pdb" && byo.summary ? byo.summary.pdb_id : null;
+    $("pdbResults").innerHTML = pdbRows.map((r) => {
+      const ligs = r.ligands || [], mets = r.metals || [];
+      const chips = ligs.map((l) => `<span class="lchip docker" title="${escapeHtml(l.name || "")}">${escapeHtml(l.id)}${l.name ? " · " + escapeHtml(String(l.name).toLowerCase().slice(0, 40)) : ""}</span>`)
+        .concat(mets.map((m) => `<span class="lchip unsupported" title="${escapeHtml(m.name || "")}">${escapeHtml(m.id)} (metal)</span>`));
+      const can = ligs.length > 0;
+      const note = can ? "" : mets.length ? "Only metal sites: metal sites from downloaded files are not supported yet." : "No bound small molecule: nothing here for the agents to study.";
+      const meta = [r.organism, isNum(r.resolution) ? `${num(r.resolution, 2)} Å resolution` : "resolution not reported"].filter(Boolean).join(" · ");
+      const ver = r.verified_case ? `<span class="lchip verified">used by a verified example</span> <button type="button" class="linkbtn" onclick="openVerified('${escapeHtml(r.verified_case)}')">Open the verified example</button>` : "";
+      return `<li class="pdb-row${r.pdb_id === picked ? " on" : ""}" data-pdb="${escapeHtml(r.pdb_id)}"><div><span class="id">${escapeHtml(r.pdb_id)}</span> <span class="tt">${escapeHtml(r.title || "untitled entry")}</span>
+        <div class="mt">${escapeHtml(meta)}</div><div class="chips2">${chips.join("") || `<span class="mt">no bound ligand or metal</span>`} ${ver}</div>${note ? `<div class="note">${note}</div>` : ""}</div>
+        <div><button type="button" class="${can ? "run" : "secondary"}" ${can ? "" : "disabled"} onclick="pickPdb('${escapeHtml(r.pdb_id)}')" aria-label="Use ${escapeHtml(r.pdb_id)}">Use ${escapeHtml(r.pdb_id)}</button></div></li>`;
+    }).join("");
+  }
+  function openVerified(caseId) { setChooser("verified", true); libPick("flow", caseId); }
+  async function pickPdb(id) {
+    const st = $("pdbStatus");
+    st.className = "pane-status"; st.innerHTML = `<span class="spinner"></span> Downloading ${escapeHtml(id)} from the Protein Data Bank…`;
+    try {
+      const resp = await fetch("/api/structures/fetch", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({pdb_id: id})});
+      if (!resp.ok) {
+        const detail = await errText(resp);   // a missing route says "Not Found"; an unknown entry says so in words
+        throw new Error(resp.status === 404 && detail === "Not Found" ? "Downloading from the Protein Data Bank is not available on this server yet." : detail);
+      }
+      attach(await resp.json(), "pdb");
+      st.innerText = `${id} is attached below: add your question, choose what to study, then run.`;
+      $("composerBlock").scrollIntoView({block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+    } catch (err) { st.className = "pane-status err"; st.innerText = err.message; }
+  }
   const AA1 = "ACDEFGHIKLMNPQRSTVWY";
   const MUT_RE = new RegExp(`^([A-Za-z0-9]):([${AA1}])(-?\\d+)([A-Z]?)([${AA1}])$`);
+  // The composer (free text + attached structure + its set-up) lives on screen 1, or in Expert view's setup section.
   function placeByo() {
-    const host = $(document.body.classList.contains("expert") ? "byoHostX" : "byoHostFlow");
-    if ($("byoCard").parentElement !== host) host.appendChild($("byoCard"));
+    const host = $(document.body.classList.contains("expert") ? "byoHostX" : "composerHostFlow");
+    if ($("composerBlock").parentElement !== host) host.appendChild($("composerBlock"));
+    if ($("byoCard").parentElement !== $("byoHostFlow")) $("byoHostFlow").appendChild($("byoCard"));   // the set-up sits right under the composer
+    renderByo();
   }
+  async function byoExample(name) {
+    byo.state = "uploading"; byo.error = ""; byo.source = "example"; renderByo();
+    try {
+      const resp = await fetch("/api/structures/example", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({example: name})});
+      if (offline(resp)) throw new Error("Example files are not available on this server yet.");
+      if (!resp.ok) throw new Error(await errText(resp));
+      attach(await resp.json(), "example");
+    } catch (err) { byo.state = "error"; byo.error = err.message; renderByo(); }
+  }
+  // a structure becomes "attached": it replaces any verified pick (the file is the structure; the text stays the question)
+  function attach(summary, source) {
+    Object.assign(byo, {summary, parent: null, state: "summary", source, error: ""});
+    flowCase = null; markPicked("flow", null);
+    renderByo(); renderPdbRows();
+  }
+  function detachQuiet() {
+    Object.assign(byo, {summary: null, parent: null, state: "idle", source: null, error: ""});
+    renderByo(); renderPdbRows(); showPicked();
+  }
+  function detach() { detachQuiet(); $("attachBtn").focus(); }
   const offline = (resp) => resp.status === 404 || resp.status === 405 || resp.status === 501;
   // a server error as one plain sentence: a string detail as is; FastAPI's list form as its messages joined
   async function errText(resp) {
@@ -2635,48 +2868,54 @@
       return (d && (d.msg || d.message)) || resp.statusText || `HTTP ${resp.status}`;
     } catch (e) { return resp.statusText || `HTTP ${resp.status}`; }
   }
+  const SOURCE_WORDS = {pdb: "from the Protein Data Bank", example: "example file shipped with ActiveSite", upload: "your file"};
 
   function renderByo() {
-    const el = $("byoBody");
-    if (byo.state === "offline") { el.innerHTML = `<p class="byo-off" role="status">Upload is not available on this server yet.</p>`; return; }
-    const drop = `<div class="drop" id="byoDrop">
-        <button type="button" class="secondary" onclick="$('byoFile').click()">${byo.summary ? "Choose another file" : "Choose a file"}</button>
-        <span class="muted">or drop a .pdb or .cif file here</span>
-        <input type="file" id="byoFile" accept=".pdb,.ent,.cif,.mmcif" hidden onchange="byoUpload(this.files[0])"></div>`;
-    if (byo.state === "uploading") { el.innerHTML = drop + `<p class="byo-off" role="status"><span class="spinner"></span> Reading your structure…</p>`; wireDrop(); return; }
-    if (byo.state === "error" || !byo.summary) { el.innerHTML = drop + (byo.error ? `<div class="byo-err" role="alert" style="margin-top:10px">${escapeHtml(byo.error)}</div>` : ""); wireDrop(); return; }
-    const s = byo.summary;
+    const el = $("byoBody"), status = $("attachStatus"), chip = $("attachChip"), s = byo.summary;
+    $("composerBlock").classList.toggle("attached", !!s);
+    status.className = "pane-status";
+    status.innerHTML = byo.state === "uploading" ? `<span class="spinner"></span> Reading the structure…`
+      : byo.state === "offline" ? "Attaching files is not available on this server yet."
+      : byo.state === "error" ? escapeHtml(byo.error) : "";
+    if (byo.state === "error") status.className = "pane-status err";
+    // the attachment as a removable chip inside the composer: name · chains · ligands
+    chip.innerHTML = s ? `<span class="att"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.9-8.9a3.7 3.7 0 0 1 5.2 5.2l-8.9 8.9a1.8 1.8 0 0 1-2.6-2.6l8.2-8.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <b>${escapeHtml(s.name || "structure")}</b><span class="att-meta">${escapeHtml(SOURCE_WORDS[byo.source] || "your file")} · chains ${escapeHtml((s.chains || []).map((c) => c.id).join(", ") || "none")} · ligands ${escapeHtml((s.ligands || []).map((l) => l.resname).join(", ") || "none")}</span>
+        <button type="button" class="att-x" aria-label="Remove the attached structure ${escapeHtml(s.name || "")}" onclick="detach()">✕</button></span>` : "";
+    $("byoCard").hidden = !s;
+    if (!s) { el.innerHTML = ""; showPicked(); return; }
     const chains = (s.chains || []).map((c) => `${escapeHtml(c.id)} (${escapeHtml(c.n_residues)} residues)`).join(", ") || "none found";
     const ligs = s.ligands || [], mets = s.metals || [];
     const opts = ligs.map((l, i) => `<label><input type="radio" name="byoTarget" value="l${i}"${i === 0 ? " checked" : ""}><span>Small molecule <b>${escapeHtml(l.resname)}</b>, chain ${escapeHtml(l.chain)}, residue ${escapeHtml(l.resi)} (${escapeHtml(l.n_heavy_atoms)} heavy atoms)</span></label>`)
       .concat(mets.map((m, i) => `<label><input type="radio" name="byoTarget" value="m${i}"${!ligs.length && i === 0 ? " checked" : ""}><span>Metal ion <b>${escapeHtml(m.element || m.resname)}</b> (${escapeHtml(m.resname)}), chain ${escapeHtml(m.chain)}, residue ${escapeHtml(m.resi)}</span></label>`));
-    const applied = `<div class="row" id="byoApplied" role="status"></div>`;
-    el.innerHTML = drop + `<div class="byo-sum" id="byoSummary">
-      <div class="row"><b>${escapeHtml(s.name || "your structure")}</b> <span class="muted">· ${escapeHtml(String(s.format || "").toUpperCase() || "format not reported")} · ${escapeHtml(s.n_atoms ?? "not reported")} atoms</span></div>
+    el.innerHTML = `<div class="byo-sum" id="byoSummary">
+      <div class="row"><b>${escapeHtml(s.name || "your structure")}</b> <span class="muted">· ${escapeHtml(SOURCE_WORDS[byo.source] || "your file")} · ${escapeHtml(String(s.format || "").toUpperCase() || "format not reported")} · ${escapeHtml(s.n_atoms ?? "not reported")} atoms</span></div>
       <div class="row"><b>Chains:</b> ${chains}</div>
       <div class="row"><b>Small molecules:</b> ${ligs.length ? ligs.map((l) => escapeHtml(l.resname)).join(", ") : "none"} · <b>Metal ions:</b> ${mets.length ? mets.map((m) => escapeHtml(m.element || m.resname)).join(", ") : "none"}</div>
-      ${applied}
+      <div class="row" id="byoApplied" role="status"></div>
       ${(s.warnings || []).length ? `<div class="byo-warn" role="note"><b>Warnings from reading the file</b><ul>${s.warnings.map((w) => `<li>${escapeHtml(w)}</li>`).join("")}</ul></div>` : ""}
       ${opts.length ? `<fieldset class="pick"><legend>What should the agents study?</legend>${opts.join("")}</fieldset>`
                     : `<div class="byo-err" role="alert">This file has no small molecule or metal ion, so there is no active site to centre the quantum region on.</div>`}
+      ${!ligs.length && mets.length ? `<div class="byo-warn" role="note">Only metal sites here. Metal sites from uploaded or downloaded files are not supported yet (the metal rules need an Amber topology); the I-PpoI verified examples cover metal sites.</div>` : ""}
       <div class="field"><label for="byoSmiles">Drug structure as SMILES (optional)</label><input id="byoSmiles" autocomplete="off" spellcheck="false" placeholder="e.g. CC(=O)Oc1ccccc1C(=O)O">
         <div class="hint">Needed only if the small molecule is new. Known PDB ligands are looked up by their three-letter code.</div></div>
       <div class="field"><label for="byoMut">Mutations (optional)</label><input id="byoMut" autocomplete="off" spellcheck="false" placeholder="A:Y61F, A:T766M" aria-describedby="byoMutHint byoMutErr" oninput="byoCheckMut()">
         <div class="hint" id="byoMutHint">Chain:old residue, number, new residue, comma-separated. Each new side chain is rebuilt from a template; neighbouring side chains are not repacked.</div>
         <div class="ferr" id="byoMutErr" role="alert"></div></div>
       <div class="field ph"><label for="byoPh">pH</label><input id="byoPh" type="number" min="0" max="14" step="0.1" value="7.4"></div>
-      <div class="primary-row" style="margin-top:4px"><button type="button" class="primary" id="byoRun" onclick="byoRun()"${opts.length ? "" : " disabled"}>Run the agents on this structure</button>
-        <span class="inline-err" id="byoRunErr" role="alert"></span></div>
+      <span class="inline-err" id="byoRunErr" role="alert"></span>
     </div>`;
+    el.querySelector("fieldset.pick") && el.querySelector("fieldset.pick").addEventListener("change", showPicked);
     showApplied(s);
-    wireDrop();
+    showPicked();
   }
-  function wireDrop() {
-    const d = $("byoDrop"); if (!d) return;
+  // drop a file anywhere on the composer
+  (function wireComposerDrop() {
+    const d = $("composer");
     d.addEventListener("dragover", (ev) => { ev.preventDefault(); d.classList.add("drag"); });
-    d.addEventListener("dragleave", () => d.classList.remove("drag"));
+    d.addEventListener("dragleave", (ev) => { if (!d.contains(ev.relatedTarget)) d.classList.remove("drag"); });
     d.addEventListener("drop", (ev) => { ev.preventDefault(); d.classList.remove("drag"); const f = ev.dataTransfer.files[0]; if (f) byoUpload(f); });
-  }
+  })();
   // inline check of "A:Y61F, A:T766M": format, residue letters, and that the chain is in the file
   function parseMutations(text) {
     const items = String(text || "").split(/[,\s;]+/).map((x) => x.trim().toUpperCase()).filter(Boolean);
@@ -2697,15 +2936,14 @@
   }
   async function byoUpload(file) {
     if (!file) return;
-    byo.state = "uploading"; byo.error = ""; renderByo();
+    byo.state = "uploading"; byo.error = ""; byo.source = "upload"; renderByo();
     const fd = new FormData(); fd.append("file", file); fd.append("name", file.name.replace(/\.[^.]+$/, ""));
     try {
       const resp = await fetch("/api/structures/upload", {method: "POST", body: fd});
       if (offline(resp)) { byo.state = "offline"; renderByo(); return; }
       if (!resp.ok) throw new Error(await errText(resp));
-      byo.summary = await resp.json(); byo.parent = null; byo.state = "summary";
-    } catch (err) { byo.state = "error"; byo.error = `Could not read that file: ${err.message}`; }
-    renderByo();
+      attach(await resp.json(), "upload");
+    } catch (err) { byo.state = "error"; byo.error = `Could not read that file: ${err.message}`; renderByo(); }
   }
   async function byoRun() {
     if (byo.busy || !byo.summary) return;
@@ -2717,7 +2955,8 @@
     if (!(ph >= 0 && ph <= 14)) { err.innerText = "pH must be between 0 and 14."; return; }
     const smiles = $("byoSmiles").value.trim();
     const {items} = parseMutations($("byoMut").value);
-    byo.busy = true; $("byoRun").disabled = true;
+    const question = $("flowPrompt").value.trim().slice(0, 500);   // the composer text is the question; the file is the structure
+    byo.busy = true; $("flowRunBtn").disabled = true;
     try {
       let s = byo.summary;
       if (items.length) {
@@ -2734,6 +2973,7 @@
       const same = lig ? (s.ligands || []).find((l) => l.resname === lig.resname && l.chain === lig.chain) || lig : null;
       const custom = {structure_id: s.structure_id, ligand_resname: same ? same.resname : null, ligand_smiles: smiles || null,
                       metal_resi: met ? met.resi : null, chain: (same || met || {}).chain || null, ph};
+      if (question) custom.question = question;
       customRun = {structure_id: s.structure_id, name: s.name || "your structure", ligand_resname: custom.ligand_resname, metal_resi: custom.metal_resi, chain: custom.chain, kind: lig ? "ligand" : "metal"};
       activeCaseId = null; flow.request = null; flowCase = null; markPicked("flow", null); markPicked("x", null);
       runSimulation(custom);
@@ -2741,7 +2981,7 @@
       err.innerText = e.message;
     } finally {
       byo.busy = false;
-      if ($("byoRun")) $("byoRun").disabled = false;
+      if (!flow.running) $("flowRunBtn").disabled = false;
     }
   }
   function showApplied(s) {

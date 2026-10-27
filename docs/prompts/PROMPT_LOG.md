@@ -819,6 +819,22 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-27 CDT] — P29b: search the PDB, one composer with an attachment, a selected state you can see (branch `feat/p29-combined`)
+- **Tool / Environment:** Claude Code (Opus 5.5) sub-agent in an isolated worktree; app on port 8093 (`SAMPLE_MODE=true CATALOG_OFFLINE=1`) with the live network for RCSB; frontend-design skill loaded
+- **Target Component:** `activesite/adapters/pdb_search.py` (new), `activesite/server/main.py`, `activesite/agent/custom.py`, `activesite/server/index.html`, tests, `docs/assets/ui/p29/`
+- **Developer Prompt:**
+  > Sidd's feedback: clicking a case card shows no visible selection; screen 1 should be one "Choose a system" area: search the Protein Data Bank (default), verified examples, and a "describe your own system" composer with a paperclip to attach a PDB/mmCIF file (no separate upload card); search picks feed the same set-up; honest limits inline.
+- **Agent Action:**
+  - Selection root cause (measured): the selected rule set `border-color` on every side, so it overwrote the 4 px status edge, and the background did not change. Now: tint + 2 px accent ring drawn with box-shadow (status edge kept), ✓ badge, 1 px lift, 120 ms transition (off under reduced motion); hover and focus-visible look different. Library cards are a radio group (`role=radio`, `aria-checked`, one Tab stop, arrow keys pick). The Run button echoes the choice ("Run: EGFR kinase + erlotinib", "Run: 4ZAU · YY3").
+  - Backend: `GET /api/pdb/search?q=` (RCSB full-text search + one GraphQL request; ligands/metals/additives classified with the upload sets; q ≤ 80 chars, control characters stripped; 1 h cache; timeouts). A repo case whose drug or ligand code the query names is listed first and marked "used by a verified example" (2HYY is #25 of 50 for "imatinib" in RCSB's order). `POST /api/structures/fetch {pdb_id}` (strict id regex, files.rcsb.org PDB then mmCIF, record created exactly like an upload). `POST /api/structures/example` (allow-listed bundled 1M17/2HYY). Network failure: 503 "Could not reach the Protein Data Bank; try a verified example or upload a file." Custom runs accept the user's `question` (≤ 500 chars), which leads the case question.
+  - Screen 1: tabs "Search the Protein Data Bank" (default) and "Verified examples" (with why they exist), then the composer: free text, paperclip (aria-label "Attach a structure file (PDB or mmCIF)"), drag-and-drop, "Try an example file", the attachment as a removable chip (name · source · chains · ligands), and the set-up (ligand pick, SMILES, mutations, pH) only when something is attached. Expert view gets the same composer. Metal-only and "no structure prediction" limits are stated inline.
+- **Verification (live RCSB):**
+  - "osimertinib": 4ZAU first (YY3) → attached → chip and "Run: 4ZAU · YY3" → run → amber "Proposal only", no red lines. "imatinib": 2HYY first, marked. Attaching data/reference/egfr/1m17.pdb with the paperclip and the example link both work. Bad ids (ZZZZ, ../x, 4ZA) → 422 with no request sent; mocked outage → the plain sentence.
+  - Selection measured before/after click in Playwright at 1440 light and 400 dark plus Expert: background tinted, ring 2 px, ✓ badge, status edge colour/width unchanged, hover unchanged background. Full earlier matrix (chips, no debug strings, AA contrast, 400 px, QM 64/52, chat drawer) re-run.
+  - `uv run pytest -q -m "not slow"`: 230 passed; ruff 0.8.4 clean; Playwright UI tests (mocked): 7 passed.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name

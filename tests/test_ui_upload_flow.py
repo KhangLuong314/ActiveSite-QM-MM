@@ -117,8 +117,9 @@ def browser():
 def test_upload_404_degrades_to_one_plain_line(browser):
     page, errors = _page(browser, upload_status=404)
     page.set_input_files("#byoFile", files=[{"name": "x.pdb", "mimeType": "chemical/x-pdb", "buffer": TINY_PDB.encode()}])
-    page.wait_for_selector("text=Upload is not available on this server yet")
-    assert page.inner_text("#byoBody").strip() == "Upload is not available on this server yet."
+    page.wait_for_selector("text=Attaching files is not available on this server yet.")
+    assert page.inner_text("#attachStatus").strip() == "Attaching files is not available on this server yet."
+    assert page.is_hidden("#byoCard")
     assert page.locator("#flowCases .libitem").count() >= 1          # the library still works
     assert not errors
 
@@ -135,17 +136,22 @@ def test_upload_mutate_run_shows_proposal_only_with_not_computed_chips(browser):
     assert "not in the form A:Y61F" in page.inner_text("#byoMutErr")
     page.fill("#byoMut", "C:Y61F")
     assert "chain C is not in this file" in page.inner_text("#byoMutErr")
-    page.click("#byoRun")
+    page.click("#flowRunBtn")
     assert not any(p.endswith("/mutate") for _, p, _ in calls)          # invalid input never reaches the server
     page.fill("#byoMut", "A:Y61F")
     assert page.inner_text("#byoMutErr") == ""
     page.check("input[name=byoTarget][value=l0]")
-    page.click("#byoRun")
+    chip = page.inner_text("#attachChip")
+    assert "my_mutant" in chip and "chains A" in chip and "ligands LIG" in chip
+    assert page.inner_text("#flowRunBtn") == "Run: my_mutant · LIG"
+    page.fill("#flowPrompt", "Why does Y61F change binding?")
+    page.click("#flowRunBtn")
     page.wait_for_selector("#flowSeeResult:not([hidden])")
     mutate = next(body for m, p, body in calls if p.endswith("/mutate"))
     assert json.loads(mutate) == {"mutations": ["A:Y61F"]}
     run = json.loads(next(body for m, p, body in calls if p == "/api/run"))
-    assert run["custom"] == {"structure_id": "s_mock2", "ligand_resname": "LIG", "ligand_smiles": None, "metal_resi": None, "chain": "A", "ph": 7.4}
+    assert run["custom"] == {"structure_id": "s_mock2", "ligand_resname": "LIG", "ligand_smiles": None, "metal_resi": None, "chain": "A", "ph": 7.4,
+                             "question": "Why does Y61F change binding?"}
     page.click("#flowSeeResult")
     head = page.inner_text("#s3h")
     assert "proposal only" in head and "engine was not run" in head
@@ -169,13 +175,30 @@ def test_run_422_is_shown_as_a_plain_message(browser, pick, detail):
     page.set_input_files("#byoFile", files=[{"name": "m.pdb", "mimeType": "chemical/x-pdb", "buffer": TINY_PDB.encode()}])
     page.wait_for_selector("#byoSummary")
     page.check(f"input[name=byoTarget][value={pick}]")
-    page.click("#byoRun")
+    page.click("#flowRunBtn")
     page.wait_for_selector("#flowRetry:not([hidden])")
     want = detail if isinstance(detail, str) else detail[0]["msg"]
     assert f"Your structure could not be run: {want}" in page.inner_text("#flowChecklist")
     assert "[object Object]" not in page.inner_text("body")
     page.click("#flowRetry")
     assert want in page.inner_text("#byoRunErr")
+    assert not errors
+
+
+def test_attachment_chip_removes_and_verified_pick_replaces_it(browser):
+    page, errors = _page(browser)
+    buf = {"name": "my_mutant.pdb", "mimeType": "chemical/x-pdb", "buffer": TINY_PDB.encode()}
+    page.set_input_files("#byoFile", files=[buf])
+    page.wait_for_selector("#byoSummary")
+    page.click("#attachChip .att-x")
+    assert page.inner_text("#attachChip") == "" and page.is_hidden("#byoCard")
+    assert page.evaluate("document.activeElement.id") == "attachBtn"
+    page.set_input_files("#byoFile", files=[buf])
+    page.wait_for_selector("#byoSummary")
+    page.click("#tab-verified")
+    page.click(".qcase[data-case=ippoi_site_a]")
+    assert page.is_hidden("#byoCard") and page.inner_text("#flowRunBtn").startswith("Run: I-PpoI")
+    assert page.get_attribute(".qcase[data-case=ippoi_site_a]", "aria-checked") == "true"
     assert not errors
 
 
@@ -186,7 +209,7 @@ def test_expected_sample_mode_stop_is_information_not_an_error(browser):
     page, errors = _page(browser, steps=REAL_STEPS, result=REAL_RESULT)
     page.set_input_files("#byoFile", files=[{"name": "my_mutant.pdb", "mimeType": "chemical/x-pdb", "buffer": TINY_PDB.encode()}])
     page.wait_for_selector("#byoSummary")
-    page.click("#byoRun")
+    page.click("#flowRunBtn")
     page.wait_for_selector("#flowSeeResult:not([hidden])")
     s2 = page.inner_text("#flowChecklist")
     assert not [x for x in INTERNALS if x in s2], s2
