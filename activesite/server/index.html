@@ -273,9 +273,225 @@
   #thoughtStream .ev.bad { background: var(--red-bg); } #thoughtStream .ev.bad .sum { color: var(--red); }
   #thoughtStream .ev.mid .sum { color: var(--amber); }
   #thoughtStream .placeholder { color: var(--faint); font: italic 400 13.5px/1.4 var(--serif); padding: 8px 0; }
+
+  /* ===== Default view: a three-screen flow. Expert view (body.expert) is the full page above, unchanged. ===== */
+  :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  body:not(.expert) .layout { display: none; }
+  body.expert #flow, body.expert .stepper { display: none !important; }
+  .topbar { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--sheet) 94%, transparent); border-bottom: 1px solid var(--rule);
+            backdrop-filter: blur(6px); }
+  .topbar-in { max-width: 1500px; margin: 0 auto; padding: 8px 24px; display: flex; align-items: center; gap: 10px 18px; flex-wrap: wrap; }
+  @media (max-width: 700px) { .topbar-in { padding: 8px 16px; } }
+  .brand { font: 700 20px/1 var(--serif); letter-spacing: -.02em; white-space: nowrap; }
+  .brand em { font-style: italic; font-weight: 400; color: var(--blue); }
+  .stepper { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
+  .stepper button { border: 1px solid transparent; background: none; cursor: pointer; padding: 5px 10px; border-radius: 999px; font-size: 13px; color: var(--muted);
+                    display: inline-flex; align-items: center; gap: 6px; }
+  .stepper button .n { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid currentColor; font: 600 11px var(--mono); }
+  .stepper button[aria-current="step"] { color: var(--blue); background: var(--blue-bg); font-weight: 600; }
+  .stepper button.done:not([aria-current="step"]) { color: var(--green); }
+  .stepper button:disabled { cursor: default; opacity: .55; }
+  .top-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  @media (max-width: 700px) { .stepper { order: 3; width: 100%; } }
+  .switch { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--rule); background: var(--sheet); border-radius: 999px; padding: 3px 10px 3px 4px;
+            cursor: pointer; font-size: 12.5px; color: var(--ink-2); }
+  .switch .knob { width: 30px; height: 18px; border-radius: 999px; background: var(--rule); position: relative; transition: background .15s; }
+  .switch .knob::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--sheet); transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+  .switch[aria-checked="true"] .knob { background: var(--blue); }
+  .switch[aria-checked="true"] .knob::after { transform: translateX(12px); }
+
+  #flow { max-width: 1120px; margin: 0 auto; padding: 22px 24px 64px; }
+  @media (max-width: 700px) { #flow { padding: 16px 16px 48px; } }
+  .screen h1 { font: 700 30px/1.15 var(--serif); letter-spacing: -.02em; margin: 6px 0 6px; }
+  .screen h1:focus { outline: none; }
+  .screen .lede { color: var(--muted); margin: 0 0 18px; max-width: 720px; }
+  .qcases { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+  .qcase { text-align: left; cursor: pointer; padding: 14px 16px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; box-shadow: var(--shadow); min-width: 0; }
+  .qcase:hover { border-color: var(--ink-2); }
+  .qcase[aria-pressed="true"] { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue), var(--shadow); }
+  .qcase .k { display: block; font: 500 10.5px var(--mono); color: var(--faint); letter-spacing: .08em; text-transform: uppercase; }
+  .qcase .t { display: block; font: 600 18px/1.25 var(--serif); margin-top: 3px; }
+  .qcase .s { display: block; font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .own { margin-top: 14px; padding: 14px 16px; }
+  .own textarea { width: 100%; margin-top: 6px; padding: 10px 12px; background: var(--sheet-2); border: 1px solid var(--rule); border-radius: 4px; resize: vertical; font-size: 14px; }
+  .options { margin-top: 14px; font-size: 14px; }
+  .options .opt { display: flex; gap: 8px; align-items: flex-start; margin-top: 8px; flex-wrap: wrap; }
+  .options input { width: 16px; height: 16px; accent-color: var(--blue); margin-top: 3px; }
+  .primary-row { display: flex; gap: 12px; align-items: center; margin-top: 18px; flex-wrap: wrap; }
+  .primary { background: var(--blue); color: #fff; border: 0; border-radius: 6px; padding: 12px 24px; font-weight: 600; font-size: 15px; cursor: pointer; }
+  [data-theme="dark"] .primary { color: #0d1117; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .primary { color: #0d1117; } }
+  .primary:disabled { opacity: .6; cursor: progress; }
+  .secondary { border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); border-radius: 6px; padding: 9px 14px; font-size: 14px; cursor: pointer; }
+  .secondary:hover { border-color: var(--ink-2); }
+  .linkbtn { border: 0; background: none; color: var(--blue); cursor: pointer; padding: 4px 2px; font-size: 13.5px; text-decoration: underline; text-underline-offset: 2px; }
+  .inline-err { color: var(--red); font-size: 13.5px; }
+
+  .checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .checklist li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 8px; padding: 7px 10px; border-radius: 4px; font-size: 14.5px; overflow-wrap: anywhere; }
+  .checklist li .ic { font-weight: 700; text-align: center; }
+  .checklist li.c-ok .ic { color: var(--green); }
+  .checklist li.c-warn { background: var(--amber-bg); } .checklist li.c-warn .ic { color: var(--amber); }
+  .checklist li.c-replay .ic { color: var(--amber); }
+  .checklist li.c-bad { background: var(--red-bg); color: var(--red); } .checklist li.c-bad .ic { color: var(--red); }
+  .checklist li.c-work { color: var(--blue); } .checklist li.c-work .ic { color: var(--blue); }
+  .feed-head { display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .feed-head .label { margin-right: auto; }
+
+  .headline { font: 600 26px/1.3 var(--serif); letter-spacing: -.01em; margin: 6px 0 4px; max-width: 900px; }
+  @media (max-width: 700px) { .headline { font-size: 21px; } }
+  .headline .chips { display: inline-flex; gap: 4px; vertical-align: 4px; flex-wrap: wrap; }
+  .kicker { font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .matched { font-size: 13.5px; color: var(--muted); margin-top: 6px; }
+  .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+  @media (max-width: 1000px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .tiles { grid-template-columns: minmax(0, 1fr); } }
+  .tile { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; box-shadow: var(--shadow); min-width: 0; }
+  .tile .tk { font-size: 13px; color: var(--muted); }
+  .tile .tv { font: 600 26px/1.15 var(--mono); margin-top: 6px; overflow-wrap: anywhere; }
+  .tile .tv small { font: 500 13px var(--sans); color: var(--muted); margin-left: 4px; }
+  .tile .tv.nc { color: var(--faint); }
+  .fact { font-size: 13px; color: var(--ink-2); margin-top: 6px; overflow-wrap: anywhere; }
+  .tile details { margin-top: 8px; } .tile details summary { font-size: 13px; }
+  .tile ul { margin: 6px 0 0; padding-left: 0; list-style: none; }
+  .tile li { font-size: 13px; margin-top: 4px; overflow-wrap: anywhere; }
+  .whyrow, .actrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; align-items: center; }
+  .whyrow .label { margin-right: 4px; }
+  .why { border: 1px solid var(--blue); background: var(--blue-bg); color: var(--blue); border-radius: 999px; padding: 6px 13px; font-size: 13.5px; cursor: pointer; }
+  .why:hover { background: var(--sheet); }
+  .footnote { margin-top: 22px; font-size: 13px; color: var(--muted); }
+
+  .chip { display: inline-flex; align-items: center; font: 500 10.5px/1.5 var(--mono) !important; padding: 0 7px !important; border-radius: 999px; border: 1px solid transparent !important;
+          white-space: nowrap; vertical-align: 1px; margin-left: 4px; cursor: help; text-decoration: none !important; }
+  .chip-run { color: var(--blue) !important; background: var(--blue-bg) !important; }
+  .chip-replay { color: var(--amber) !important; background: var(--amber-bg) !important; }
+  .chip-expert { color: var(--green) !important; background: var(--green-bg) !important; }
+  .chip-nc { color: var(--muted) !important; background: var(--sheet-2) !important; border-color: var(--rule) !important; }
+  .term { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: help; border-bottom: 1px dotted currentColor; border-radius: 0; text-align: inherit; }
+  .term:hover { color: var(--blue); }
+  #glossTip { position: fixed; z-index: 1000; max-width: min(340px, calc(100vw - 24px)); background: var(--ink); color: var(--sheet); padding: 9px 12px; border-radius: 6px;
+              font: 400 13px/1.45 var(--sans); box-shadow: 0 8px 24px rgba(0,0,0,.3); pointer-events: none; }
+  #glossTip b { display: block; margin-bottom: 2px; }
+
+  dialog.modal { width: min(760px, calc(100vw - 24px)); max-height: calc(100vh - 32px); border: 1px solid var(--rule); background: var(--sheet); color: var(--ink);
+                 padding: 0; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+  dialog.modal::backdrop { background: rgba(10, 12, 16, .5); }
+  dialog.drawer { margin: 0 0 0 auto; height: 100vh; max-height: 100vh; width: min(500px, 100vw); border-radius: 0; }
+  .dlg-head { position: sticky; top: 0; z-index: 2; display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--rule); background: var(--sheet); }
+  .dlg-head h2 { margin: 0; font: 600 21px/1.25 var(--serif); }
+  .dlg-body { padding: 14px 18px 20px; overflow-wrap: anywhere; }
+  .dlg-body h3 { font: 600 13px var(--sans); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 16px 0 4px; }
+  .dlg-body p { margin: 0 0 8px; }
+  .dlg-body ul { padding-left: 18px; margin: 4px 0; } .dlg-body li { margin-top: 3px; }
+  .xbtn { border: 1px solid var(--rule); background: var(--sheet); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 13px; }
+  dialog.drawer #tabChat { margin: 0; border: 0; box-shadow: none; }
+  #flowSite { height: min(460px, 60vh); }
+  .legend3d { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; margin-top: 10px; }
+  .legend3d .ball { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--blue); vertical-align: -1px; margin-right: 5px; }
+  .legend3d .stick { display: inline-block; width: 18px; height: 4px; border-radius: 2px; background: var(--mm); vertical-align: 3px; margin-right: 5px; }
+  @media (prefers-reduced-motion: reduce) { .switch .knob, .switch .knob::after, .qcase { transition: none !important; } }
 </style>
 </head>
 <body>
+<script>
+  // Pick the view before first paint. Storage may be blocked; the page still works without it (default view).
+  (function () {
+    let expert = /[?&]view=expert\b/.test(location.search);
+    if (!/[?&]view=simple\b/.test(location.search) && !expert) { try { expert = localStorage.getItem("activesite-view") === "expert"; } catch (e) { /* no storage */ } }
+    if (expert) document.body.classList.add("expert");
+  })();
+</script>
+<header class="topbar">
+  <div class="topbar-in">
+    <span class="brand">Active<em>Site</em></span>
+    <ol class="stepper" aria-label="Progress">
+      <li><button type="button" id="step1" onclick="flowGo(1)"><span class="n">1</span>Choose</button></li>
+      <li><button type="button" id="step2" onclick="flowGo(2)" disabled><span class="n">2</span>Agents work</button></li>
+      <li><button type="button" id="step3" onclick="flowGo(3)" disabled><span class="n">3</span>Result</button></li>
+    </ol>
+    <div class="top-right">
+      <button type="button" class="switch" id="expertSwitch" role="switch" aria-checked="false" onclick="setExpert(!document.body.classList.contains('expert'))"
+              title="Expert view shows every panel: pipeline, lifecycle, live trace, all decision cards, memory, SQL, ChimeraX"><span class="knob"></span>Expert view</button>
+      <button class="theme-btn" id="themeBtn" type="button" onclick="cycleTheme()" title="Switch light / dark / follow system">theme: auto</button>
+    </div>
+  </div>
+</header>
+
+<div id="flow">
+  <!-- Screen 1: choose -->
+  <section class="screen" id="screen1" aria-labelledby="s1h">
+    <h1 id="s1h" tabindex="-1">What do you want to study?</h1>
+    <p class="lede">Pick a question. AI agents set up a quantum-chemistry model of the active site (the part of the molecule where the chemistry happens), check their own work, and explain every choice with its evidence.</p>
+    <div class="qcases" id="flowCases" role="group" aria-label="Questions"></div>
+    <section class="sheet own">
+      <label class="label" for="flowPrompt">Or describe your own system</label>
+      <textarea id="flowPrompt" rows="2" placeholder="e.g. How does erlotinib bind EGFR? The agents pick the closest supported case."></textarea>
+    </section>
+    <details class="options">
+      <summary>Options</summary>
+      <div class="opt"><input type="checkbox" id="flowSample" checked><label for="flowSample">Sample mode: no engine runs now; energies are replayed from a saved real run (works offline).</label></div>
+      <div class="opt"><input type="checkbox" id="flowMd"><label for="flowMd">Also run a short molecular dynamics simulation (1 ps, 100 frames).</label></div>
+    </details>
+    <div class="primary-row">
+      <button type="button" class="primary" id="flowRunBtn" onclick="flowRun()">Set it up and explain</button>
+      <span class="inline-err" id="flowPickErr" role="alert"></span>
+    </div>
+  </section>
+
+  <!-- Screen 2: agents work -->
+  <section class="screen" id="screen2" aria-labelledby="s2h" hidden>
+    <div class="kicker" id="s2kicker"></div>
+    <h1 id="s2h" tabindex="-1">The agents are working</h1>
+    <p class="lede" id="s2lede">Each line below is written from the live feed of this run as the agents act. Nothing is pre-filled.</p>
+    <section class="sheet pad">
+      <div class="feed-head" data-prov="run"><span class="label">What the agents did</span><span id="s2chip"></span><span class="pill" id="flowStatus" role="status">Starting…</span></div>
+      <ol class="checklist" id="flowChecklist" aria-live="polite"></ol>
+    </section>
+    <div class="primary-row">
+      <button type="button" class="primary" id="flowSeeResult" onclick="flowGo(3)" hidden>See the result</button>
+      <button type="button" class="secondary" id="flowRetry" onclick="flowGo(1)" hidden>Start over</button>
+      <button type="button" class="linkbtn" onclick="setExpert(true)">Show the full agent trace (Expert view)</button>
+    </div>
+  </section>
+
+  <!-- Screen 3: result -->
+  <section class="screen" id="screen3" aria-labelledby="s3h" hidden>
+    <div class="kicker" id="s3kicker"></div>
+    <h1 id="s3h" class="headline" tabindex="-1" data-prov="mixed"></h1>
+    <div class="matched" id="s3matched" hidden></div>
+    <div class="tiles" id="flowTiles"></div>
+    <div class="whyrow" id="flowWhy"></div>
+    <div class="actrow">
+      <button type="button" class="secondary" onclick="open3D()">See the active site in 3D</button>
+      <button type="button" class="secondary" onclick="openReport()">Read the report</button>
+      <button type="button" class="secondary" onclick="openChat()">Ask the AI chemist</button>
+      <button type="button" class="secondary" onclick="flowGo(1)">Start over</button>
+    </div>
+    <p class="footnote">Want every detail? Turn on <button type="button" class="linkbtn" onclick="setExpert(true)">Expert view</button> for the full agent trace, every decision card, the memory ledger, the SQL and ChimeraX.</p>
+  </section>
+</div>
+
+<dialog class="modal" id="dlgInfo" aria-labelledby="dlgInfoTitle">
+  <div class="dlg-head"><h2 id="dlgInfoTitle"></h2><button type="button" class="xbtn" onclick="this.closest('dialog').close()">Close</button></div>
+  <div class="dlg-body" id="dlgInfoBody"></div>
+</dialog>
+<dialog class="modal" id="dlg3d" aria-labelledby="dlg3dTitle">
+  <div class="dlg-head"><h2 id="dlg3dTitle">The active site in 3D</h2><button type="button" class="xbtn" onclick="this.closest('dialog').close()">Close</button></div>
+  <div class="dlg-body">
+    <div class="chamber" id="flowSite"><span class="corner" style="top:8px;left:10px" id="flowSiteCorner"></span><span class="corner" style="bottom:8px;right:10px">DRAG TO TURN · SCROLL TO ZOOM</span></div>
+    <div class="legend3d" id="flowLegend"></div>
+    <div class="legend3d" id="flowLegendEls"></div>
+    <div class="vwarn hidden" id="flowVwarn"></div>
+    <div id="flowPieces" style="margin-top:10px;font-size:13.5px"></div>
+    <details style="margin-top:10px"><summary>Where this picture comes from</summary><div class="vsrc" id="flowVsrc"></div></details>
+  </div>
+</dialog>
+<dialog class="modal drawer" id="dlgChat" aria-label="AI chemist chat">
+  <div class="dlg-head"><h2>Ask the AI chemist</h2><button type="button" class="xbtn" onclick="this.closest('dialog').close()">Close</button></div>
+  <div id="chatDrawerBody"></div>
+</dialog>
+<div id="glossTip" role="tooltip" hidden></div>
+
 <div class="layout">
 <main>
   <header class="masthead reveal">
@@ -292,7 +508,6 @@
       <span class="readout grey" id="engineReadout"><span id="engineBadgeDot" class="dot"></span><span id="engineBadge">engine: not run yet</span></span>
       <span class="readout blue">data layer: catalog-STANDIN (DuckDB)</span>
       <span class="readout green">AmberTools 26 / xtb · Meterless H-MEM</span>
-      <button class="theme-btn" id="themeBtn" type="button" onclick="cycleTheme()" title="Switch light / dark / follow system">theme: auto</button>
     </div>
   </header>
 
@@ -355,6 +570,7 @@
     <div id="cardsList" class="cards"><div class="sheet empty" style="grid-column:1/-1">No run yet. Decision Cards appear when the Explainer finishes.</div></div>
   </section>
 
+  <span id="chatHome" hidden></span>
   <section id="tabChat" class="panel sheet pad hidden">
     <div class="chat-head">
       <div>
@@ -366,17 +582,17 @@
     <div style="margin-top:10px">
       <span class="label">Quick inquiries</span>
       <div class="quick">
-        <button type="button" onclick="sendQuickQuery('Can you explain the result of my previous run to me? What does it implies and how accurate is it?')">📊 Explain previous run</button>
+        <button type="button" onclick="sendQuickQuery('Can you explain the result of my previous run to me? What does it implies and how accurate is it?')">📊 Explain my last run in plain words</button>
         <button type="button" onclick="sendQuickQuery('Set up a QM/MM model for DNA phosphodiester bond cleavage at the active site of the EcoRV restriction endonuclease, including its catalytic Mg²⁺ ion, and calculate the QM/MM energy using the PM6 semiempirical method for the QM region.')">🧬 Can it set up EcoRV? (unsupported case)</button>
-        <button type="button" onclick="sendQuickQuery('Why is ESCF positive while total energy is negative? Explain the energy decomposition and units.')">⚡ Why is ESCF positive?</button>
-        <button type="button" onclick="sendQuickQuery('Why did you choose Chain B over Chain A in 2HYY?')">🔗 Why Chain B over Chain A?</button>
-        <button type="button" onclick="sendQuickQuery('Explain why His361 was overridden from HIP to HIE in ABL kinase.')">🧪 His361 HIE vs HIP rationale</button>
-        <button type="button" onclick="sendQuickQuery('What happened to Met769 hinge contact?')">🎯 Met769 hinge contact</button>
+        <button type="button" onclick="sendQuickQuery('Why is ESCF positive while total energy is negative? Explain the energy decomposition and units.')">⚡ Why is the quantum-part energy positive but the total negative?</button>
+        <button type="button" onclick="sendQuickQuery('Why did you choose Chain B over Chain A in 2HYY?')">🔗 Why that copy of the ABL protein (chain B, not A)?</button>
+        <button type="button" onclick="sendQuickQuery('Explain why His361 was overridden from HIP to HIE in ABL kinase.')">🧪 Why did histidine 361 lose a proton?</button>
+        <button type="button" onclick="sendQuickQuery('What happened to Met769 hinge contact?')">🎯 What happened to the drug's contact with methionine 769?</button>
         <button type="button" onclick="sendQuickQuery('Set up a QM/MM model for β-lactam ring opening during benzylpenicillin hydrolysis at the active site of TEM-1 β-lactamase (Ser70)')">💊 Can it set up TEM-1? (unsupported case)</button>
       </div>
     </div>
     <div id="chatHistory">
-      <div class="msg ai">Hello! I am your AI Biochemist. Ask me anything about QM/MM active site partitioning, link atom boundary cuts, PROPKA protonation states, Langevin dynamics, or how the Critic diagnoses parity failures.</div>
+      <div class="msg ai">Hello! I am your AI Biochemist. Ask why the agents made a choice, what a number means, or where it came from. Numbers that do not come from a run are marked <span class="flag">⚠ not from a run</span>.</div>
     </div>
     <div class="chat-input">
       <input type="text" id="chatInput" placeholder="Ask about protonation, QM/MM partition, MD dynamics…" onkeydown="if(event.key==='Enter') sendChatMessage()">
@@ -588,6 +804,7 @@
       link.href = `/api/trace/${e.run_id}`;
       link.innerText = `trace-${e.run_id}.jsonl`;
     }
+    if (window.flowStep) flowStep(e);   // default view: same event, rewritten as a plain sentence
   }
 
   /* ---------- tabs ---------- */
@@ -649,6 +866,7 @@
     $("sqlContent").innerHTML = entries.length ? entries.map(([k, v]) => `<div class="label" style="margin-top:10px">-- ${escapeHtml(k)}</div><pre>${escapeHtml(v)}</pre>`).join("") : `<div class="empty">No SQL was sent in this run.</div>`;
     if (st.errors && st.errors.length) appendStep({ts: new Date().toISOString(), agent_name: "Orchestrator", action: "engine", status: "failed", output_summary: st.errors.join("; ")});
     loadSiteScene(structureIds(st), st.case, st);
+    if (window.flowResult) flowResult(payload);
   }
 
   // GET /api/structure/<run_id> only finds a file when the run wrote md/complex.pdb (an MD run); other runs use the case structure.
@@ -726,6 +944,7 @@
     eventCount = 0; $("eventCount").innerText = "";
     nodesDone = new Set(); stageState = new Map(); renderStages(); siteTone("");
     renderPipeline(null, null);
+    if (window.flowBegin) flowBegin();
 
     const body = activeCaseId ? { case_id: activeCaseId } : { prompt: $("promptInput").value };
     body.sample_mode = $("sampleModeToggle").checked;
@@ -750,6 +969,7 @@
       es.addEventListener("error", ev => {
         const msg = ev.data ? JSON.parse(ev.data).message : "stream closed";
         appendStep({ts: new Date().toISOString(), agent_name: "Server", action: "error", status: "error", output_summary: msg});
+        if (window.flowFail) flowFail(msg);
         setStatus("Failed", "bad");
         es.close(); runIdle();
       });
@@ -757,6 +977,7 @@
       appendStep({ts: new Date().toISOString(), agent_name: "Server", action: "error", status: "error", output_summary: err.message});
       setStatus("Failed", "bad");
       runIdle();
+      if (window.flowFail) flowFail(err.message);
     }
   }
 
@@ -802,7 +1023,7 @@
   /* ---------- AI Biochemist chat ---------- */
   function sendQuickQuery(text) {
     $("chatInput").value = text;
-    switchTab("chat");
+    if (document.body.classList.contains("expert") || !window.openChat) switchTab("chat"); else openChat();
     sendChatMessage();
   }
 
@@ -988,7 +1209,7 @@
 
   async function loadSiteScene(ids, caseId, stats, target) {
     target = target || "live";
-    const P = target === "live" ? "live" : "tab";
+    const P = target === "tab" || target === "flow" ? target : "live";
     try {
       const {id, text} = await fetchStructure(ids);
       const pdb = parsePDB(text);
@@ -1010,6 +1231,7 @@
   window.addEventListener("activesite-theme", () => withViews(V => {
     if (lastScene.live) V.live.show(lastScene.live);
     if (lastScene.tab) V.tab.show(lastScene.tab);
+    if (lastScene.flow && V.flow) V.flow.show(lastScene.flow);
     if (molViewerInstance) { molViewerInstance.setBackgroundColor(css("--chamber-b")); molViewerInstance.render(); }
   }));
 
@@ -1135,6 +1357,609 @@
   loadMemory();
 </script>
 
+<script>
+  /* ====================================================================================================
+     Default view: three screens (Choose · Agents work · Result). Built only from the run's own payload and
+     SSE events: no LLM, no typed-in numbers. Expert view is the full page above and is never modified here.
+     ==================================================================================================== */
+
+  /* ---------- glossary: every term explains itself (hover, focus, tap) ---------- */
+  const GLOSS = {
+    angstrom: ["Å (ångström)", "A length unit: 0.1 nanometre. Covalent bonds are about 1.0–1.6 Å long; a hydrogen-bond contact between two heavy atoms is about 2.7–3.3 Å. So 2.90 Å is a contact distance, not a bond length."],
+    kcalmol: ["kcal/mol", "Kilocalories per mole, an energy unit (1 kcal/mol = 4.184 kJ/mol). Only differences between energies of the same system carry meaning."],
+    escf: ["ESCF (quantum-part energy)", "The energy of the quantum region, including its electrostatic pull from the surroundings, as the PM6 calculation reports it (the 'ESCF' line in the engine output). PM6 measures it like a heat of formation, so it can be positive or negative."],
+    total: ["Total energy", "The energy of the whole simulated system: the classical part (protein, DNA, water) plus the quantum part. Large negative values are normal; compare it only with the same system."],
+    qmregion: ["Quantum region (QM region)", "The small set of atoms treated with quantum mechanics, which can describe bonds forming and breaking. The rest is treated classically (MM)."],
+    qmmm: ["QM/MM", "Quantum mechanics / molecular mechanics: quantum physics for the few atoms where the chemistry happens, a cheap classical model for everything around them."],
+    mm: ["MM (molecular mechanics)", "The classical 'balls and springs' model used for the atoms outside the quantum region. Fast, but it cannot break bonds."],
+    qmcharge: ["qmcharge", "The total electric charge given to the quantum region, a whole number such as +1. If it is wrong, the electron count can come out odd and the engine stops."],
+    link: ["Link atom", "A hydrogen added where the quantum region is cut out of a larger molecule, to cap the cut bond."],
+    jaccard: ["Jaccard overlap", "An overlap score for two sets of atoms: shared atoms divided by all atoms in either set. 1.0 means identical; 0 means nothing shared."],
+    pka: ["pKa", "The pH at which a group is half protonated. When a pKa is close to the solution pH (here 7.4), whether the group carries the extra proton is a judgement call."],
+    hbond: ["Hydrogen bond (contact)", "A weak attraction between a hydrogen on N or O and another N or O. Measured between the two heavy atoms it is typically 2.7–3.3 Å."],
+    pm6: ["PM6", "A fast, approximate ('semi-empirical') quantum method, standard for quantum regions of about this size."],
+    sample: ["Sample mode", "No chemistry engine runs now. The agents still make every decision live, but energies are read from the saved output of an earlier real engine run of the same setup."],
+    standin: ["Catalog stand-in", "The data layer: a local DuckDB database that stands in for the Zetaris data catalogue until credentials are configured. Same SQL, local data."],
+    card: ["Decision card", "A record of one choice the agents made: what they chose, the alternatives they rejected, the evidence and a confidence score."],
+    sse: ["SSE (server-sent events)", "The live feed the server uses to push each agent step to this page while the run is in progress."],
+    protonation: ["Protonation", "Whether a group carries an extra hydrogen ion (proton), which changes its charge and how it interacts."],
+    odd: ["Odd electron count", "With an odd number of electrons one is unpaired. For these systems that means the charge was set wrong, so the engine stops."],
+    negctl: ["Negative control", "A residue that should NOT touch the drug. Checking that it does not guards against a wrong pose."],
+    critic: ["Critic", "The checking agent: it inspects each setup before and after the calculation, diagnoses failures and proposes the fix."],
+    sander: ["sander", "The AmberTools program that runs the QM/MM calculation, inside a Docker container."],
+    propka: ["PROPKA", "A program that predicts pKa values of protein residues from their surroundings."],
+    hmem: ["H-MEM (memory)", "The agents' memory: lessons learned from a corrected failure, stored so later runs get it right first time. It starts empty."],
+    chain: ["Chain", "One separate protein strand in the crystal file. Crystals often hold several copies, labelled A, B, …"],
+    confidence: ["Confidence", "The agents' own score from 0 to 1 for how well the evidence supports a choice."],
+    residue: ["Residue", "One building block: an amino acid in a protein, or a nucleotide in DNA."],
+    md: ["Molecular dynamics", "A simulation that moves the atoms over time (here 1 ps = one trillionth of a second)."],
+    prov_run: ["From this run", "Computed or decided by the agents just now, in this run."],
+    prov_replay: ["Replayed real run", "Sample mode: this number comes from the saved output of an earlier real engine run of exactly this setup. No engine ran now; the agents' decisions were still made live."],
+    prov_expert: ["Checked against expert", "Compared with an independent reference: the lab expert's setup on file, or the contacts published for this crystal structure."],
+    prov_nc: ["Not computed", "This value was not calculated in this run, so no number is shown. ActiveSite never fills in a made-up value."],
+  };
+  const AA = {ALA: "alanine", ARG: "arginine", ASN: "asparagine", ASP: "aspartate", ASH: "aspartic acid (protonated, neutral)", CYS: "cysteine", CYX: "cysteine (in a disulfide bond)",
+              GLN: "glutamine", GLU: "glutamate", GLH: "glutamic acid (protonated, neutral)", GLY: "glycine", HIS: "histidine", HIE: "histidine (neutral, proton on the ε nitrogen; Amber name HIE)",
+              HID: "histidine (neutral, proton on the δ nitrogen; Amber name HID)", HIP: "histidine (both nitrogens protonated, charge +1; Amber name HIP)", ILE: "isoleucine", LEU: "leucine",
+              LYS: "lysine", LYN: "lysine (neutral)", MET: "methionine", PHE: "phenylalanine", PRO: "proline", SER: "serine", THR: "threonine", TRP: "tryptophan", TYR: "tyrosine", VAL: "valine"};
+  const NUC = {DA: "adenine (A)", DC: "cytosine (C)", DG: "guanine (G)", DT: "thymine (T)"};
+  const ordinal = (n) => { const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
+  function residueDef(tok) {
+    const m = /^([A-Za-z]+)(\d*)$/.exec(tok); if (!m) return null;
+    const code = m[1].toUpperCase(), n = m[2] ? parseInt(m[2], 10) : null;
+    if (AA[code]) return [tok, `${tok} = ${AA[code]}${n !== null ? `, the ${ordinal(n)} amino acid in the protein chain (numbering as in the crystal file)` : ""}.`];
+    if (NUC[code]) return [tok, `${tok} = a DNA nucleotide carrying ${NUC[code]}${n !== null ? `, number ${n} in the DNA numbering of the file` : ""}.`];
+    if (code === "WAT" || code === "HOH") return [tok, `${tok} = a water molecule${n !== null ? `, number ${n} in the structure file` : ""}.`];
+    if (code === "LIG") return [tok, `${tok} = the drug molecule (the ligand), as named in the prepared structure.`];
+    if (code === "MG") return [tok, `${tok} = a magnesium ion (Mg²⁺)${n !== null ? `, number ${n} in the structure file` : ""}.`];
+    return null;
+  }
+  // [regex source without capture groups, glossary key | fn(match) -> key]
+  const GLOSS_PATTERNS = [
+    ["catalog-STANDIN(?: \\(DuckDB\\))?|catalog stand-in", "standin"],
+    ["kcal/mol(?:/Å)?", "kcalmol"], ["Å", "angstrom"],
+    // raw jargon tokens also match inside identifiers such as expert_qmcharge
+    ["(?<![A-Za-z])ESCF(?![A-Za-z])|\\bquantum-part energy\\b|\\benergy of the quantum (?:part|region)\\b", "escf"],
+    ["\\btotal energy\\b|\\bwhole system\\b", "total"],
+    ["\\bQM/MM\\b|\\bQMMM\\b", "qmmm"],
+    ["\\bquantum regions?\\b|\\bQM regions?\\b", "qmregion"],
+    ["(?<![A-Za-z])qmcharge(?![A-Za-z])", "qmcharge"], ["\\blink atoms?\\b", "link"], ["(?<![A-Za-z])Jaccard(?![A-Za-z])", "jaccard"], ["\\bpKa\\b", "pka"],
+    ["\\bH-bonds?\\b|\\bhydrogen bonds?\\b", "hbond"], ["\\bPM6\\b", "pm6"], ["\\bsample mode\\b|\\bSAMPLE_MODE\\b", "sample"],
+    ["\\bdecision cards?\\b", "card"], ["(?<![A-Za-z])SSE(?![A-Za-z])", "sse"], ["\\bprotonation\\b|\\bprotonated\\b", "protonation"],
+    ["\\bodd(?:-| )electrons?(?: count)?\\b|\\bodd number of electrons\\b|\\bodd electron count\\b", "odd"], ["\\bnegative control\\b", "negctl"],
+    ["\\bCritic\\b", "critic"], ["\\bsander\\b", "sander"], ["\\bPROPKA\\b", "propka"], ["\\bH-MEM\\b", "hmem"], ["\\bmolecular dynamics\\b", "md"],
+    ["\\bconfidence\\b", "confidence"], ["\\bMM\\b", "mm"],
+    ["\\b(?:ALA|ARG|ASN|ASP|ASH|CYS|CYX|GLN|GLU|GLH|GLY|HIS|HIE|HID|HIP|ILE|LEU|LYS|LYN|MET|PHE|PRO|SER|THR|TRP|TYR|VAL)\\d+\\b", (t) => "res:" + t],
+    ["\\bD[ACGT]\\d+\\b|\\b(?:WAT|HOH)\\d+\\b|\\bLIG\\d*\\b|\\bMG\\d*\\b|\\bMg(?=[²:\\s]|$)", (t) => "res:" + t],
+  ];
+  const GLOSS_RE = new RegExp(GLOSS_PATTERNS.map(([src]) => `(${src})`).join("|"), "gi");
+  const ALWAYS = new Set(["standin", "qmcharge", "escf", "jaccard", "sse"]);   // raw jargon: wrapped at every occurrence
+  function termDef(key) {
+    if (key.startsWith("res:")) return residueDef(key.slice(4));
+    return GLOSS[key] || null;
+  }
+  const termHtml = (text, key) => `<button type="button" class="term" data-term="${escapeHtml(key)}">${escapeHtml(text)}</button>`;
+  // Escape text and wrap known terms. `seen` (a Set) wraps only the first occurrence of each non-jargon term.
+  function glossify(text, seen) {
+    const s = String(text ?? "");
+    let out = "", last = 0;
+    for (const m of s.matchAll(GLOSS_RE)) {
+      const idx = m.slice(1).findIndex((x) => x !== undefined);
+      const k = GLOSS_PATTERNS[idx][1];
+      let key = typeof k === "function" ? k(m[0]) : k;
+      if (key.startsWith("res:") && /^mg$/i.test(key.slice(4)) && m[0] !== "MG" && m[0] !== "Mg") key = null;   // plain "mg"
+      if (key && /^res:/i.test(key) && /^[a-z]/.test(m[0]) && !/^(?:wat|hoh)/i.test(m[0])) key = null;          // lower-case words are not residue codes
+      out += escapeHtml(s.slice(last, m.index));
+      if (!key || !termDef(key) || (seen && seen.has(key) && !ALWAYS.has(key))) out += escapeHtml(m[0]);
+      else { if (seen) seen.add(key); out += termHtml(m[0], key); }
+      last = m.index + m[0].length;
+    }
+    return out + escapeHtml(s.slice(last));
+  }
+  // Same, applied to the text nodes of rendered HTML (report, card text).
+  function glossifyDom(root) {
+    const seen = new Set(), nodes = [];
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {acceptNode: (n) =>
+      n.parentElement && n.parentElement.closest("button, a, script, style, textarea, .term") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT});
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    for (const n of nodes) {
+      const html = glossify(n.nodeValue, seen);
+      if (html === escapeHtml(n.nodeValue)) continue;
+      const span = document.createElement("span"); span.innerHTML = html; n.replaceWith(...span.childNodes);
+    }
+  }
+
+  /* tooltip: one shared popover; hover or focus previews it, click or tap pins it, Escape or blur closes it */
+  const tip = $("glossTip");
+  let tipFor = null, tipPinned = false;
+  function showTip(el, pin) {
+    const def = termDef(el.dataset.term || ""); if (!def) return;
+    const host = el.closest("dialog") || document.body;          // inside a modal dialog the tip must live in the top layer too
+    if (tip.parentNode !== host) host.appendChild(tip);
+    tip.innerHTML = `<b>${escapeHtml(def[0])}</b>${escapeHtml(def[1])}`;
+    tip.hidden = false;
+    if (tipFor && tipFor !== el) { tipFor.removeAttribute("aria-describedby"); tipFor.setAttribute("aria-expanded", "false"); }
+    tipFor = el; tipPinned = !!pin;
+    el.setAttribute("aria-describedby", "glossTip"); el.setAttribute("aria-expanded", "true");
+    const r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+    let x = Math.min(Math.max(8, r.left + r.width / 2 - tw / 2), window.innerWidth - tw - 8);
+    let y = r.bottom + 8; if (y + th > window.innerHeight - 8) y = Math.max(8, r.top - th - 8);
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  }
+  function hideTip() { if (tipFor) { tipFor.removeAttribute("aria-describedby"); tipFor.setAttribute("aria-expanded", "false"); } tip.hidden = true; tipFor = null; tipPinned = false; }
+  document.addEventListener("mouseover", (ev) => { const t = ev.target.closest && ev.target.closest(".term"); if (t && !tipPinned) showTip(t, false); });
+  document.addEventListener("mouseout", (ev) => { const t = ev.target.closest && ev.target.closest(".term"); if (t && t === tipFor && !tipPinned) hideTip(); });
+  document.addEventListener("focusin", (ev) => { const t = ev.target.closest && ev.target.closest(".term"); if (t) showTip(t, false); else if (tipFor) hideTip(); });
+  document.addEventListener("click", (ev) => {
+    const t = ev.target.closest && ev.target.closest(".term");
+    if (t) { ev.preventDefault(); if (tipFor === t && tipPinned) hideTip(); else showTip(t, true); return; }
+    if (tipFor) hideTip();
+  });
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && tipFor && !tip.hidden) { ev.preventDefault(); ev.stopPropagation(); const t = tipFor; hideTip(); t.focus(); } }, true);
+  window.addEventListener("scroll", () => { if (tipFor && !tipPinned) hideTip(); }, {passive: true});
+
+  /* ---------- provenance chips: every number says where it came from ---------- */
+  const PROV = {run: "from this run", replay: "replayed real run", expert: "checked against expert", nc: "not computed"};
+  const chip = (kind) => `<button type="button" class="term chip chip-${kind}" data-term="prov_${kind}">${PROV[kind]}</button>`;
+  function engineProv(st, value) {
+    if (value === null || value === undefined) return "nc";
+    return /cached|sample|replay/i.test(String(st.engine_label || "")) ? "replay" : "run";
+  }
+  const isNum = (x) => x !== null && x !== undefined && isFinite(Number(x));
+  const signed = (q) => !isNum(q) ? null : Number(q) > 0 ? "+" + q : Number(q) < 0 ? "−" + Math.abs(q) : "0";
+  const num = (x, d) => (Number(x) < 0 ? "−" : "") + Math.abs(Number(x)).toLocaleString("en-US", {minimumFractionDigits: d, maximumFractionDigits: d});
+  const fact = (prov, html) => `<div class="fact" data-prov="${prov}">${html}${chip(prov)}</div>`;
+
+  /* ---------- the cases, phrased as questions ---------- */
+  const FLOW_CASES = [
+    {id: "ippoi_site_a", k: "enzyme + DNA", q: "How does an enzyme cut DNA?", s: "I-PpoI nuclease, magnesium site A"},
+    {id: "ippoi_site_b", k: "memory", q: "Does the agent remember a lesson?", s: "I-PpoI site B, run after site A"},
+    {id: "egfr_erlotinib", k: "drug in its pocket", q: "How does a lung-cancer drug bind its target?", s: "EGFR kinase + erlotinib"},
+    {id: "abl_imatinib_a", k: "drug in its pocket", q: "How does a leukemia drug bind its target?", s: "ABL kinase + imatinib; the agents pick the best protein copy in the crystal"},
+    {id: "abl_imatinib_b", k: "drug in its pocket", q: "Does the choice of protein copy matter?", s: "ABL kinase + imatinib, the other copy in the same crystal"},
+  ];
+  const OTHER_CASES = {ecorv_endonuclease: "EcoRV restriction endonuclease"};   // reachable by free text, not offered as a question
+  const caseQ = (id) => (FLOW_CASES.find((c) => c.id === id) || (OTHER_CASES[id] ? {s: OTHER_CASES[id]} : {}));
+  let flowCase = "ippoi_site_a";
+  function renderFlowCases() {
+    $("flowCases").innerHTML = FLOW_CASES.map((c) =>
+      `<button type="button" class="qcase" data-case="${c.id}" aria-pressed="${c.id === flowCase}" onclick="flowPick('${c.id}')"><span class="k">${escapeHtml(c.k)}</span><span class="t">${escapeHtml(c.q)}</span><span class="s">${escapeHtml(c.s)}</span></button>`).join("");
+  }
+  function flowPick(id) { flowCase = id; $("flowPrompt").value = ""; $("flowPickErr").innerText = ""; renderFlowCases(); }
+  $("flowPrompt").addEventListener("input", () => { if ($("flowPrompt").value.trim()) { flowCase = null; renderFlowCases(); } });
+  // keep the two sets of toggles (Options here, Expert view's panel) in step
+  for (const [a, b] of [["flowSample", "sampleModeToggle"], ["flowMd", "mdToggle"]]) {
+    $(a).addEventListener("change", () => { $(b).checked = $(a).checked; });
+    $(b).addEventListener("change", () => { $(a).checked = $(b).checked; });
+  }
+
+  /* ---------- screens + stepper ---------- */
+  let flowScreen = 1;
+  const flow = {running: false, done: false, failed: null, payload: null, lines: [], seen: new Set(), qmAtoms: null, request: null};
+  function flowGo(n, focus = true) {
+    if (n === 2 && !(flow.running || flow.done || flow.failed)) return;
+    if (n === 3 && !flow.payload) return;
+    flowScreen = n;
+    if (window.hideTip) hideTip();
+    for (const i of [1, 2, 3]) {
+      $("screen" + i).hidden = i !== n;
+      const b = $("step" + i);
+      if (i === n) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+      b.classList.toggle("done", i < n || (i === 2 && flow.done) || (i === 3 && !!flow.payload && n === 3));
+    }
+    $("step2").disabled = !(flow.running || flow.done || flow.failed);
+    $("step3").disabled = !flow.payload;
+    if (focus && !document.body.classList.contains("expert")) { $("s" + n + "h").focus({preventScroll: true}); window.scrollTo({top: 0}); }
+  }
+
+  /* ---------- Expert view toggle (remembered when storage works) ---------- */
+  function setExpert(on) {
+    document.body.classList.toggle("expert", !!on);
+    $("expertSwitch").setAttribute("aria-checked", on ? "true" : "false");
+    try { localStorage.setItem("activesite-view", on ? "expert" : "simple"); } catch (e) { /* storage blocked: the toggle still works for this page */ }
+    if (on) { closeDialogs(); returnChat(); }
+    window.dispatchEvent(new Event("resize"));
+  }
+  function closeDialogs() { for (const d of document.querySelectorAll("dialog[open]")) d.close(); }
+
+  /* ---------- run ---------- */
+  function flowRun() {
+    if (flow.running) return;
+    const text = $("flowPrompt").value.trim();
+    if (!flowCase && !text) { $("flowPickErr").innerText = "Pick a question or describe your system first."; return; }
+    if (flowCase) selectCase(flowCase);
+    else { activeCaseId = null; $("promptInput").value = text; document.querySelectorAll("#caseButtons button").forEach((b) => b.classList.remove("on")); }
+    flow.request = flowCase ? null : text;
+    $("sampleModeToggle").checked = $("flowSample").checked;
+    $("mdToggle").checked = $("flowMd").checked;           // selectCase may switch MD on for EGFR; here the Options box decides
+    runSimulation();
+  }
+  function flowBegin() {
+    Object.assign(flow, {running: true, done: false, failed: null, payload: null, lines: [], seen: new Set(), qmAtoms: null});
+    if (activeCaseId) flow.request = null;
+    $("flowChecklist").innerHTML = "";
+    $("flowRunBtn").disabled = true;
+    $("flowSeeResult").hidden = true; $("flowRetry").hidden = true;
+    $("s2h").innerText = "The agents are working";
+    $("s2kicker").innerText = activeCaseId ? (caseQ(activeCaseId).q || activeCaseId) : "Your request";
+    $("s2chip").innerHTML = chip("run");
+    setFlowStatus("Working…", "run-on");
+    renderChecklist();
+    flowGo(2, !document.body.classList.contains("expert"));
+  }
+  function setFlowStatus(t, cls) { const s = $("flowStatus"); s.innerText = t; s.className = "pill " + (cls || ""); }
+
+  /* ---------- SSE event -> one plain sentence ---------- */
+  const CHECK_PLAIN = {
+    qm_residues_near_metal: "every quantum residue sits close to the metal",
+    first_shell_in_qm: "every atom touching the metal is in the quantum region",
+    boundary_fraction: "the cut leaves the quantum region with a whole-number charge",
+    expert_mask_provenance: "the expert's atom list fits this structure file",
+    ligand_charge_sum: "the drug's atomic charges add up to its formal charge",
+    pocket_built: "the drug sits in its crystal pocket",
+    pocket_min: "the drug stays in place after the structure is relaxed",
+    complex_integer_charge: "the whole complex has a whole-number charge",
+    minimisation_relaxed: "the structure relaxed without large leftover forces",
+  };
+  const plainCheck = (name) => CHECK_PLAIN[name] || String(name || "a check").replace(/_/g, " ");
+  function plainReason(errs) {
+    const e = (Array.isArray(errs) ? errs : [errs]).filter(Boolean).join("; ");
+    if (/SAMPLE_MODE=true and no cached sample output/i.test(e)) return "sample mode is on and there is no saved engine result for this setup";
+    if (/docker/i.test(e)) return "the chemistry engine (Docker) is not available on this machine";
+    if (/topology/i.test(e)) return "this system has no Amber topology to compute with";
+    if (/odd number of electrons|odd electron/i.test(e)) return "the engine found an odd number of electrons";
+    if (e) return "the engine reported an error (the exact message is in the report and in Expert view)";
+    return "the engine returned no value";
+  }
+  function sentenceFor(e) {
+    const a = e.agent_name || "", act = e.action || "", st = String(e.status || ""), s = String(e.output_summary || "");
+    const bad = ["failed", "error", "blocked"].includes(st);
+    const key = a.replace(/^Ligand/, "") + "." + act;
+    let m;
+    switch (key) {
+      case "Planner.plan":
+        m = /(\d+) steps?.*?theory (\S+?)(?:,|$)/.exec(s);
+        return ["ok", m ? `Made a plan: ${m[1]} steps, using the ${m[2]} method.` : "Made a plan for the setup."];
+      case "DataScout.gather_data":
+        return /expert=yes/.test(s) ? ["ok", "Found the lab's expert setup to compare against."] : ["ok", "Looked for an expert setup to compare against: none on file for this case."];
+      case "Setup.propose_qm_region":
+        m = /(\d+) atoms(?:, cut level (\S+?),)?(?: (\d+) link atoms)?/.exec(s);
+        if (m) flow.qmAtoms = Number(m[1]);
+        return ["ok", m ? `Chose ${m[1]} atoms for the quantum region${m[3] ? `, capped with ${m[3]} link atoms` : ""}.` : "Chose the quantum region."];
+      case "Setup.choose_charge":
+        m = /qmcharge ([+-]?\d+)/.exec(s);
+        { const q = m ? signed(Number(m[1])) : null;
+          if (/Critic fix/i.test(s)) return ["warn", `Changed the charge of the quantum region to ${q}: the Critic's fix.`];
+          if (/H-MEM|recalled/i.test(s)) return ["ok", `Set the charge of the quantum region to ${q}, reusing a lesson remembered from an earlier run.`];
+          return ["ok", q !== null ? `First guess for the charge of the quantum region: ${q} (textbook rule from the residues' formal charges).` : "Chose the charge of the quantum region."]; }
+      case "Critic.precheck":
+        if (st === "ok") return ["ok", "The Critic checked the setup before running: everything passed."];
+        m = /\[(.*)\]/.exec(s);
+        return ["warn", `The Critic flagged a concern before running: ${m ? m[1].split(",").map((x) => plainCheck(x.replace(/['\s]/g, ""))).map((x) => `“${x}” did not hold`).join("; ") : s}.`];
+      case "Runner.run_qmmm":
+        return st === "running" ? ["work", "Running the calculation…"] : null;
+      case "Runner.cached_engine_output":
+        return ["replay", "Sample mode: replayed the saved output of a real engine run for this exact setup (no engine ran now)."];
+      case "Runner.qmmm_result":
+        if (st === "ok") return ["ok", "The calculation finished and returned an energy."];
+        if (/odd number of electrons/i.test(s)) { m = /electrons \(\s*(\d+)\)/.exec(s); return ["bad", `The first attempt failed: the engine found an odd number of electrons${m ? ` (${m[1]})` : ""}, so the charge guess was wrong.`]; }
+        return ["bad", `No energy was computed: ${plainReason(s)}.`];
+      case "Critic.diagnose":
+        return ["warn", "The Critic diagnosed the failure and proposed a corrected charge for a second attempt."];
+      case "Critic.remember":
+        return /stored/.test(s) && !/nothing stored/i.test(s) ? ["ok", "Saved the lesson to memory, so later runs get it right first time."] : ["ok", "Nothing new to remember from this run."];
+      case "Critic.postcheck":
+        return ["ok", "Compared the quantum region with the lab expert's."];
+      case "Critic.validate":
+        m = /(\d+)\/(\d+) recovered/.exec(s);
+        return ["ok", m ? `Compared the drug's contacts with the published structure: ${m[1]} of ${m[2]} found.` : "Compared the drug's contacts with the published structure."];
+      case "Setup.choose_chain":
+        m = /chain (\S+)/.exec(s);
+        return ["ok", /requested/.test(s) ? `Used chain ${m ? m[1] : ""} of the crystal, as the case asks.` : `Picked chain ${m ? m[1] : "?"} of the crystal: the copy with the most complete pocket.`];
+      case "Setup.extract":
+        m = /(\d+) ligand atoms/.exec(s);
+        return ["ok", `Took the protein and the drug${m ? ` (${m[1]} atoms)` : ""} out of the crystal file.`];
+      case "Setup.ligand_protonation_site":
+        if (/kept neutral/.test(s)) return ["ok", "Checked whether the drug picks up a proton in the pocket: it stays neutral."];
+        m = /^(\S+) is a tertiary amine.*closest backbone carbonyl O is (\S+?)@/.exec(s);
+        return ["ok", m ? `Found a nitrogen on the drug (${m[1]}) that picks up a proton next to ${m[2]}.` : "Checked where the drug picks up a proton."];
+      case "Setup.recall":
+        return /rule recalled: True/.test(s) ? ["ok", "Recalled a lesson from an earlier run."] : ["ok", "Checked memory for earlier lessons: none apply here."];
+      case "Setup.prep":
+        return st === "cached" ? ["replay", "Sample mode: loaded the saved protein preparation (protonation and drug parameters) instead of running it now."]
+                               : [bad ? "bad" : "ok", bad ? "Preparing the protein failed." : "Prepared the protein (protonation and drug parameters)."];
+      case "Explainer.cards":
+        m = /(\d+) decision cards/.exec(s);
+        return ["ok", m ? `Wrote ${m[1]} decision cards, one per choice, with evidence.` : "Wrote the decision cards."];
+      case "Explainer.report":
+        return ["ok", "Wrote the report."];
+      case "Orchestrator.done":
+        return st === "ok" ? ["ok", "Finished."] : ["bad", "Finished with problems: see the result."];
+      case "Orchestrator.engine":
+        return ["bad", `No energy was computed: ${plainReason(s)}.`];
+    }
+    if (a === "Server" || a === "ChimeraX") return null;      // failures are shown by flowFail; viewer actions are not run steps
+    if (bad) return ["bad", `${a || "An agent"} could not finish “${String(act).replace(/_/g, " ")}”.`];
+    return [st === "cached" ? "replay" : "ok", `${a || "An agent"} finished the step “${String(act).replace(/_/g, " ")}”.`];
+  }
+  function flowStep(e) {
+    if (!flow.running) return;
+    const r = sentenceFor(e); if (!r) return;
+    const [tone, text] = r;
+    const sig = tone + "|" + text;
+    if (tone !== "work" && flow.seen.has(sig)) return;       // the same sentence twice (a rebuilt region, a second replay) adds nothing
+    flow.seen.add(sig);
+    flow.lines = flow.lines.filter((l) => l.tone !== "work");
+    flow.lines.push({tone, text});
+    renderChecklist();
+  }
+  const ICON = {ok: "✓", warn: "↻", replay: "↺", bad: "✕", work: "…"};
+  function renderChecklist() {
+    const lines = flow.lines.slice();
+    if (flow.running && !lines.some((l) => l.tone === "work")) lines.push({tone: "work", text: "Working…"});
+    $("flowChecklist").innerHTML = lines.map((l) => `<li class="c-${l.tone}"><span class="ic" aria-hidden="true">${l.tone === "work" ? '<span class="spinner"></span>' : ICON[l.tone]}</span><span>${glossify(l.text)}</span></li>`).join("");
+  }
+  function flowFail(msg) {
+    flow.running = false; flow.failed = msg || "unknown error";
+    flow.lines = flow.lines.filter((l) => l.tone !== "work");
+    const plain = /no benchmark case matches/i.test(flow.failed) ? "No supported case matches your request. Try one of the questions on the first screen, or name the protein and drug or metal."
+                : /unknown case/i.test(flow.failed) ? "The server does not know that case."
+                : `The run stopped: ${flow.failed}`;
+    flow.lines.push({tone: "bad", text: plain});
+    renderChecklist();
+    $("s2h").innerText = "The run did not finish";
+    setFlowStatus("Failed", "bad");
+    $("flowRetry").hidden = false; $("flowRunBtn").disabled = false;
+    flowGo(2, false);
+  }
+  function flowResult(payload) {
+    flow.running = false; flow.done = true; flow.payload = payload;
+    flow.lines = flow.lines.filter((l) => l.tone !== "work");
+    renderChecklist();
+    const ok = (payload.stats || {}).qm_ok;
+    $("s2h").innerText = "The agents finished";
+    setFlowStatus(ok ? "Finished" : "Finished · no energy", ok ? "ok" : "bad");
+    $("flowRunBtn").disabled = false;
+    $("flowSeeResult").hidden = false; $("flowRetry").hidden = false;
+    renderResult(payload);
+    flowGo(flowScreen === 2 ? 2 : flowScreen, false);
+    if (flowScreen === 2 && !document.body.classList.contains("expert")) $("flowSeeResult").focus({preventScroll: true});
+  }
+
+  /* ---------- A1: the headline, from the run's own data only ---------- */
+  function metalCounts(v, st) {
+    // our atoms = shared + only_ours; shared = expert_atoms - only_expert (both lists are complete in the payload)
+    if (!v || !isNum(v.expert_atoms) || !Array.isArray(v.only_ours) || !Array.isArray(v.only_expert)) return {ours: flow.qmAtoms, shared: null, expert: v && v.expert_atoms};
+    const shared = v.expert_atoms - v.only_expert.length;
+    return {ours: shared + v.only_ours.length, shared, expert: v.expert_atoms};
+  }
+  function buildHeadline(p) {
+    const st = p.stats || {}, v = p.validation || {}, res = p.result || {}, checks = p.checks || st.checks || [];
+    const escf = isNum(res.qm_escf_kcal) ? res.qm_escf_kcal : st.qm_escf_kcal;
+    const engineOk = st.qm_ok === true && isNum(escf);
+    const provs = new Set();
+    const out = [];
+    const failedChecks = checks.filter((c) => c && c.passed === false);
+    if (v && typeof v === "object" && "recovered" in v) {
+      const n = Object.keys(v.recovered || {}).length, pub = v.published;
+      const pocket = checks.filter((c) => c.name === "pocket_built" || c.name === "pocket_min");
+      let s = pocket.length ? (pocket.every((c) => c.passed) ? "The drug sits in its crystal pocket" : "The drug did not stay in its crystal pocket") : "The drug was placed in its pocket";
+      if (pocket.length) provs.add("run");
+      if (v.available === false || !isNum(pub)) { s += "; its contacts with the protein were not compared with published data"; provs.add("nc"); }
+      else {
+        provs.add("expert");
+        s += `; ${n} of ${pub} published contacts ${n === 1 ? "is" : "are"} present`;
+        const missed = v.missed || [];
+        const notes = missed.map((M) => {
+          const rn = String(M).replace(/\D/g, "");
+          const renamed = (v.extra || []).find((x) => String(x).replace(/\D/g, "") === rn && x !== M);
+          const changed = (st.overrides || []).some((o) => String(o.resnum) === rn);
+          return renamed && changed ? `the missing one, ${M}, shows up as ${renamed} because the agents changed its protonation` : null;
+        });
+        if (missed.length === 1 && notes[0]) s += `; ${notes[0]}`;
+        else if (missed.length) s += ` (missing: ${missed.join(", ")})`;
+        const neg = Object.entries(v.expected_absent || {});
+        if (neg.length) {
+          const okNeg = neg.filter(([, ok]) => ok).map(([k]) => k), badNeg = neg.filter(([, ok]) => !ok).map(([k]) => k);
+          if (okNeg.length) s += `, and ${okNeg.join(" and ")}, which should not touch the drug, ${okNeg.length === 1 ? "does" : "do"} not`;
+          if (badNeg.length) s += `, but ${badNeg.join(" and ")}, which should not touch the drug, ${badNeg.length === 1 ? "does" : "do"}`;
+        }
+      }
+      out.push(s + ".");
+      if ((st.blocked || []).length) { out.push(`The run stopped at a safety check: ${st.blocked.map(plainCheck).join(", ")}.`); provs.add("run"); }
+    } else if (v && typeof v === "object" && ("jaccard" in v || "expert_mask_present" in v)) {
+      const c = metalCounts(v, st);
+      let s;
+      if (v.expert_mask_present === false || !isNum(v.jaccard)) {
+        s = `The agents built ${isNum(c.ours) ? `a ${c.ours}-atom` : "a"} quantum region; agreement with an expert setup was not computed (no expert setup on file)`;
+        provs.add("nc"); if (isNum(c.ours)) provs.add("run");
+      } else if (Number(c.expert) === 0) {
+        s = `The agents built ${isNum(c.ours) ? `a ${c.ours}-atom` : "a"} quantum region, but the expert setup on file selects no atoms in this structure, so the two could not be compared`;
+        provs.add("expert"); if (isNum(c.ours)) provs.add("run");
+      } else if (Number(v.jaccard) === 1) {
+        s = `The agents chose the same ${c.expert}-atom quantum region as the lab expert`; provs.add("expert");
+      } else if (isNum(c.shared) && c.shared > 0) {
+        s = `The agents' ${c.ours}-atom quantum region shares ${c.shared} atoms with the lab expert's ${c.expert}-atom region`; provs.add("expert");
+      } else {
+        s = `The agents' ${isNum(c.ours) ? c.ours + "-atom " : ""}quantum region shares no atoms with the lab expert's${isNum(c.expert) ? " " + c.expert + "-atom" : ""} region`; provs.add("expert");
+      }
+      const retries = Number(st.retries || 0);
+      if (retries > 0 && engineOk && /Critic fix/i.test(st.charge_rule || "")) { s += ", and caught their own charge mistake"; provs.add("run"); }
+      else if (retries > 0 && engineOk) { s += `, and fixed their own setup after ${retries} failed attempt${retries > 1 ? "s" : ""}`; provs.add("run"); }
+      else if (retries > 0) { s += `; they retried ${retries} time${retries > 1 ? "s" : ""}`; provs.add("run"); }
+      else if (st.memory_used && /H-MEM|recalled/i.test(st.charge_rule || "")) {
+        // "right first time" is only proven when the engine accepted the charge
+        if (engineOk) s += ", and set the charge right first time using a lesson remembered from an earlier run";
+        provs.add("run");
+      }
+      out.push(s + ".");
+      if (retries === 0 && !engineOk && st.memory_used && /H-MEM|recalled/i.test(st.charge_rule || "")) out.push("The charge came from a lesson remembered from an earlier run.");
+      if (failedChecks.some((x) => x.name === "expert_mask_provenance")) { out.push("The Critic flagged that the expert's own atom list does not fully fit this structure file."); provs.add("run"); }
+      const other = failedChecks.filter((x) => x.name !== "expert_mask_provenance");
+      if (other.length) { out.push(`${other.length === 1 ? "One safety check" : other.length + " safety checks"} did not pass: ${other.map((x) => plainCheck(x.name)).join("; ")}.`); provs.add("run"); }
+    } else {
+      out.push("The agents finished the setup; nothing in this run was compared with an expert setup or published data.");
+      provs.add("nc");
+    }
+    if (!engineOk) { out.push(`No energy was computed: ${plainReason(st.errors || res.errors)}.`); provs.add("nc"); }
+    return {text: out.join(" "), provs};
+  }
+
+  /* ---------- A3: four tiles, each number with its chip ---------- */
+  function buildTiles(p) {
+    const st = p.stats || {}, v = p.validation || {}, res = p.result || {}, checks = p.checks || st.checks || [];
+    const tiles = [];
+    const tile = (title, valueHtml, prov, facts, extra) => tiles.push(
+      `<div class="tile"><div class="tk">${glossify(title)}</div><div class="tv${prov === "nc" ? " nc" : ""}" data-prov="${prov}">${valueHtml}${chip(prov)}</div>${(facts || []).join("")}${extra || ""}</div>`);
+    const isLig = v && typeof v === "object" && "recovered" in v;
+    // 1. agreement with an independent reference
+    if (isLig) {
+      const rec = Object.entries(v.recovered || {});
+      if (!isNum(v.published) || v.available === false) tile("Published contacts found", "—", "nc", [`<div class="fact">no published contacts on file for this case</div>`]);
+      else {
+        const items = rec.map(([k, d]) => `<li data-prov="expert">✓ ${glossify(k)}: ${glossify(num(d, 2) + " Å")} apart (a hydrogen-bond distance)${chip("expert")}</li>`)
+          .concat((v.missed || []).map((k) => `<li>✕ ${glossify(k)}: not found</li>`))
+          .concat(Object.entries(v.expected_absent || {}).map(([k, ok]) => `<li>${ok ? "✓" : "✕"} ${glossify(k)} (${glossify("negative control")}): ${ok ? "absent, as it should be" : "present, but should not be"}</li>`));
+        tile("Published contacts found", `${rec.length} / ${v.published}`, "expert", [], `<details><summary>Which contacts?</summary><ul>${items.join("")}</ul></details>`);
+      }
+    } else if (v && typeof v === "object" && ("jaccard" in v || "expert_mask_present" in v)) {
+      const c = metalCounts(v, st);
+      if (v.expert_mask_present === false || !isNum(v.jaccard)) tile("Atoms that match the expert", "—", "nc", isNum(c.ours) ? [fact("run", `our quantum region: ${c.ours} atoms`)] : []);
+      else if (Number(c.expert) === 0) tile("Atoms that match the expert", "—", "nc",
+        [`<div class="fact">the expert setup on file selects no atoms in this structure, so there is nothing to compare</div>`].concat(isNum(c.ours) ? [fact("run", `our quantum region: ${c.ours} atoms`)] : []));
+      else tile("Atoms that match the expert", `${c.shared ?? "—"} / ${c.expert}`, "expert",
+                [fact("expert", `our quantum region: ${c.ours} atoms; overlap score ${num(v.jaccard, 2)} (${glossify("Jaccard")})`)].concat(v.charge_match === true ? [fact("expert", "charge matches the expert's")] : v.charge_match === false ? [fact("expert", "charge differs from the expert's")] : []));
+    } else tile("Agreement with a reference", "—", "nc", [`<div class="fact">nothing to compare against for this case</div>`]);
+    // 2. charge
+    const q = signed(st.qmcharge);
+    const retries = Number(st.retries || 0);
+    const chargeFacts = [];
+    if (retries > 0) chargeFacts.push(fact("run", `after ${retries} correction${retries > 1 ? "s" : ""} by the ${glossify("Critic")}`));
+    else if (st.memory_used && /H-MEM|recalled/i.test(st.charge_rule || ""))
+      chargeFacts.push(`<div class="fact">${st.qm_ok === true ? "right first time, from a remembered lesson" : "from a remembered lesson; not tested, because no energy was computed"}</div>`);
+    else if (q !== null) chargeFacts.push(`<div class="fact">first guess, kept</div>`);
+    const HIS_FORM = {HIP: "charged", HIE: "neutral", HID: "neutral"};
+    for (const o of st.overrides || []) chargeFacts.push(fact("run", `${glossify("HIS" + o.resnum)} set ${HIS_FORM[o.to] || escapeHtml(o.to)} instead of ${HIS_FORM[o.from] || escapeHtml(o.from)} (${glossify("pKa")} ${isNum(o.pka) ? num(o.pka, 2) : "—"} at pH ${isNum(o.ph) ? num(o.ph, 1) : "—"})`));
+    tile(isLig ? "Charge of the drug (quantum region)" : "Charge of the quantum region", q === null ? "—" : q, q === null ? "nc" : "run", chargeFacts);
+    // 3. energy
+    const escf = isNum(res.qm_escf_kcal) ? res.qm_escf_kcal : st.qm_escf_kcal;
+    const tot = isNum(res.total_energy_kcal) ? res.total_energy_kcal : st.total_energy_kcal;
+    const ep = engineProv(st, isNum(escf) ? escf : null), tp = engineProv(st, isNum(tot) ? tot : null);
+    tile("Energy of the quantum part (ESCF)", isNum(escf) ? `${num(escf, 1)}<small>${glossify("kcal/mol")}</small>` : "—", ep,
+         [isNum(tot) ? fact(tp, `${glossify("whole system")}: ${num(tot, 1)} ${glossify("kcal/mol")}`) : fact("nc", `${glossify("whole system")}: —`)]
+         .concat(ep === "nc" ? [`<div class="fact">${glossify(plainReason(st.errors || res.errors))}</div>`] : []));
+    // 4. safety checks
+    if (checks.length) {
+      const passed = checks.filter((c) => c.passed).length;
+      const list = checks.map((c) => `<li data-prov="run">${c.passed ? "✓" : "!"} ${glossify(plainCheck(c.name))}<div class="fact">${glossify(c.detail || "")}${chip("run")}</div></li>`).join("");
+      tile("Safety checks passed", `${passed} / ${checks.length}`, "run", [], `<details><summary>Which checks?</summary><ul>${list}</ul></details>`);
+    } else tile("Safety checks passed", "—", "nc", [`<div class="fact">this run carried no checks</div>`]);
+    return tiles.join("");
+  }
+
+  /* ---------- Ask why: one question -> the one relevant decision card ---------- */
+  function whyList(p) {
+    const cards = p.cards || [], st = p.stats || {};
+    const find = (f) => cards.find(f);
+    const isLig = st.kind === "ligand";
+    const out = [];
+    const add = (k, label, card, extra) => { if (card) out.push({k, label, card, extra}); };
+    if (isLig) add("chain", `Why this protein copy${st.chain ? ` (chain ${st.chain})` : ""}?`, find((c) => /^DEC_CHAIN_/.test(c.decision_id)));
+    add("region", "Why these atoms?", isLig ? find((c) => c.category === "link_atom") : (find((c) => c.category === "cut_level") || find((c) => c.category === "residue_inclusion")),
+        isLig ? null : cards.filter((c) => c.category === "residue_inclusion"));
+    add("charge", "Why this charge?", isLig ? (find((c) => c.category === "protonation_state" && /^ligand/i.test(c.target || "")) || find((c) => c.category === "charge_and_spin"))
+                                                  : find((c) => c.category === "charge_and_spin"));
+    const his = find((c) => /^DEC_HIS_OVERRIDE_/.test(c.decision_id));
+    if (his) add("his", "Why did a histidine change?", his);
+    const th = find((c) => c.category === "theory_selection");
+    if (th) add("theory", /PM6/.test(th.choice || "") ? "Why the PM6 method?" : "Why these drug parameters?", th);
+    add("check", "How was it checked?", find((c) => c.category === "validation" && !/NEGATIVE_CONTROL/.test(c.decision_id)));
+    return out;
+  }
+  let whyItems = [];
+  function openWhy(i) {
+    const w = whyItems[i]; if (!w) return;
+    const c = w.card, ev = Object.assign({}, c.evidence || {}); const source = ev.source; delete ev.source;
+    const conf = isNum(c.confidence) ? `<span data-prov="run">${glossify("confidence")} ${num(c.confidence, 2)}${chip("run")}</span>` : `<span>${glossify("confidence")}: —${chip("nc")}</span>`;
+    const alts = (c.alternatives || []).map((a) => `<li><b>${glossify(a.name)}</b>: ${glossify(a.rejected_reason)}</li>`).join("");
+    const extra = (w.extra || []).length ? `<h3>What is inside the quantum region</h3><ul>${w.extra.map((x) => `<li>${glossify(x.target)}: ${glossify(x.choice)}</li>`).join("")}</ul>` : "";
+    showInfo(w.label, `<div data-prov="run">
+      <div class="fact" data-card-id="${escapeHtml(c.decision_id)}">Every value on this card was written by the agents in this run, from the evidence below${chip("run")}</div>
+      <h3>What they chose</h3><p>${glossify(c.choice)}</p>
+      <h3>Why</h3><p>${glossify(c.rationale)}</p>
+      <p class="muted" style="font-size:13px">${conf}</p>
+      ${alts ? `<h3>What they ruled out</h3><ul>${alts}</ul>` : ""}
+      ${extra}
+      ${source ? `<h3>Evidence source</h3><p class="muted" style="font-size:13px">${glossify(source)}</p>` : ""}
+      <details style="margin-top:12px"><summary>Raw evidence and card id (for experts)</summary><pre>${escapeHtml(c.decision_id)}\n${escapeHtml(JSON.stringify(ev, null, 1))}</pre></details>
+      <p style="margin-top:14px"><button type="button" class="linkbtn" onclick="setExpert(true);switchTab('cards')">See every decision card (Expert view)</button></p></div>`);
+  }
+  function showInfo(title, html) {
+    $("dlgInfoTitle").innerText = title;
+    $("dlgInfoBody").innerHTML = html;
+    const d = $("dlgInfo"); if (!d.open) d.showModal();
+    $("dlgInfoBody").scrollTop = 0;
+  }
+
+  function renderResult(p) {
+    const st = p.stats || {};
+    const h = buildHeadline(p);
+    const order = ["expert", "run", "replay", "nc"].filter((k) => h.provs.has(k));
+    $("s3h").innerHTML = `${glossify(h.text)} <span class="chips">${order.map(chip).join("")}</span>`;
+    const cq = caseQ(st.case);
+    $("s3kicker").innerText = [cq.q, cq.s || st.case, /cached|sample/i.test(st.engine_label || "") ? "sample mode" : null].filter(Boolean).join(" · ");
+    if (flow.request) { $("s3matched").hidden = false; $("s3matched").innerHTML = `Your request “${escapeHtml(flow.request)}” was matched to the closest supported case: <b>${escapeHtml(cq.s || st.case)}</b>.`; }
+    else $("s3matched").hidden = true;
+    $("flowTiles").innerHTML = buildTiles(p);
+    whyItems = whyList(p);
+    $("flowWhy").innerHTML = whyItems.length ? `<span class="label">Ask why</span>` + whyItems.map((w, i) => `<button type="button" class="why" data-why="${w.k}" onclick="openWhy(${i})">${escapeHtml(w.label)}</button>`).join("") : "";
+    flow.scene = null;
+  }
+
+  /* ---------- 3D, report, chat ---------- */
+  async function open3D() {
+    const st = (flow.payload || {}).stats || lastStats || {};
+    $("dlg3d").showModal();
+    if (!flow.scene) {
+      $("flowVsrc").innerText = "loading 3D…";
+      await loadSiteScene(structureIds(st).length ? structureIds(st) : [activeCaseId || flowCase], st.case || activeCaseId, st.run_id ? st : null, "flow");
+      flow.scene = lastScene.flow;
+    }
+    const sc = lastScene.flow;
+    $("flowSiteCorner").innerText = "";
+    $("flowLegend").innerHTML = sc && sc.mode === "qm"
+      ? `<span><span class="ball"></span>Balls = ${glossify("quantum region")} (this run's atoms)</span><span><span class="stick"></span>Sticks = nearby pocket (classical part)</span>`
+      : `<span><span class="ball"></span>Balls = the drug or metal ion</span><span><span class="stick"></span>Sticks = nearby pocket</span><span class="muted">The run's exact ${glossify("quantum region")} could not be drawn on this file.</span>`;
+    const pieces = sc ? [...new Set(sc.atoms.filter((a) => a.qm).map((a) => a.res))] : [];
+    $("flowPieces").innerHTML = pieces.length ? `<b>Labelled pieces:</b> ${pieces.map((r) => glossify(r)).join(", ")}` : "";
+  }
+  function openReport() {
+    const src = $("reportContent");
+    const st = (flow.payload || {}).stats || {};
+    const ep = engineProv(st, st.qm_escf_kcal);
+    showInfo("Report", `<div data-prov="run"><div class="fact">Written by the Explainer agent from this run's data${chip("run")}; energies: ${chip(ep)}</div><div class="md" id="flowReport" style="margin-top:10px">${src.innerHTML}</div></div>`);
+    glossifyDom($("flowReport"));
+  }
+  function openChat() {
+    const panel = $("tabChat");
+    $("chatDrawerBody").appendChild(panel);
+    panel.classList.remove("hidden");
+    const d = $("dlgChat"); if (!d.open) d.showModal();
+  }
+  function returnChat() {
+    const panel = $("tabChat");
+    if (panel.parentElement !== $("chatHome").parentElement) $("chatHome").after(panel);
+    panel.classList.toggle("hidden", !$("tabBtnChat").classList.contains("on"));
+  }
+  $("dlgChat").addEventListener("close", returnChat);
+  for (const d of document.querySelectorAll("dialog")) d.addEventListener("close", hideTip);
+
+  /* ---------- boot ---------- */
+  renderFlowCases();
+  $("expertSwitch").setAttribute("aria-checked", document.body.classList.contains("expert") ? "true" : "false");
+  flowGo(1, false);
+</script>
+
 <script type="module">
 /* Three.js active-site renderer from the lab-notebook prototype: QM (or focus) atoms as balls, MM pocket as sticks,
    labels on focus residues. One instance in the live column, one in the 3D Structure tab. */
@@ -1148,7 +1973,8 @@ const RAD = {H: 0.25, C: 0.38, N: 0.37, O: 0.37, P: 0.45, S: 0.45, Mg: 0.55, Zn:
 const cpk = (el) => (el === "C" ? css("--carbon") : CPK[el] || "#bbbbbb");
 const SPH = new THREE.SphereGeometry(1, 28, 18), CYL = new THREE.CylinderGeometry(1, 1, 1, 12), UP = new THREE.Vector3(0, 1, 0);
 
-function makeView(wrapId, legendId) {
+const EL_NAMES = {H: "hydrogen", C: "carbon", N: "nitrogen", O: "oxygen", P: "phosphorus", S: "sulfur", F: "fluorine", Cl: "chlorine", Mg: "magnesium", Zn: "zinc", Mn: "manganese", Ca: "calcium"};
+function makeView(wrapId, legendId, words) {
   const wrap = document.getElementById(wrapId);
   const msg = document.createElement("div"); msg.className = "msg3d"; msg.textContent = "loading 3D…"; wrap.appendChild(msg);
   let renderer;
@@ -1207,8 +2033,8 @@ function makeView(wrapId, legendId) {
       scene.add(group); controls.reset(); fit();
       const els = [...new Set(sc.atoms.filter((a) => a.qm).map((a) => a.el))];
       const lg = document.getElementById(legendId);
-      if (lg) lg.innerHTML = els.map((e) => `<span><span class="sw" style="background:${cpk(e)}"></span>${e}</span>`).join("") +
-        `<span><span class="sw" style="background:${css("--mm")}"></span>pocket</span>`;
+      if (lg) lg.innerHTML = els.map((e) => `<span><span class="sw" style="background:${cpk(e)}"></span>${e}${words && EL_NAMES[e] ? " = " + EL_NAMES[e] : ""}</span>`).join("") +
+        (words ? "" : `<span><span class="sw" style="background:${css("--mm")}"></span>pocket</span>`);
     },
     clear(text) { drop(); msg.textContent = text || ""; msg.style.display = ""; },
     tone(t) { wrap.className = wrap.className.replace(/\btone-\S+/g, "").trim() + (t ? " tone-" + t : ""); },
@@ -1217,8 +2043,9 @@ function makeView(wrapId, legendId) {
   };
 }
 
-window.ActiveSiteView = {live: makeView("liveSite", "liveLegend"), tab: makeView("tabSite", "tabLegend")};
+window.ActiveSiteView = {live: makeView("liveSite", "liveLegend"), tab: makeView("tabSite", "tabLegend"), flow: makeView("flowSite", "flowLegendEls", true)};
 window.ActiveSiteView.tab.spin(false);
+if (matchMedia("(prefers-reduced-motion: reduce)").matches) { window.ActiveSiteView.live.spin(false); window.ActiveSiteView.flow.spin(false); }
 window.dispatchEvent(new Event("activesite-three"));
 </script>
 </body>
