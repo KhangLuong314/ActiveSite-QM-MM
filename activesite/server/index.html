@@ -470,6 +470,24 @@
   .pane-status { font-size: 13.5px; margin: 4px 0 8px; color: var(--ink-2); }
   .pane-status:empty { display: none; }
   .pane-status.err { color: var(--err-fg); background: var(--err-bg); border-left: 4px solid var(--b-err); padding: 7px 10px; border-radius: 4px; }
+  /* typeahead under the PDB search box */
+  .combo { position: relative; flex: 1; min-width: 0; }
+  .combo input { width: 100%; padding: 9px 12px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; font-size: 14px; }
+  .combo input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-bg); }
+  .suggest { position: absolute; z-index: 25; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 4px; list-style: none; background: var(--sheet);
+             border: 1px solid var(--rule); border-radius: 8px; box-shadow: 0 10px 28px rgba(16, 32, 46, .18); max-height: 340px; overflow-y: auto;
+             animation: sugin .12s ease-out; }
+  @keyframes sugin { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+  .suggest li { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-size: 14px; color: var(--ink); min-width: 0; }
+  .suggest li .sx { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .suggest li mark { background: none; color: inherit; font-weight: 700; }
+  .suggest li[aria-selected="true"] { background: var(--accent-bg); box-shadow: inset 3px 0 0 var(--accent); }
+  .suggest .kt { flex: none; font: 500 10.5px/1.6 var(--mono); padding: 0 7px; border-radius: 999px; white-space: nowrap; }
+  .suggest .kt.verified { color: var(--exp-fg); background: var(--exp-bg); } .suggest .kt.protein { color: var(--run-fg); background: var(--run-bg); }
+  .suggest .kt.chemical { color: var(--rep-fg); background: var(--rep-bg); } .suggest .kt.keyword { color: var(--nc-fg); background: var(--nc-bg); }
+  .suggest .more { justify-content: center; color: var(--muted); font-size: 12.5px; cursor: default; }
+  @media (prefers-reduced-motion: reduce) { .suggest { animation: none; } }
+  @media (max-width: 520px) { .suggest li { font-size: 13.5px; padding: 8px; } }
   .hidden-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .pdb-results { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
   .pdb-row { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: start; }
@@ -656,7 +674,12 @@
       <div role="tabpanel" id="pane-search" aria-labelledby="tab-search" class="pane">
         <form class="lib-search" onsubmit="event.preventDefault(); pdbSearch()">
           <label class="hidden-label" for="pdbQuery">Search the Protein Data Bank</label>
-          <input type="search" id="pdbQuery" maxlength="80" autocomplete="off" placeholder="Any enzyme, drug or PDB ID, e.g. lactate dehydrogenase, imatinib, 4ZAU">
+          <div class="combo" id="pdbCombo">
+            <input type="search" id="pdbQuery" maxlength="80" autocomplete="off" spellcheck="false" placeholder="Any enzyme, drug or PDB ID, e.g. lactate dehydrogenase, imatinib, 4ZAU"
+                   role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="pdbSuggest" aria-describedby="pdbSuggestHint">
+            <ul class="suggest" id="pdbSuggest" role="listbox" aria-label="Suggestions" hidden></ul>
+            <span class="hidden-label" id="pdbSuggestHint">Suggestions appear as you type. Use the up and down arrows to move, Enter to choose, Escape to close.</span>
+          </div>
           <button type="submit" class="run" id="pdbGo">Search</button>
         </form>
         <p class="pane-note">Finds experimentally solved structures in the Protein Data Bank (rcsb.org). Predicting a structure from a sequence is not part of this tool.</p>
@@ -1561,10 +1584,17 @@
   function buildScene(pdb, stats, caseId) {
     const atoms = pdb.atoms.filter(a => isFinite(a.x));
     let focus = [], mode = "none", note = "";
-    const names = stats ? maskResidueNames(stats.mask) : null;
+    let names = stats ? maskResidueNames(stats.mask) : null;
+    // The run topology calls the drug LIG; files written for viewing (md/complex.pdb, see chimerax.py
+    // _save_pdb_with_ligand_name) rename that same residue to the case's ligand code (AQ4 for EGFR + erlotinib).
+    const ligCode = String((caseInfo[caseId] || {}).ligand || "").toUpperCase();
+    let renamed = false;
+    if (names && names.includes("LIG") && ligCode && !atoms.some(a => a.resn.toUpperCase() === "LIG") && atoms.some(a => a.resn.toUpperCase() === ligCode)) {
+      names = names.map(n => n === "LIG" ? ligCode : n); renamed = true;
+    }
     if (names) {
       focus = atoms.filter(a => names.includes(a.resn.toUpperCase()));
-      if (focus.length) { mode = "qm"; note = `QM = run mask ${stats.mask} (${focus.length} atoms in this file)`; }
+      if (focus.length) { mode = "qm"; note = `QM = run mask ${stats.mask} (${focus.length} atoms in this file${renamed ? `; LIG is named ${ligCode} in this file` : ""})`; }
       else note = `run mask ${stats.mask} selects no atom in this file`;
     } else if (stats && pdb.serialsTopology && maskSerialRanges(stats.mask)) {
       // the server wrote this file with the run topology's own atom numbers, so an "@" mask maps exactly
@@ -2814,6 +2844,112 @@
         <div><button type="button" class="${can ? "run" : "secondary"}" ${can ? "" : "disabled"} onclick="pickPdb('${escapeHtml(r.pdb_id)}')" aria-label="Use ${escapeHtml(r.pdb_id)}">Use ${escapeHtml(r.pdb_id)}</button></div></li>`;
     }).join("");
   }
+  /* ---------- typeahead (ARIA combobox): local matches at once, RCSB suggestions appended when they arrive ---------- */
+  const SUG = {items: [], active: -1, seq: 0, timer: 0, pending: false, q: ""};
+  const KIND_TAG = {"verified example": ["verified", "verified example"], protein: ["protein", "protein"], chemical: ["chemical", "chemical"], keyword: ["keyword", "keyword"]};
+  // the page's own vocabulary (same idea as the server's): drug, protein, ligand code and PDB id of each library system
+  function localVocab() {
+    const out = [];
+    for (const s of LIB_META.systems) {
+      const kind = s.status === "unsupported" ? "keyword" : "verified example", ref = kind === "keyword" ? null : s.id;
+      const lig = /^(.*?)\s*\(([^)]+)\)\s*$/.exec(s.ligand || "");
+      const protein = s.title.split(/\s+\+\s+|,\s*/)[0];
+      for (const text of [lig ? lig[1] : null, protein, lig ? lig[2] : null, s.pdb]) if (text && !/ion\b/i.test(text)) out.push({text, kind, case: ref});
+    }
+    return out;
+  }
+  function prefixSpan(text, q) {
+    const t = text.toLowerCase(), l = q.toLowerCase();
+    if (t.startsWith(l)) return [[0, q.length]];
+    const re = /[\s\-\/(,]+/g; let m;
+    while ((m = re.exec(t))) if (t.startsWith(l, m.index + m[0].length)) return [[m.index + m[0].length, m.index + m[0].length + q.length]];
+    return null;
+  }
+  function addSuggestions(list) {
+    const key = (t) => String(t || "").trim().toLowerCase().replace(/β/g, "beta");     // "β-lactamase" = "beta-lactamase"
+    const seen = new Set(SUG.items.map((s) => key(s.text)));
+    for (const s of list) {
+      const k = key(s.text);
+      if (!k || seen.has(k) || SUG.items.length >= 8) continue;
+      seen.add(k); SUG.items.push(s);
+    }
+  }
+  function markText(text, spans) {
+    let html = "", pos = 0;
+    for (const [a, b] of (spans || []).slice().sort((x, y) => x[0] - y[0])) {
+      if (a < pos || b > text.length) continue;
+      html += escapeHtml(text.slice(pos, a)) + `<mark>${escapeHtml(text.slice(a, b))}</mark>`; pos = b;
+    }
+    return html + escapeHtml(text.slice(pos));
+  }
+  function renderSuggest() {
+    const box = $("pdbSuggest"), input = $("pdbQuery");
+    const open = SUG.items.length > 0 && document.activeElement === input;
+    box.hidden = !open; input.setAttribute("aria-expanded", open ? "true" : "false");
+    if (!open) { input.removeAttribute("aria-activedescendant"); return; }
+    box.innerHTML = SUG.items.map((s, i) => {
+      const [cls, label] = KIND_TAG[s.kind] || ["keyword", s.kind];
+      return `<li role="option" id="sug-${i}" aria-selected="${i === SUG.active}" data-i="${i}"><span class="sx">${markText(s.text, s.spans)}</span><span class="kt ${cls}">${escapeHtml(label)}</span></li>`;
+    }).join("") + (SUG.pending ? `<li class="more" role="presentation" aria-hidden="true">searching the Protein Data Bank…</li>` : "");
+    if (SUG.active >= 0) { input.setAttribute("aria-activedescendant", "sug-" + SUG.active); const el = $("sug-" + SUG.active); if (el) el.scrollIntoView({block: "nearest"}); }
+    else input.removeAttribute("aria-activedescendant");
+  }
+  function closeSuggest() { SUG.items = []; SUG.active = -1; SUG.pending = false; SUG.seq++; clearTimeout(SUG.timer); renderSuggest(); }
+  function onQueryInput() {
+    const q = $("pdbQuery").value.trim();
+    SUG.q = q; SUG.active = -1; SUG.items = [];
+    clearTimeout(SUG.timer);
+    if (q.length < 2 || q.length > 40) { closeSuggest(); return; }
+    // instant: the page's own systems
+    addSuggestions(localVocab().map((v) => ({...v, spans: prefixSpan(v.text, q)})).filter((v) => v.spans));
+    SUG.pending = true; renderSuggest();
+    const seq = ++SUG.seq;
+    SUG.timer = setTimeout(async () => {
+      try {
+        const resp = await fetch("/api/pdb/suggest?q=" + encodeURIComponent(q));
+        const data = resp.ok ? await resp.json() : {suggestions: []};
+        if (seq !== SUG.seq) return;                  // the box changed since: drop this answer
+        addSuggestions(data.suggestions || []);       // appended after what is shown, so nothing under the cursor moves
+      } catch (e) { /* typeahead never shows an error; the local suggestions stay */ }
+      if (seq !== SUG.seq) return;
+      SUG.pending = false; renderSuggest();
+    }, 150);
+  }
+  function chooseSuggestion(i) {
+    const s = SUG.items[i]; if (!s) return;
+    $("pdbQuery").value = s.text;
+    closeSuggest();
+    pdbSearch();                                    // a verified example's own entry is pinned first in the results, with "Open the verified example"
+  }
+  $("pdbQuery").addEventListener("input", onQueryInput);
+  $("pdbQuery").addEventListener("focus", () => { if (SUG.q === $("pdbQuery").value.trim() && SUG.items.length) renderSuggest(); });
+  $("pdbQuery").addEventListener("keydown", (ev) => {
+    const n = SUG.items.length, open = !$("pdbSuggest").hidden;
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+      if (!n) return;
+      ev.preventDefault();
+      const down = ev.key === "ArrowDown";
+      if (!open) SUG.active = down ? 0 : n - 1;
+      else if (down) SUG.active = SUG.active + 1 >= n ? -1 : SUG.active + 1;     // past the last item: back to the text box
+      else SUG.active = SUG.active <= -1 ? n - 1 : SUG.active - 1;
+      renderSuggest();
+    } else if (ev.key === "Enter" && open && SUG.active >= 0) {
+      ev.preventDefault(); chooseSuggestion(SUG.active);
+    } else if (ev.key === "Escape" && open) {
+      ev.preventDefault(); ev.stopPropagation(); closeSuggest();
+    } else if (ev.key === "Enter") {
+      closeSuggest();                                 // plain Enter: the form runs the search with the typed text
+    }
+  });
+  $("pdbSuggest").addEventListener("mousedown", (ev) => ev.preventDefault());   // keep focus in the box while choosing
+  $("pdbSuggest").addEventListener("click", (ev) => { const li = ev.target.closest("li[role=option]"); if (li) chooseSuggestion(Number(li.dataset.i)); });
+  $("pdbSuggest").addEventListener("mousemove", (ev) => {
+    const li = ev.target.closest("li[role=option]"); if (!li || Number(li.dataset.i) === SUG.active) return;
+    SUG.active = Number(li.dataset.i); renderSuggest();
+  });
+  document.addEventListener("mousedown", (ev) => { if (!$("pdbCombo").contains(ev.target)) closeSuggest(); });
+  $("pdbQuery").addEventListener("blur", () => setTimeout(() => { if (document.activeElement !== $("pdbQuery")) closeSuggest(); }, 0));
+
   function openVerified(caseId) { setChooser("verified", true); libPick("flow", caseId); }
   async function pickPdb(id) {
     const st = $("pdbStatus");
