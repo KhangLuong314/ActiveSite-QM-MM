@@ -25,13 +25,16 @@ try:
 except ImportError:
     pass
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 
 from activesite.server.provenance import guard
 from activesite.server.structures import metal_site_pdb
+from activesite.chem import uploads
+from activesite.adapters import pdb_search
+from activesite.agent.custom import build_custom_case
 from activesite.adapters.scout import DataScout as CaseLoader
 from activesite.agent.orchestrator import public_stats, resolve_case_id, run_case
 from activesite.llm import ModelClient
@@ -72,17 +75,42 @@ class RunState:
 runs: Dict[str, RunState] = {}
 
 
+class CustomRunRequest(BaseModel):
+    structure_id: str
+    ligand_resname: Optional[str] = None
+    ligand_smiles: Optional[str] = None
+    metal_resi: Optional[int] = None
+    chain: Optional[str] = None
+    ph: Optional[float] = 7.4
+    question: Optional[str] = None   # the user's own words from the composer; the structure is the file
+
+
 class SimulationRequest(BaseModel):
     case_id: Optional[str] = None
     prompt: Optional[str] = None
     sample_mode: Optional[bool] = None
     md: Optional[bool] = False
+    custom: Optional[CustomRunRequest] = None
 
 
 def _sample_mode(req: SimulationRequest) -> bool:
     if req.sample_mode is not None:
         return bool(req.sample_mode)
     return os.getenv("SAMPLE_MODE", "true").lower() in ("true", "1", "yes")
+
+
+def _upload_error(exc: uploads.UploadError) -> HTTPException:
+    return HTTPException(status_code=exc.status, detail=str(exc))
+
+
+def _case_target(req: SimulationRequest):
+    """A benchmark case id, or (for ``custom``) a validated case dict built on the fly from an uploaded structure."""
+    if req.custom is not None:
+        try:
+            return build_custom_case(req.custom.model_dump())
+        except uploads.UploadError as exc:
+            raise _upload_error(exc)
+    return _case_id(req)
 
 
 def _case_id(req: SimulationRequest) -> str:
@@ -114,7 +142,7 @@ def _result_payload(stats: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _execute(case_id: str, sample_mode: bool, state: RunState, md: bool = False) -> None:
+def _execute(case_id: Any, sample_mode: bool, state: RunState, md: bool = False) -> None:
     try:
         stats = run_case(case_id, store=hmem.store, on_event=state.push, sample_mode=sample_mode, echo=False, md=md)
         state.finish(result=_result_payload(stats))
@@ -139,13 +167,17 @@ async def list_cases():
 
 @app.post("/api/run")
 async def start_run(req: SimulationRequest):
-    case_id = _case_id(req)
+    target = _case_target(req)
+    case_id = target["id"] if isinstance(target, dict) else target
     stream_id = f"stream_{int(time.time() * 1000)}_{len(runs)}"
     state = RunState()
     runs[stream_id] = state
     md = bool(req.md)
-    threading.Thread(target=_execute, args=(case_id, _sample_mode(req), state, md), daemon=True).start()
-    return {"stream_id": stream_id, "case_id": case_id, "sample_mode": _sample_mode(req), "md": md}
+    threading.Thread(target=_execute, args=(target, _sample_mode(req), state, md), daemon=True).start()
+    out = {"stream_id": stream_id, "case_id": case_id, "sample_mode": _sample_mode(req), "md": md}
+    if isinstance(target, dict):
+        out["custom"] = {k: target["custom"][k] for k in ("structure_id", "name", "mutations", "ligand_resname", "smiles", "smiles_source")}
+    return out
 
 
 def _sse(event: str, data: Any) -> str:
@@ -190,10 +222,98 @@ async def stream_alias(stream_id: str):
 @app.post("/run")
 async def run_sync(req: SimulationRequest):
     """Judge endpoint: synchronous, returns the same JSON as `run.py --case <id> --json`."""
-    case_id = _case_id(req)
+    target = _case_target(req)
     sample_mode = _sample_mode(req)
-    stats = await asyncio.to_thread(run_case, case_id, store=hmem.store, sample_mode=sample_mode, echo=False, md=bool(req.md))
+    stats = await asyncio.to_thread(run_case, target, store=hmem.store, sample_mode=sample_mode, echo=False, md=bool(req.md))
     return public_stats(stats)
+
+
+# ------------------------------------------------------- bring your own structure
+@app.post("/api/structures/upload")
+async def upload_structure(file: UploadFile = File(...), name: Optional[str] = Form(None)):
+    """Store an uploaded PDB/mmCIF (allow-listed extension, 20 MB cap, server-chosen path) and summarise it."""
+    try:
+        uploads.extension_format(file.filename)
+        data = await file.read(uploads.MAX_BYTES + 1)
+        return await asyncio.to_thread(uploads.save_upload, data, file.filename, name)
+    except uploads.UploadError as exc:
+        raise _upload_error(exc)
+
+
+class FetchRequest(BaseModel):
+    pdb_id: str
+
+
+class ExampleRequest(BaseModel):
+    example: str
+
+
+@app.get("/api/pdb/search")
+async def pdb_search_endpoint(q: str = ""):
+    """Top RCSB entries for free text, with title, organism, resolution, bound ligands and metals."""
+    try:
+        return {"query": pdb_search.clean_query(q), "results": await asyncio.to_thread(pdb_search.search, q)}
+    except uploads.UploadError as exc:
+        raise _upload_error(exc)
+    except pdb_search.PdbUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+
+@app.get("/api/pdb/suggest")
+async def pdb_suggest_endpoint(q: str = ""):
+    """Typeahead for the PDB search box: the repo's systems first, then RCSB suggestions. Never fails on RCSB errors."""
+    try:
+        return {"query": pdb_search.clean_prefix(q), "suggestions": await asyncio.to_thread(pdb_search.suggest, q)}
+    except uploads.UploadError as exc:
+        raise _upload_error(exc)
+
+
+@app.post("/api/structures/fetch")
+async def fetch_structure(req: FetchRequest):
+    """Download a PDB entry and register it exactly like an upload."""
+    try:
+        return await asyncio.to_thread(pdb_search.fetch, req.pdb_id)
+    except uploads.UploadError as exc:
+        raise _upload_error(exc)
+    except pdb_search.PdbUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+
+@app.post("/api/structures/example")
+async def example_structure(req: ExampleRequest):
+    """Register a bundled real structure (allow-listed) like an upload, so no one needs a file to try the flow."""
+    try:
+        return await asyncio.to_thread(pdb_search.example, req.example)
+    except uploads.UploadError as exc:
+        raise _upload_error(exc)
+
+
+@app.get("/api/structures")
+async def list_structures():
+    return uploads.list_records()
+
+
+@app.get("/api/structures/{structure_id}/file")
+async def structure_file(structure_id: str):
+    try:
+        path, fmt = uploads.structure_file(structure_id)
+    except uploads.UploadError as exc:
+        raise _upload_error(exc)
+    return FileResponse(path, media_type="chemical/x-pdb" if fmt == "pdb" else "chemical/x-mmcif",
+                        headers={"X-Content-Type-Options": "nosniff", "X-Structure-Format": fmt})
+
+
+class MutateRequest(BaseModel):
+    mutations: List[str]
+    force: Optional[bool] = False
+
+
+@app.post("/api/structures/{structure_id}/mutate")
+async def mutate_structure(structure_id: str, req: MutateRequest):
+    try:
+        return await asyncio.to_thread(uploads.mutate, structure_id, req.mutations, bool(req.force))
+    except uploads.UploadError as exc:
+        raise _upload_error(exc)
 
 
 class ChimeraXLaunchRequest(BaseModel):
@@ -458,8 +578,9 @@ def format_chat_system_prompt(ctx: Dict[str, Any]) -> str:
             target = c.get("target", "")
             choice = c.get("choice", "")
             rat = c.get("rationale", "")[:120]
-            conf = c.get("confidence", 1.0)
-            lines.append(f"Card #{i} [{cat} -> {target}]: {choice} (conf: {conf:.2f}). Rationale: {rat}")
+            conf = c.get("confidence")
+            conf_txt = f"{conf:.2f}" if isinstance(conf, (int, float)) else "not given"
+            lines.append(f"Card #{i} [{cat} -> {target}]: {choice} (conf: {conf_txt}). Rationale: {rat}")
         cards_text = "\n".join(lines)
     else:
         cards_text = "No cards produced yet."
@@ -482,7 +603,7 @@ def format_chat_system_prompt(ctx: Dict[str, Any]) -> str:
         f"• Active System: {sys_name}\n"
         f"• QM Energy (ESCF): {f'{qm_escf:.4f} kcal/mol' if qm_escf is not None else 'not computed'}\n"
         f"• Total Energy: {f'{total_e:.2f} kcal/mol' if total_e is not None else 'not computed'}\n"
-        f"• QM Net Formal Charge: {qm_charge:+d}\n"
+        f"• QM Net Formal Charge: {f'{qm_charge:+d}' if isinstance(qm_charge, int) else 'not computed'}\n"
         "\n"
         f"{md_text}\n\n"
         "### METERLESS H-MEM EPISODIC MEMORY STATUS:\n"

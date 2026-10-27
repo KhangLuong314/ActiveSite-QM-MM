@@ -90,3 +90,6 @@ Thumbs.db
 
 # Claude Code agent worktrees (temporary checkouts, never commit)
 .claude/worktrees/
+
+# user-uploaded structures (bring your own structure)
+data/uploads/

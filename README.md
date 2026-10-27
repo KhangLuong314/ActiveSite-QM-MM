@@ -86,6 +86,26 @@ Those saved reports say `Engine: sander in Docker` because they are the real run
 replays the same engine output and is labelled `cached engine output (sample mode)`.
 Until that script has run, sample mode reports `engine unavailable` and shows no energy.
 
+## Your own structure (upload and mutate)
+For systems that are not in the case library (a lab mutant, a designed protein, a predicted model), choose
+**Your own structure** on the first screen, or use the API:
+
+```bash
+curl -F file=@my_protein.pdb -F name="my enzyme" http://localhost:8088/api/structures/upload    # chains, ligands, metals, warnings
+curl -H 'Content-Type: application/json' -d '{"mutations":["A:T766M"]}' \
+     http://localhost:8088/api/structures/<structure_id>/mutate                               # point mutants
+curl -H 'Content-Type: application/json' -d '{"custom":{"structure_id":"<id>","ligand_resname":"AQ4"}}' \
+     http://localhost:8088/run
+```
+
+- The agents choose the chain, protonation, ligand charge and QM region with a Decision Card for each, plus cards
+  for the uploaded file, every mutation and where the ligand SMILES came from (yours, or the RCSB chemical component).
+- In sample mode this is a **proposal only**: no energy is computed and every output says so. With Docker
+  (`SAMPLE_MODE=false`) the same run prepares, minimises and computes the PM6 QM/MM energy live (about 5 minutes).
+- Mutations rebuild the side chain from the Amber residue template; there is no rotamer search or repacking.
+- Not supported yet: metal sites from uploaded files (the QM-region rules need an Amber topology), more than one copy
+  of the same ligand in a chain, chain ids longer than one character.
+
 ## Architecture
 ```mermaid
 flowchart LR
@@ -128,6 +148,7 @@ Optional LLM: `nvidia/llama-3.3-nemotron-super-49b-v1` / `nvidia/nemotron-3.5-li
 - Sample mode replays outputs recorded on a Docker host; without that cache it reports `engine unavailable`.
 - Ligand protonation is inferred only for tertiary amines that H-bond a backbone C=O; amidines, guanidines, carboxylates and metal-bound ligands are not handled.
 - Without `MODEL_API_KEY` the chat uses rule-based answers (labelled `rule_based_fallback`); they explain concepts and the recorded run but cannot answer open questions.
+- Minimisation is not bit-reproducible across runs: a live EGFR re-run on 27 Oct gave ESCF -8.2817 kcal/mol (the built-in case and the same structure uploaded as a user file agree), while the recorded sample run, which sample mode replays, gave -8.2856. Treat the last two digits as run-to-run noise.
 - No ABL run is recorded in `samples/`, so in sample mode the chat says no ABL run exists until one is run on a Docker host.
 
 ## Pre-existing components and data

@@ -30,6 +30,10 @@
     --err-fg: #a2301f; --err-bg: #f9e7e3;
     --carbon: #3b3b3b; --chamber-a: #fffdf9; --chamber-b: #efebe3; --mm: #9a9384;
     --shadow: 0 1px 2px rgba(31, 29, 26, .06);
+    /* 4 px left borders that say what a card is: agents/pipeline, verified result, warning, error, chat */
+    --b-agent: #4a72c2; --b-ok: #3f8f5f; --b-warn: #d19235; --b-err: #c2412f; --b-chat: #d3cdc0;
+    /* the top bar is deck navy in both themes */
+    --nav-bg: #10202e; --nav-ink: #eef2f5; --nav-muted: #b4c0cb; --nav-amber: #e8a25a; --nav-rule: #2a3e50; --nav-tint: rgba(232, 162, 90, .16);
     --topbar-h: 48px;
     --serif: "Fraunces", Georgia, serif; --sans: "IBM Plex Sans", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace;
   }
@@ -44,6 +48,7 @@
       --err-fg: #f2b0a5; --err-bg: #452a28;
       --carbon: #a3a6ab; --chamber-a: #2a2c31; --chamber-b: #202125; --mm: #6b6e75;
       --shadow: 0 1px 2px rgba(0, 0, 0, .3);
+      --b-agent: #86a6dd; --b-ok: #79c495; --b-warn: #e3ab62; --b-err: #e88878; --b-chat: #4f5157;
     }
   }
   :root[data-theme="dark"] {
@@ -56,6 +61,7 @@
     --err-fg: #f2b0a5; --err-bg: #452a28;
     --carbon: #a3a6ab; --chamber-a: #2a2c31; --chamber-b: #202125; --mm: #6b6e75;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3);
+    --b-agent: #86a6dd; --b-ok: #79c495; --b-warn: #e3ab62; --b-err: #e88878; --b-chat: #4f5157;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; color: var(--ink); font: 15px/1.55 var(--sans); -webkit-font-smoothing: antialiased; }
@@ -71,7 +77,10 @@
   @keyframes blink { from { opacity: .45; } to { opacity: 1; } }
   @keyframes spin { to { transform: rotate(360deg); } }
   .spinner { display: inline-block; width: 11px; height: 11px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -1px; }
-  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .reveal, .st.active i, .chamber.tone-run, .spinner, .pill.run-on { animation: none !important; } }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .reveal, .st.active i, .chamber.tone-run, .spinner, .pill.run-on, .node.active .c, .typing i, dialog.drawer[open] { animation: none !important; } }
+  .lb-agent { border-left: 4px solid var(--b-agent) !important; } .lb-ok { border-left: 4px solid var(--b-ok) !important; }
+  .lb-warn { border-left: 4px solid var(--b-warn) !important; } .lb-err { border-left: 4px solid var(--b-err) !important; }
+  .lb-chat { border-left: 4px solid var(--b-chat) !important; }
 
   /* ===== Expert layout: one column below 1200px (order = result → why → 3D → raw evidence); two columns at ≥1200px ===== */
   .layout { max-width: 1500px; margin: 0 auto; padding: 18px 24px 56px; display: flex; flex-direction: column; gap: 18px; }
@@ -130,9 +139,9 @@
   .toggles label { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
   .toggles input { width: 16px; height: 16px; accent-color: var(--accent); }
   .runbar { display: flex; gap: 12px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
-  .run { background: var(--ink); color: var(--sheet); border: 0; border-radius: 4px; padding: 10px 20px; cursor: pointer; font-weight: 600;
+  .run { background: var(--accent); color: var(--on-accent); border: 0; border-radius: 4px; padding: 10px 20px; cursor: pointer; font-weight: 600;
          display: inline-flex; align-items: center; gap: 10px; }
-  .run .led { width: 8px; height: 8px; border-radius: 50%; background: var(--sheet); opacity: .7; }
+  .run .led { width: 8px; height: 8px; border-radius: 50%; background: var(--on-accent); opacity: .7; }
   .run:disabled { opacity: .6; cursor: progress; } .run:disabled .led { animation: blink .6s infinite alternate; }
   .ghost { border: 1px solid transparent; background: none; color: var(--muted); cursor: pointer; font-size: 13px; padding: 6px 8px; border-radius: 3px; }
   .ghost:hover { color: var(--ink); border-color: var(--rule); }
@@ -225,21 +234,47 @@
   /* chat */
   .chat-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid var(--rule-2); }
   .chat-head h3 { margin: 0; font: 600 19px/1.2 var(--serif); }
-  .quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .quick button { border: 1px solid var(--rule); background: var(--sheet-2); border-radius: 4px; padding: 5px 10px; font-size: 12.5px; cursor: pointer; text-align: left; color: var(--ink-2); }
+  /* suggested questions: one row above the input, scrolls sideways inside itself (never the page) */
+  .quick { display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; padding: 2px 0 6px; scrollbar-width: thin; }
+  .quick button { flex: 0 0 auto; max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid var(--rule); background: var(--sheet); border-radius: 999px; padding: 5px 12px; font-size: 12.5px; cursor: pointer; text-align: left; color: var(--ink-2); }
   .quick button:hover { border-color: var(--accent); color: var(--accent); }
-  #chatHistory { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; max-height: 460px; min-height: 200px; overflow-y: auto; padding: 12px; background: var(--sheet-2); border: 1px solid var(--rule); border-radius: 4px; }
-  .msg { max-width: 88%; padding: 9px 12px; border-radius: 4px; font-size: 13.5px; overflow-wrap: anywhere; }
-  .msg.ai { align-self: flex-start; background: var(--sheet); border: 1px solid var(--rule); }
-  .msg.me { align-self: flex-end; background: var(--ink); color: var(--sheet); }
-  .msg.err { align-self: stretch; max-width: none; background: var(--err-bg); color: var(--err-fg); }
+  #chatHistory { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding: 14px 16px; background: var(--sheet-2); flex: 1 1 auto; min-height: 120px; overscroll-behavior: contain; }
+  .msg { max-width: 86%; padding: 9px 12px; border-radius: 14px; font-size: 13.5px; overflow-wrap: anywhere; }
+  .msg.ai { align-self: flex-start; background: var(--sheet); border: 1px solid var(--rule); border-left: 4px solid var(--b-chat); border-top-left-radius: 4px; }
+  .msg.me { align-self: flex-end; background: var(--accent-bg); color: var(--ink); border: 1px solid transparent; border-bottom-right-radius: 4px; white-space: pre-wrap; }
+  .msg.err { align-self: stretch; max-width: none; background: var(--err-bg); color: var(--err-fg); border-left: 4px solid var(--b-err); border-radius: 6px; }
   .msg.wait { color: var(--muted); font-style: italic; }
+  .who { display: flex; align-items: center; gap: 6px; font: 600 11.5px var(--sans); color: var(--muted); margin-bottom: 4px; }
+  .who .av { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--sheet-2); border: 1px solid var(--rule); color: var(--accent); font: 700 9.5px var(--mono); }
+  .typing { display: inline-flex; gap: 4px; align-items: center; padding: 4px 0; }
+  .typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: typing 1s infinite ease-in-out; }
+  .typing i:nth-child(2) { animation-delay: .15s; } .typing i:nth-child(3) { animation-delay: .3s; }
+  @keyframes typing { 0%, 60%, 100% { opacity: .35; transform: none; } 30% { opacity: 1; transform: translateY(-2px); } }
+  details.think { margin: 0 0 6px; font-size: 12.5px; }
+  details.think > summary { font-size: 12.5px; color: var(--muted); }
+  .think-body { white-space: pre-wrap; margin-top: 4px; padding: 6px 8px; background: var(--sheet-2); border-radius: 4px; font: 400 11.5px/1.5 var(--mono); color: var(--ink-2); }
+  /* the drawer: header, scrolling history, suggestions + input pinned at the bottom */
+  dialog.drawer[open] { display: flex; flex-direction: column; animation: slidein .22s cubic-bezier(.2, .7, .2, 1); }
+  @keyframes slidein { from { transform: translateX(100%); } to { transform: none; } }
+  #dlgChat .dlg-head { align-items: center; }
+  #tabChat { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; }
+  .chat-intro { padding: 10px 16px; font-size: 12.5px; color: var(--muted); border-bottom: 1px solid var(--rule-2); }
+  .chat-dock { padding: 8px 12px 12px; border-top: 1px solid var(--rule); background: var(--sheet); }
+  .chat-dock .label { display: block; margin-bottom: 4px; }
+  .chat-input { display: flex; gap: 8px; align-items: flex-end; margin-top: 4px; }
+  .chat-input textarea { flex: 1; min-width: 0; padding: 9px 11px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 8px; font-size: 13.5px; line-height: 1.45; resize: none; max-height: 140px; }
+  .chat-input textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-bg); }
+  .chat-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  /* floating "Ask why" button, every section, both views */
+  .askfab { position: fixed; right: 16px; bottom: 16px; z-index: 30; background: var(--accent); color: var(--on-accent); border: 0; border-radius: 999px; padding: 11px 18px;
+            font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: 0 6px 20px rgba(0, 0, 0, .22); display: inline-flex; gap: 8px; align-items: center; }
+  .askfab:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+  body { padding-bottom: 64px; }
+  .chat-launch { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
   .msg .foot { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--rule-2); font: 400 10.5px var(--mono); color: var(--muted); }
   /* an unbacked number in chat is the same warning as an error: it must not be trusted */
   .flag { color: var(--err-fg); background: var(--err-bg); font-family: var(--mono); font-size: .85em; padding: 0 4px; border-radius: 3px; white-space: nowrap; }
   .unverified { margin-top: 6px; font: 400 11.5px var(--mono); color: var(--err-fg); background: var(--err-bg); padding: 4px 8px; border-radius: 3px; }
-  .chat-input { display: flex; gap: 8px; margin-top: 10px; }
-  .chat-input input { flex: 1; min-width: 0; padding: 10px 12px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px; font-size: 13.5px; }
 
   /* markdown (report + chat) */
   .md { font-size: 13.5px; overflow-wrap: anywhere; }
@@ -267,7 +302,9 @@
   .res-label { font: 600 10.5px var(--sans); color: var(--ink); background: color-mix(in srgb, var(--sheet) 85%, transparent);
                padding: 0 5px; border-radius: 3px; white-space: nowrap; pointer-events: none; }
   .vsrc { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 6px; overflow-wrap: anywhere; }
-  .vwarn { font-size: 12px; color: var(--err-fg); background: var(--err-bg); padding: 5px 9px; border-radius: 3px; margin-top: 6px; overflow-wrap: anywhere; }
+  .vwarn { font-size: 12px; color: var(--ink); background: var(--rep-bg); border-left: 4px solid var(--b-warn); padding: 5px 9px; border-radius: 3px; margin-top: 6px; overflow-wrap: anywhere; }
+  .cards .card { border-left: 4px solid var(--b-agent); }
+  .tile.p-expert { border-left: 4px solid var(--b-ok); } .tile.p-run, .tile.p-replay { border-left: 4px solid var(--b-agent); } .tile.p-nc { border-left: 4px solid var(--b-chat); }
   .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; color: var(--muted); }
   .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; margin-right: 4px; }
   .molbox { position: relative; height: 440px; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; background: var(--chamber-b); }
@@ -284,21 +321,24 @@
   .node { text-align: center; position: relative; min-width: 0; }
   .node::before { content: ""; position: absolute; top: 13px; left: -50%; width: 100%; height: 1px; background: var(--rule); }
   .node:first-child::before { display: none; }
-  .node.done::before, .node.active::before, .node.warn::before { background: var(--ink-2); }
+  /* node state by colour: pending grey · running blue (gentle pulse) · done green · failed red */
+  .node.done::before { background: var(--b-ok); } .node.active::before, .node.fail::before { background: var(--ink-2); }
   .node .c { position: relative; z-index: 1; width: 28px; height: 28px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center;
              background: var(--sheet); border: 1.5px solid var(--rule); font: 600 11px var(--mono); color: var(--faint); transition: all .2s; }
-  .node.done .c { border-color: var(--ink-2); color: var(--ink-2); }
-  .node.active .c, .node.warn .c { background: var(--accent); border-color: var(--accent); color: var(--on-accent); box-shadow: 0 0 0 4px var(--accent-bg); }
+  .node.done .c { border-color: var(--b-ok); color: var(--exp-fg); background: var(--exp-bg); }
+  .node.active .c { background: var(--accent); border-color: var(--accent); color: var(--on-accent); box-shadow: 0 0 0 4px var(--accent-bg); animation: nodepulse 1.4s ease-in-out infinite; }
+  .node.fail .c { background: var(--err-bg); border-color: var(--b-err); color: var(--err-fg); }
+  @keyframes nodepulse { 0%, 100% { box-shadow: 0 0 0 3px var(--accent-bg); } 50% { box-shadow: 0 0 0 7px var(--accent-bg); } }
   .node .nm { font-size: 11px; font-weight: 600; margin-top: 6px; overflow: hidden; text-overflow: ellipsis; }
   .node .ac { font-family: var(--mono); font-size: 9.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 14px; }
-  .node.active .nm, .node.warn .nm { color: var(--accent); }
+  .node.active .nm { color: var(--accent); } .node.fail .nm { color: var(--err-fg); } .node.done .nm { color: var(--exp-fg); }
   .handoff { font-family: var(--mono); font-size: 11.5px; color: var(--muted); text-align: center; margin-top: 6px; min-height: 18px; overflow-wrap: anywhere; }
   #stages { margin-top: 6px; display: flex; flex-direction: column; gap: 2px; max-height: 240px; overflow-y: auto; }
   .st { display: grid; grid-template-columns: 12px minmax(70px, 120px) minmax(0, 1fr); gap: 10px; align-items: baseline; padding: 4px 8px; border-radius: 3px; font-size: 12.5px; }
   .st i { width: 8px; height: 8px; border-radius: 50%; background: var(--dot); align-self: center; }
   .st b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .st span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .st.active { background: var(--accent-bg); } .st.active i { background: var(--accent); animation: blink .6s infinite alternate; }
-  .st.ok i { background: var(--ink-2); } .st.warn i { background: var(--rep-fg); }
+  .st.ok i { background: var(--b-ok); } .st.warn i { background: var(--b-warn); }
   .st.error i { background: var(--err-fg); } .st.error { background: var(--err-bg); } .st.error b, .st.error span { color: var(--err-fg); }
   #thoughtStream { max-height: 420px; overflow-y: auto; display: flex; flex-direction: column; font-size: 12px; }
   #thoughtStream .ev { padding: 5px 0; border-bottom: 1px solid var(--rule-2); overflow-wrap: anywhere; }
@@ -340,6 +380,161 @@
   .switch .knob::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--sheet); transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
   .switch[aria-checked="true"] .knob { background: var(--accent); }
   .switch[aria-checked="true"] .knob::after { transform: translateX(12px); }
+  /* navy top bar, same in both themes; amber marks the current item */
+  .topbar { background: var(--nav-bg); border-bottom-color: var(--nav-rule); color: var(--nav-ink); }
+  .topbar .brand { color: var(--nav-ink); } .topbar .brand em { color: var(--nav-amber); }
+  .topbar .stepper button { color: var(--nav-muted); }
+  .topbar .stepper button[aria-current="step"] { color: var(--nav-amber); background: var(--nav-tint); }
+  .topbar .stepper button.done:not([aria-current="step"]) { color: var(--nav-ink); }
+  .topbar .secnav a { color: var(--nav-muted); }
+  .topbar .secnav a:hover { color: var(--nav-ink); background: rgba(238, 242, 245, .08); }
+  .topbar .secnav a[aria-current="true"] { color: var(--nav-amber); background: var(--nav-tint); }
+  .topbar .switch { background: transparent; border-color: var(--nav-rule); color: var(--nav-ink); }
+  .topbar .switch .knob { background: #4b5e70; } .topbar .switch[aria-checked="true"] .knob { background: var(--nav-amber); }
+  .topbar .switch .knob::after { background: var(--nav-ink); }
+  .topbar .theme-btn { background: transparent; border-color: var(--nav-rule); color: var(--nav-muted); }
+  .topbar .theme-btn:hover { color: var(--nav-ink); border-color: var(--nav-muted); }
+  .topbar :focus-visible { outline-color: var(--nav-amber); }
+
+  /* system library: grouped, searchable */
+  .lib-search { display: flex; gap: 8px; align-items: center; margin: 4px 0 12px; }
+  .lib-search input { flex: 1; min-width: 0; padding: 9px 12px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; font-size: 14px; }
+  .lib-search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-bg); }
+  .lib-count { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+  .lib-group + .lib-group { margin-top: 14px; }
+  .lib-group > h3 { margin: 0 0 6px; font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .lib-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 10px; }
+  .libitem { text-align: left; cursor: pointer; padding: 12px 14px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; box-shadow: var(--shadow); min-width: 0; width: 100%; color: var(--ink); }
+  .libitem .t { display: block; font: 600 16.5px/1.25 var(--serif); }
+  .libitem .s { display: block; font-size: 13px; color: var(--muted); margin-top: 4px; overflow-wrap: anywhere; }
+  .libitem .m { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin-top: 7px; font: 400 11.5px var(--mono); color: var(--muted); }
+  .libitem.st-verified { border-left: 4px solid var(--b-ok); } .libitem.st-replay { border-left: 4px solid var(--b-warn); }
+  .libitem.st-docker { border-left: 4px solid var(--b-agent); } .libitem.st-unsupported { border-left: 4px solid var(--b-chat); }
+  .libitem.st-unsupported .t { color: var(--muted); }
+  .lchip { display: inline-flex; font: 500 10.5px/1.6 var(--mono); padding: 0 8px; border-radius: 999px; white-space: nowrap; }
+  .lchip.verified { color: var(--exp-fg); background: var(--exp-bg); } .lchip.replay { color: var(--rep-fg); background: var(--rep-bg); }
+  .lchip.docker { color: var(--run-fg); background: var(--run-bg); } .lchip.unsupported { color: var(--nc-fg); background: var(--nc-bg); border: 1px solid var(--nc-rule); }
+  /* selected system: unmistakable (accent border all round, tint, check badge), not just a thin ring */
+  /* Selected = tint + 2px accent ring (box-shadow, so the 4px status edge on the left is kept) + check badge + lift.
+     Hover = darker hairline only. Focus-visible = ink outline offset outside the ring. Three states, three looks. */
+  .libitem, .pdb-row { position: relative; transition: background-color .12s ease, box-shadow .12s ease, transform .12s ease, border-color .12s ease; }
+  .libitem:hover, .pdb-row:hover { border-top-color: var(--ink-2); border-right-color: var(--ink-2); border-bottom-color: var(--ink-2); }
+  .libitem[aria-checked="true"], .libitem.on, .pdb-row.on {
+    background: var(--accent-bg); box-shadow: 0 0 0 2px var(--accent), 0 6px 16px rgba(16, 32, 46, .14); transform: translateY(-1px); padding-right: 40px;
+    border-top-color: transparent; border-right-color: transparent; border-bottom-color: transparent; }
+  .libitem[aria-checked="true"]::after, .libitem.on::after, .pdb-row.on::after {
+    content: "✓"; position: absolute; top: 9px; right: 9px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--accent); color: var(--on-accent); font: 700 12px/1 var(--sans); box-shadow: 0 1px 2px rgba(0, 0, 0, .2); }
+  .libitem:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+  .seg button[aria-pressed="true"]::before { content: "✓ "; font-weight: 700; }
+  @media (prefers-reduced-motion: reduce) { .libitem, .pdb-row { transition: none !important; } .libitem.on, .pdb-row.on, .libitem[aria-checked="true"] { transform: none; } }
+  /* the composer: a notebook entry with an attachment */
+  .composer-wrap { margin-top: 22px; }
+  .composer-h { margin: 0 0 6px; font: 600 18px/1.2 var(--serif); }
+  .composer { background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; box-shadow: var(--shadow); padding: 8px 10px 6px; transition: border-color .12s, box-shadow .12s; }
+  .composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+  .composer.drag { border-color: var(--accent); border-style: dashed; background: var(--accent-bg); }
+  .composer textarea { display: block; width: 100%; border: 0; background: transparent; resize: vertical; min-height: 56px; padding: 6px 4px; font-size: 14.5px; line-height: 1.5; }
+  .composer textarea:focus { outline: none; }
+  .composer-bar { display: flex; align-items: center; gap: 4px 10px; flex-wrap: wrap; border-top: 1px solid var(--rule-2); padding-top: 6px; margin-top: 2px; }
+  .clip { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--rule); background: var(--sheet-2); color: var(--ink-2); cursor: pointer; }
+  .clip:hover { color: var(--accent); border-color: var(--accent); }
+  .clip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .linkbtn.small { font-size: 13px; }
+  .composer-hint { font-size: 12px; color: var(--muted); margin-left: auto; }
+  @media (max-width: 520px) { .composer-hint { margin-left: 0; flex-basis: 100%; } }
+  #attachChip:empty { display: none; }
+  .att { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; flex-wrap: wrap; background: var(--accent-bg); color: var(--ink); border: 1px solid var(--accent);
+         border-radius: 8px; padding: 4px 6px 4px 8px; margin: 2px 0 4px; font-size: 13px; }
+  .att svg { color: var(--accent); flex: none; }
+  .att-meta { color: var(--ink-2); font-size: 12px; overflow-wrap: anywhere; }
+  .att-x { border: 0; background: none; color: var(--ink-2); cursor: pointer; font-size: 13px; width: 24px; height: 24px; border-radius: 6px; }
+  .att-x:hover { background: var(--sheet); color: var(--err-fg); }
+  .att-x:focus-visible { outline: 2px solid var(--accent); }
+  .byo { margin-top: 12px; padding: 12px 14px; background: var(--sheet); border: 1px solid var(--rule); border-left: 4px solid var(--b-agent); border-radius: 6px; }
+  .byo-title { margin: 0 0 4px; font: 600 15px/1.3 var(--sans); }
+  body.expert #composerBlock:not(.attached) .primary-row { display: none; }
+  body.expert #composerBlock .composer-h::after { content: " (attach a structure here)"; font: 400 13px var(--sans); color: var(--muted); }
+  .picked { font-size: 13.5px; color: var(--ink-2); overflow-wrap: anywhere; }
+  /* one chooser, three paths */
+  .chooser { margin-top: 4px; }
+  .chooser-h { margin: 0 0 8px; font: 600 20px/1.2 var(--serif); }
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--rule); margin-bottom: 14px; }
+  .tabs [role="tab"] { border: 1px solid transparent; border-bottom: 0; background: none; padding: 9px 14px; font-size: 14px; font-weight: 500; color: var(--muted);
+                       cursor: pointer; border-radius: 6px 6px 0 0; margin-bottom: -1px; }
+  .tabs [role="tab"]:hover { color: var(--ink); }
+  .tabs [role="tab"][aria-selected="true"] { color: var(--accent); background: var(--sheet); border-color: var(--rule); border-bottom: 2px solid var(--sheet); box-shadow: inset 0 3px 0 var(--accent); font-weight: 600; }
+  .tabs [role="tab"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  @media (max-width: 520px) { .tabs [role="tab"] { padding: 8px 10px; font-size: 13px; } }
+  .pane-note { font-size: 13.5px; color: var(--muted); margin: 0 0 10px; }
+  .pane-status { font-size: 13.5px; margin: 4px 0 8px; color: var(--ink-2); }
+  .pane-status:empty { display: none; }
+  .pane-status.err { color: var(--err-fg); background: var(--err-bg); border-left: 4px solid var(--b-err); padding: 7px 10px; border-radius: 4px; }
+  /* typeahead under the PDB search box */
+  .combo { position: relative; flex: 1; min-width: 0; }
+  .combo input { width: 100%; padding: 9px 12px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; font-size: 14px; }
+  .combo input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-bg); }
+  .suggest { position: absolute; z-index: 25; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 4px; list-style: none; background: var(--sheet);
+             border: 1px solid var(--rule); border-radius: 8px; box-shadow: 0 10px 28px rgba(16, 32, 46, .18); max-height: 340px; overflow-y: auto;
+             animation: sugin .12s ease-out; }
+  @keyframes sugin { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+  .suggest li { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-size: 14px; color: var(--ink); min-width: 0; }
+  .suggest li .sx { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .suggest li mark { background: none; color: inherit; font-weight: 700; }
+  .suggest li[aria-selected="true"] { background: var(--accent-bg); box-shadow: inset 3px 0 0 var(--accent); }
+  .suggest .kt { flex: none; font: 500 10.5px/1.6 var(--mono); padding: 0 7px; border-radius: 999px; white-space: nowrap; }
+  .suggest .kt.verified { color: var(--exp-fg); background: var(--exp-bg); } .suggest .kt.protein { color: var(--run-fg); background: var(--run-bg); }
+  .suggest .kt.chemical { color: var(--rep-fg); background: var(--rep-bg); } .suggest .kt.keyword { color: var(--nc-fg); background: var(--nc-bg); }
+  .suggest .more { justify-content: center; color: var(--muted); font-size: 12.5px; cursor: default; }
+  @media (prefers-reduced-motion: reduce) { .suggest { animation: none; } }
+  @media (max-width: 520px) { .suggest li { font-size: 13.5px; padding: 8px; } }
+  .hidden-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .pdb-results { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
+  .pdb-row { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: start; }
+  .pdb-row .id { font: 600 15px var(--mono); }
+  .pdb-row .tt { font-size: 13.5px; color: var(--ink); overflow-wrap: anywhere; }
+  .pdb-row .mt { font-size: 12.5px; color: var(--muted); margin-top: 3px; overflow-wrap: anywhere; }
+  .pdb-row .chips2 { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+  .pdb-row .note { font-size: 12.5px; color: var(--ink); background: var(--rep-bg); border-left: 4px solid var(--b-warn); padding: 3px 8px; border-radius: 3px; margin-top: 5px; }
+  @media (max-width: 520px) { .pdb-row { grid-template-columns: minmax(0, 1fr); } }
+  .examples { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  .byo-help { font-size: 13px; color: var(--muted); margin-top: 10px; }
+  .byo-help summary { font-size: 13px; }
+  /* Expert view: the same library, compact (question + chips; the system line stays for search) */
+  #caseButtons .lib-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 8px; }
+  #caseButtons .libitem { padding: 9px 11px; }
+  #caseButtons .libitem .t { font-size: 14.5px; }
+  #caseButtons .libitem .s { font-size: 12px; margin-top: 2px; }
+  #caseButtons .lib-group + .lib-group { margin-top: 10px; }
+  .lib-empty { color: var(--muted); font-size: 13.5px; padding: 8px 2px; }
+  .lib-note { font-size: 13px; color: var(--muted); margin-top: 8px; min-height: 0; }
+  .lib-note:empty { display: none; }
+
+  /* bring your own structure */
+  .byo h2 { margin: 0; font: 600 18px/1.25 var(--serif); }
+  .byo .sub { font-size: 13.5px; color: var(--muted); margin: 3px 0 0; }
+  .drop { margin-top: 10px; border: 1.5px dashed var(--dot); border-radius: 6px; padding: 14px; display: flex; gap: 10px 14px; align-items: center; flex-wrap: wrap; background: var(--sheet-2); }
+  .drop.drag { border-color: var(--accent); background: var(--accent-bg); }
+  .drop .muted { font-size: 13px; }
+  .byo-sum { margin-top: 12px; display: grid; gap: 10px; }
+  .byo-sum .row { font-size: 13.5px; overflow-wrap: anywhere; }
+  .byo-sum .row b { font-weight: 600; }
+  .byo-warn { font-size: 13px; color: var(--ink); background: var(--rep-bg); border-left: 4px solid var(--b-warn); padding: 7px 10px; border-radius: 4px; }
+  .byo-warn ul { margin: 2px 0 0; padding-left: 18px; }
+  .byo-err { font-size: 13.5px; color: var(--err-fg); background: var(--err-bg); border-left: 4px solid var(--b-err); padding: 7px 10px; border-radius: 4px; overflow-wrap: anywhere; }
+  .byo-off { font-size: 13.5px; color: var(--muted); margin-top: 10px; }
+  fieldset.pick { border: 1px solid var(--rule); border-radius: 6px; padding: 8px 12px 10px; margin: 0; min-width: 0; }
+  fieldset.pick legend { font-size: 13px; font-weight: 600; padding: 0 4px; }
+  fieldset.pick label { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; margin-top: 6px; cursor: pointer; overflow-wrap: anywhere; }
+  fieldset.pick input { accent-color: var(--accent); margin-top: 3px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; }
+  .field input { width: 100%; margin-top: 4px; padding: 8px 10px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px; font: 400 13.5px var(--mono); }
+  .field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-bg); }
+  .field input[aria-invalid="true"] { border-color: var(--err-fg); }
+  .field .hint { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+  .field .ferr { font-size: 12.5px; color: var(--err-fg); margin-top: 3px; }
+  .field .ferr:empty { display: none; }
+  .field.ph input { width: 7em; }
 
   #flow { max-width: 1120px; margin: 0 auto; padding: 22px 24px 64px; }
   @media (max-width: 700px) { #flow { padding: 16px 16px 48px; } }
@@ -348,8 +543,6 @@
   .screen .lede { color: var(--muted); margin: 0 0 18px; max-width: 720px; }
   .qcases { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
   .qcase { text-align: left; cursor: pointer; padding: 14px 16px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; box-shadow: var(--shadow); min-width: 0; }
-  .qcase:hover { border-color: var(--ink-2); }
-  .qcase[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .qcase .k { display: block; font: 500 10.5px var(--mono); color: var(--faint); letter-spacing: .08em; text-transform: uppercase; }
   .qcase .t { display: block; font: 600 18px/1.25 var(--serif); margin-top: 3px; }
   .qcase .s { display: block; font-size: 13px; color: var(--muted); margin-top: 4px; }
@@ -361,16 +554,20 @@
   .primary-row { display: flex; gap: 12px; align-items: center; margin-top: 18px; flex-wrap: wrap; }
   .primary { background: var(--accent); color: var(--on-accent); border: 0; border-radius: 6px; padding: 12px 24px; font-weight: 600; font-size: 15px; cursor: pointer; }
   .primary:disabled { opacity: .6; cursor: progress; }
-  .secondary { border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); border-radius: 6px; padding: 9px 14px; font-size: 14px; cursor: pointer; }
-  .secondary:hover { border-color: var(--ink-2); }
+  .secondary { border: 1px solid var(--accent); background: var(--sheet); color: var(--accent); border-radius: 6px; padding: 9px 14px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .secondary:hover { background: var(--accent-bg); }
+  .primary:focus-visible, .secondary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .linkbtn { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 4px 2px; font-size: 13.5px; text-decoration: underline; text-underline-offset: 2px; }
   .inline-err { color: var(--err-fg); font-size: 13.5px; }
 
   .checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
   .checklist li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 8px; padding: 7px 10px; border-radius: 4px; font-size: 14.5px; overflow-wrap: anywhere; }
   .checklist li .ic { font-weight: 700; text-align: center; color: var(--muted); }
-  .checklist li.c-ok .ic, .checklist li.c-warn .ic { color: var(--ink-2); }
+  .checklist li.c-ok .ic { color: var(--exp-fg); } .checklist li.c-warn .ic { color: var(--rep-fg); }
   .checklist li.c-replay .ic { color: var(--rep-fg); }
+  /* expected information (e.g. a proposal-only stop in sample mode): amber, not an error */
+  .checklist li.c-info { background: var(--rep-bg); color: var(--ink); } .checklist li.c-info .ic { color: var(--rep-fg); }
+  .pill.warn { color: var(--rep-fg); background: var(--rep-bg); border-color: transparent; }
   .checklist li.c-bad { background: var(--err-bg); color: var(--err-fg); } .checklist li.c-bad .ic { color: var(--err-fg); }
   .checklist li.c-work { color: var(--accent); } .checklist li.c-work .ic { color: var(--accent); }
   .feed-head { display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
@@ -466,21 +663,70 @@
   <!-- Screen 1: choose -->
   <section class="screen" id="screen1" aria-labelledby="s1h">
     <h1 id="s1h" tabindex="-1">What do you want to study?</h1>
-    <p class="lede">Pick a question. AI agents set up a quantum-chemistry model of the active site (the part of the molecule where the chemistry happens), check their own work, and explain every choice with its evidence.</p>
-    <div class="qcases" id="flowCases" role="group" aria-label="Questions"></div>
-    <section class="sheet own">
-      <label class="label" for="flowPrompt">Or describe your own system</label>
-      <textarea id="flowPrompt" rows="2" placeholder="e.g. How does erlotinib bind EGFR? The agents pick the closest supported case."></textarea>
+    <p class="lede">AI agents set up a quantum-chemistry model of the active site (the part of the molecule where the chemistry happens), check their own work, and explain every choice with its evidence.</p>
+    <section class="chooser" aria-labelledby="chooserH">
+      <h2 id="chooserH" class="chooser-h">Choose a system</h2>
+      <div class="tabs" role="tablist" aria-labelledby="chooserH" id="chooserTabs">
+        <button type="button" role="tab" id="tab-search" aria-controls="pane-search" aria-selected="true" tabindex="0" onclick="setChooser('search')">Search the Protein Data Bank</button>
+        <button type="button" role="tab" id="tab-verified" aria-controls="pane-verified" aria-selected="false" tabindex="-1" onclick="setChooser('verified')">Verified examples</button>
+      </div>
+
+      <div role="tabpanel" id="pane-search" aria-labelledby="tab-search" class="pane">
+        <form class="lib-search" onsubmit="event.preventDefault(); pdbSearch()">
+          <label class="hidden-label" for="pdbQuery">Search the Protein Data Bank</label>
+          <div class="combo" id="pdbCombo">
+            <input type="search" id="pdbQuery" maxlength="80" autocomplete="off" spellcheck="false" placeholder="Any enzyme, drug or PDB ID, e.g. lactate dehydrogenase, imatinib, 4ZAU"
+                   role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="pdbSuggest" aria-describedby="pdbSuggestHint">
+            <ul class="suggest" id="pdbSuggest" role="listbox" aria-label="Suggestions" hidden></ul>
+            <span class="hidden-label" id="pdbSuggestHint">Suggestions appear as you type. Use the up and down arrows to move, Enter to choose, Escape to close.</span>
+          </div>
+          <button type="submit" class="run" id="pdbGo">Search</button>
+        </form>
+        <p class="pane-note">Finds experimentally solved structures in the Protein Data Bank (rcsb.org). Predicting a structure from a sequence is not part of this tool.</p>
+        <div id="pdbStatus" class="pane-status" role="status" aria-live="polite"></div>
+        <ul class="pdb-results" id="pdbResults" aria-label="Search results"></ul>
+      </div>
+
+      <div role="tabpanel" id="pane-verified" aria-labelledby="tab-verified" class="pane" hidden>
+        <p class="pane-note">Each of these has an expert answer or published data to compare the agents against.</p>
+        <div class="lib-search"><label class="label" for="flowLibSearch" style="white-space:nowrap">Filter</label>
+          <input type="search" id="flowLibSearch" placeholder="Name, PDB id, drug or enzyme class (e.g. kinase, 1M17, penicillin)" autocomplete="off" oninput="renderLibrary('flow')">
+          <span class="lib-count" id="flowLibCount" aria-live="polite"></span></div>
+        <div id="flowCases" role="radiogroup" aria-label="Verified examples"></div>
+        <p class="lib-note" id="flowLibNote" role="status"></p>
+      </div>
     </section>
+
+    <!-- The composer: your words are the question; an attached file (or a PDB pick) is the structure. One run button for every path. -->
+    <div id="composerHostFlow">
+    <section class="composer-wrap" id="composerBlock" aria-labelledby="composerH">
+      <h2 class="composer-h" id="composerH"><label for="flowPrompt">Or describe your own system</label></h2>
+      <div class="composer" id="composer">
+        <div id="attachChip"></div>
+        <textarea id="flowPrompt" rows="2" placeholder="Ask your question, e.g. Why does T790M make EGFR resistant to erlotinib? Attach a structure with the paperclip, or drop a file here."></textarea>
+        <div class="composer-bar">
+          <button type="button" class="clip" id="attachBtn" aria-label="Attach a structure file (PDB or mmCIF)" title="Attach a structure file (PDB or mmCIF)" onclick="$('byoFile').click()">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.9-8.9a3.7 3.7 0 0 1 5.2 5.2l-8.9 8.9a1.8 1.8 0 0 1-2.6-2.6l8.2-8.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button type="button" class="linkbtn small" id="exampleBtn" onclick="byoExample('egfr_1m17')">Try an example file</button>
+          <span class="composer-hint">PDB or mmCIF: a lab mutant, a designed protein, a predicted model</span>
+          <input type="file" id="byoFile" accept=".pdb,.ent,.cif,.mmcif" hidden onchange="byoUpload(this.files[0]); this.value = ''">
+        </div>
+      </div>
+      <div id="attachStatus" class="pane-status" role="status" aria-live="polite"></div>
+      <div id="byoHostFlow"></div>
+      <div class="primary-row">
+        <button type="button" class="primary" id="flowRunBtn" onclick="flowRun()">Set it up and explain</button>
+        <span class="picked" id="flowPicked" aria-live="polite"></span>
+        <span class="inline-err" id="flowPickErr" role="alert"></span>
+      </div>
+    </section>
+    </div>
     <details class="options">
       <summary>Options</summary>
       <div class="opt"><input type="checkbox" id="flowSample" checked><label for="flowSample">Sample mode: no engine runs now; energies are replayed from a saved real run (works offline).</label></div>
       <div class="opt"><input type="checkbox" id="flowMd"><label for="flowMd">Also run a short molecular dynamics simulation (1 ps, 100 frames).</label></div>
     </details>
-    <div class="primary-row">
-      <button type="button" class="primary" id="flowRunBtn" onclick="flowRun()">Set it up and explain</button>
-      <span class="inline-err" id="flowPickErr" role="alert"></span>
-    </div>
   </section>
 
   <!-- Screen 2: agents work -->
@@ -488,7 +734,7 @@
     <div class="kicker" id="s2kicker"></div>
     <h1 id="s2h" tabindex="-1">The agents are working</h1>
     <p class="lede" id="s2lede">Each line below is written from the live feed of this run as the agents act. Nothing is pre-filled.</p>
-    <section class="sheet pad">
+    <section class="sheet pad lb-agent">
       <div class="feed-head" data-prov="run"><span class="label">What the agents did</span><span id="s2chip"></span><span class="pill" id="flowStatus" role="status">Starting…</span></div>
       <ol class="checklist" id="flowChecklist" aria-live="polite"></ol>
     </section>
@@ -541,11 +787,61 @@
     <details class="det"><summary>Details</summary><div class="det-body" id="flowVsrc"></div></details>
   </div>
 </dialog>
-<dialog class="modal drawer" id="dlgChat" aria-label="AI chemist chat">
-  <div class="dlg-head"><h2>Ask the AI chemist</h2><button type="button" class="xbtn" onclick="this.closest('dialog').close()">Close</button></div>
-  <div id="chatDrawerBody"></div>
+<dialog class="modal drawer" id="dlgChat" aria-labelledby="dlgChatTitle">
+  <div class="dlg-head"><h2 id="dlgChatTitle">Ask the AI chemist</h2><span class="readout grey hidden" id="chatModelChip"></span><button type="button" class="xbtn" onclick="this.closest('dialog').close()">Close</button></div>
+  <section id="tabChat" aria-label="AI Biochemist chat">
+    <div class="chat-intro">Ask why the agents made a choice or what a number means. Numbers not carried by a run are marked <span class="flag">⚠ not from a run</span>.</div>
+    <div id="chatHistory" aria-live="polite">
+      <div class="msg ai"><div class="who"><span class="av" aria-hidden="true">AI</span>AI chemist</div>Hello! I am your AI Biochemist. Ask why the agents made a choice, what a number means, or where it came from. Numbers that do not come from a run are marked <span class="flag">⚠ not from a run</span>.</div>
+    </div>
+    <div class="chat-dock">
+      <span class="label" id="quickLabel">Suggested questions</span>
+      <div class="quick" role="group" aria-labelledby="quickLabel">
+        <button type="button" onclick="sendQuickQuery('Can you explain the result of my previous run to me? What does it implies and how accurate is it?')">Explain my last run in plain words</button>
+        <button type="button" onclick="sendQuickQuery('Set up a QM/MM model for DNA phosphodiester bond cleavage at the active site of the EcoRV restriction endonuclease, including its catalytic Mg²⁺ ion, and calculate the QM/MM energy using the PM6 semiempirical method for the QM region.')">Can it set up EcoRV? (not supported yet)</button>
+        <button type="button" onclick="sendQuickQuery('Why is ESCF positive while total energy is negative? Explain the energy decomposition and units.')">Why is the quantum-part energy positive but the total negative?</button>
+        <button type="button" onclick="sendQuickQuery('Why did you choose Chain B over Chain A in 2HYY?')">Why that copy of the ABL protein (chain B, not A)?</button>
+        <button type="button" onclick="sendQuickQuery('Explain why His361 was overridden from HIP to HIE in ABL kinase.')">Why did histidine 361 lose a proton?</button>
+        <button type="button" onclick="sendQuickQuery('What happened to Met769 hinge contact?')">What happened to the drug's contact with methionine 769?</button>
+        <button type="button" onclick="sendQuickQuery('Set up a QM/MM model for β-lactam ring opening during benzylpenicillin hydrolysis at the active site of TEM-1 β-lactamase (Ser70)')">Ask about TEM-1 β-lactamase and penicillin</button>
+      </div>
+      <div class="chat-input">
+        <textarea id="chatInput" rows="1" aria-label="Your question" placeholder="Ask about protonation, the quantum region, MD…" aria-describedby="chatHint"></textarea>
+        <button type="button" class="run" id="chatSendBtn" onclick="sendChatMessage()" style="padding:9px 18px">Send</button>
+      </div>
+      <div class="chat-hint" id="chatHint">Enter to send · Shift+Enter for a new line · Esc to close</div>
+    </div>
+  </section>
 </dialog>
+<button type="button" class="askfab" id="askFab" onclick="openChat()" aria-haspopup="dialog" aria-controls="dlgChat">Ask why</button>
 <div id="glossTip" role="tooltip" hidden></div>
+
+<!-- Bring your own structure. One card; it moves between the default view's library and Expert view's setup. -->
+<section class="byo" id="byoCard" aria-labelledby="byoTitle" hidden>
+  <h3 id="byoTitle" class="byo-title">Set up the attached structure</h3>
+  <div id="byoBody"></div>
+</section>
+
+<!-- The system library. Status comes from repo facts: data/sample/<case>/ exists = a real run can be replayed;
+     "verified" only where the run is compared with an independent reference that the repo cites
+     (I-PpoI A: the lab expert's QM region; EGFR + erlotinib: Stamos et al. 2002 contacts). tests/test_ui_library.py checks this. -->
+<script type="application/json" id="libraryMeta">
+{"groups": [
+  {"id": "dna", "label": "DNA-cutting enzymes", "words": "nuclease endonuclease enzyme DNA cleavage metal magnesium"},
+  {"id": "kinase", "label": "Kinase + drug", "words": "kinase inhibitor drug cancer leukemia lung"},
+  {"id": "covalent", "label": "Covalent drugs", "words": "covalent cysteine kinase inhibitor drug warhead"},
+  {"id": "blac", "label": "β-lactamase", "words": "beta-lactamase lactamase antibiotic resistance penicillin bacteria"}],
+ "systems": [
+  {"id": "ippoi_site_a", "group": "dna", "title": "I-PpoI nuclease, site A", "q": "How does an enzyme cut DNA?", "pdb": null, "source": "lab MD model", "ligand": "Mg²⁺ ion (site A)", "status": "verified", "basis": "expert"},
+  {"id": "ippoi_site_b", "group": "dna", "title": "I-PpoI nuclease, site B", "q": "Does the agent remember a lesson from site A?", "pdb": null, "source": "lab MD model", "ligand": "Mg²⁺ ion (site B)", "status": "replay"},
+  {"id": "egfr_erlotinib", "group": "kinase", "title": "EGFR kinase + erlotinib", "q": "How does a lung-cancer drug bind its target?", "pdb": "1M17", "ligand": "erlotinib (AQ4)", "status": "verified", "basis": "literature"},
+  {"id": "abl_imatinib_a", "group": "kinase", "title": "ABL kinase + imatinib", "q": "How does a leukemia drug bind its target?", "pdb": "2HYY", "ligand": "imatinib (STI)", "status": "replay", "note": "the agents pick the best protein copy"},
+  {"id": "abl_imatinib_b", "group": "kinase", "title": "ABL kinase + imatinib, chain A", "q": "Does the choice of protein copy matter?", "pdb": "2HYY", "ligand": "imatinib (STI)", "status": "replay"},
+  {"id": "egfr_osimertinib", "group": "covalent", "title": "EGFR kinase + osimertinib", "q": "How does a covalent lung-cancer drug attach to its target?", "pdb": "4ZAU", "ligand": "osimertinib (YY3)", "status": "docker"},
+  {"id": "btk_ibrutinib", "group": "covalent", "title": "BTK kinase + ibrutinib", "q": "How does a covalent blood-cancer drug attach to its target?", "pdb": "5P9J", "ligand": "ibrutinib (8E8)", "status": "docker"},
+  {"id": "tem1_penicillin", "group": "blac", "title": "TEM-1 β-lactamase + penicillin", "q": "How do bacteria break down penicillin?", "pdb": "1FQG", "ligand": "benzylpenicillin (PNM)", "status": "replay"},
+  {"id": "ecorv_endonuclease", "group": "dna", "title": "EcoRV restriction endonuclease", "q": "Can it model EcoRV cutting DNA?", "pdb": null, "source": "no EcoRV structure on file", "ligand": "Mg²⁺ ion", "status": "unsupported"}]}
+</script>
 
 <div class="layout">
 <div class="col col-main">
@@ -569,13 +865,13 @@
   </header>
 
   <section class="xsec xo1" id="secSetup" aria-labelledby="secSetupH">
-    <div class="section-title"><h2 id="secSetupH">Benchmark cases</h2><span class="aside">pick a case, or describe your own · no API keys needed</span></div>
-    <div class="cases" id="caseButtons">
-      <button type="button" class="case" onclick="selectCase('ippoi_site_a')" data-case="ippoi_site_a"><span class="k">metal + DNA</span><span class="t">I-PpoI site A</span><span class="q">Mg 371 &bull; memory empty</span></button>
-      <button type="button" class="case" onclick="selectCase('ippoi_site_b')" data-case="ippoi_site_b"><span class="k">metal + DNA</span><span class="t">I-PpoI site B</span><span class="q">Mg 372 &bull; reuses site A's lesson</span></button>
-      <button type="button" class="case" onclick="selectCase('egfr_erlotinib')" data-case="egfr_erlotinib"><span class="k">drug in pocket</span><span class="t">EGFR + Erlotinib</span><span class="q">PDB 1M17 &bull; pH 7.4</span></button>
-      <button type="button" class="case" onclick="selectCase('abl_imatinib_a')" data-case="abl_imatinib_a"><span class="k">drug in pocket</span><span class="t">ABL + Imatinib</span><span class="q">PDB 2HYY &bull; Chain B</span></button>
-    </div>
+    <div class="section-title"><h2 id="secSetupH">System library</h2><span class="aside">pick a system, bring your own, or describe it · no API keys needed</span></div>
+    <div id="byoHostX"></div>
+    <div class="lib-search"><label class="label" for="xLibSearch" style="white-space:nowrap">Find a system</label>
+      <input type="search" id="xLibSearch" placeholder="Name, PDB id, drug or enzyme class" autocomplete="off" oninput="renderLibrary('x')">
+      <span class="lib-count" id="xLibCount" aria-live="polite"></span></div>
+    <div id="caseButtons" role="radiogroup" aria-label="System library"></div>
+    <p class="lib-note" id="xLibNote" role="status"></p>
     <div class="sheet request">
       <label class="label" for="promptInput">Or describe your own system</label>
       <textarea id="promptInput" rows="2" placeholder="e.g. Set up a QM/MM model for I-PpoI active site A (Mg :371) and explain every setup choice."></textarea>
@@ -593,7 +889,7 @@
 
   <section class="xsec xo3" id="secResult" aria-labelledby="secResultH">
     <div class="section-title"><h2 id="secResultH">Result</h2></div>
-    <div class="sheet hero">
+    <div class="sheet hero lb-chat" id="heroCard">
       <div>
         <div class="label">QM/MM energy (single point)</div>
         <div class="h-big" id="hTitle">No run yet</div>
@@ -672,7 +968,7 @@
 </div>
 
 <div class="col col-side">
-  <section class="xsec xo2 sheet pad" id="secPipeline" aria-labelledby="secPipelineH">
+  <section class="xsec xo2 sheet pad lb-agent" id="secPipeline" aria-labelledby="secPipelineH">
     <div class="head"><span class="label" id="secPipelineH">Pipeline · agents at work</span><span class="label" style="letter-spacing:.04em" id="pipelineAgent"></span></div>
     <div class="pipeline" id="pipeline"></div>
     <div class="handoff" id="handoff">no handoff yet</div>
@@ -680,50 +976,28 @@
     <div id="stages"><div class="empty" style="padding:10px">Stages appear as the agents report them.</div></div>
   </section>
 
-  <section class="xsec xo4 sheet" id="secCards" aria-label="Decision cards">
+  <section class="xsec xo4 sheet lb-agent" id="secCards" aria-label="Decision cards">
     <details class="fold" id="cardsFold">
       <summary>Why: decision cards <span class="cnt">(<span id="cardsCount">0</span>)</span><span class="aside">every choice, its evidence and its source</span></summary>
       <div class="fold-body"><div id="cardsList" class="cards"><div class="empty" style="grid-column:1/-1">No run yet. Decision Cards appear when the Explainer finishes.</div></div></div>
     </details>
   </section>
 
-  <section class="xsec xo8 sheet" id="secTrace" aria-label="Agent trace">
+  <section class="xsec xo8 sheet lb-agent" id="secTrace" aria-label="Agent trace">
     <details class="fold" id="traceFold">
       <summary>Agent trace <span class="cnt" id="eventCount">(0 events)</span><span class="aside">live feed from the server, nothing pre-filled</span></summary>
       <div class="fold-body"><div id="thoughtStream"><div class="placeholder">Waiting for a run. Each line below arrives from the server as the agent acts; nothing is pre-filled.</div></div></div>
     </details>
   </section>
 
-  <section class="xsec xo7" id="secChat" aria-label="AI Biochemist chat">
-    <span id="chatHome" hidden></span>
-    <section id="tabChat" class="panel sheet pad">
-      <div class="chat-head">
-        <div>
-          <h3>AI Biochemist</h3>
-          <div class="muted" style="font-size:12.5px">Ask why the agents made a choice or what a number means. Numbers not carried by a run are marked <span class="flag">⚠ not from a run</span>.</div>
-        </div>
-        <span class="readout grey hidden" id="chatModelChip"></span>
+  <section class="xsec xo7 sheet pad lb-chat" id="secChat" aria-labelledby="secChatH">
+    <div class="chat-launch">
+      <div>
+        <h3 id="secChatH" style="margin:0;font:600 19px/1.2 var(--serif)">AI Biochemist</h3>
+        <div class="muted" style="font-size:13px">Ask why the agents made a choice or what a number means. The chat opens in a side panel, from any section.</div>
       </div>
-      <div style="margin-top:10px">
-        <span class="label">Quick inquiries</span>
-        <div class="quick">
-          <button type="button" onclick="sendQuickQuery('Can you explain the result of my previous run to me? What does it implies and how accurate is it?')">📊 Explain my last run in plain words</button>
-          <button type="button" onclick="sendQuickQuery('Set up a QM/MM model for DNA phosphodiester bond cleavage at the active site of the EcoRV restriction endonuclease, including its catalytic Mg²⁺ ion, and calculate the QM/MM energy using the PM6 semiempirical method for the QM region.')">🧬 Can it set up EcoRV? (unsupported case)</button>
-          <button type="button" onclick="sendQuickQuery('Why is ESCF positive while total energy is negative? Explain the energy decomposition and units.')">⚡ Why is the quantum-part energy positive but the total negative?</button>
-          <button type="button" onclick="sendQuickQuery('Why did you choose Chain B over Chain A in 2HYY?')">🔗 Why that copy of the ABL protein (chain B, not A)?</button>
-          <button type="button" onclick="sendQuickQuery('Explain why His361 was overridden from HIP to HIE in ABL kinase.')">🧪 Why did histidine 361 lose a proton?</button>
-          <button type="button" onclick="sendQuickQuery('What happened to Met769 hinge contact?')">🎯 What happened to the drug's contact with methionine 769?</button>
-          <button type="button" onclick="sendQuickQuery('Set up a QM/MM model for β-lactam ring opening during benzylpenicillin hydrolysis at the active site of TEM-1 β-lactamase (Ser70)')">💊 Can it set up TEM-1? (unsupported case)</button>
-        </div>
-      </div>
-      <div id="chatHistory">
-        <div class="msg ai">Hello! I am your AI Biochemist. Ask why the agents made a choice, what a number means, or where it came from. Numbers that do not come from a run are marked <span class="flag">⚠ not from a run</span>.</div>
-      </div>
-      <div class="chat-input">
-        <input type="text" id="chatInput" placeholder="Ask about protonation, QM/MM partition, MD dynamics…" onkeydown="if(event.key==='Enter') sendChatMessage()">
-        <button type="button" class="run" id="chatSendBtn" onclick="sendChatMessage()" style="padding:9px 18px">Send</button>
-      </div>
-    </section>
+      <button type="button" class="run" onclick="openChat()">Open the chat</button>
+    </div>
   </section>
 
   <section class="xsec xo9 sheet" id="secSql" aria-label="SQL">
@@ -764,6 +1038,8 @@
   let lastStats = null;       // stats of the last finished run (mask, chain, case)
   const runByCase = {};       // case id -> stats of the last finished run of that case (the 3D view draws its quantum region)
   let nodesDone = new Set();
+  let nodesFailed = new Set(); // nodes whose last step failed (red until that agent succeeds again)
+  let customRun = null;        // set while a run is on an uploaded structure: {structure_id, name, ligand_resname, metal_resi, chain, kind}
   let stageState = new Map(); // action -> {state, text, n}
   let eventCount = 0;
 
@@ -775,7 +1051,8 @@
     "ecorv_endonuclease": "Set up a QM/MM model for DNA phosphodiester bond cleavage at the active site of the EcoRV restriction endonuclease with catalytic Mg2+ and compute its PM6 QM/MM energy."
   };
   const CASE_TITLES = {ippoi_site_a: "I-PpoI nuclease · site A", ippoi_site_b: "I-PpoI nuclease · site B", egfr_erlotinib: "EGFR kinase + erlotinib",
-                       abl_imatinib_a: "ABL kinase + imatinib", abl_imatinib_b: "ABL kinase + imatinib · chain A"};
+                       abl_imatinib_a: "ABL kinase + imatinib", abl_imatinib_b: "ABL kinase + imatinib · chain A", egfr_osimertinib: "EGFR kinase + osimertinib",
+                       btk_ibrutinib: "BTK kinase + ibrutinib", tem1_penicillin: "TEM-1 β-lactamase + penicillin", ecorv_endonuclease: "EcoRV endonuclease"};
 
   const $ = (id) => document.getElementById(id);
   function escapeHtml(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c])); }
@@ -801,25 +1078,28 @@
   /* ---------- case picker ---------- */
   function selectCase(caseId) {
     activeCaseId = caseId;
-    $("promptInput").value = PROMPTS[caseId] || "";
-    document.querySelectorAll("#caseButtons button").forEach(b => b.classList.toggle("on", b.dataset.case === caseId));
+    customRun = null;
+    $("promptInput").value = PROMPTS[caseId] || (caseInfo[caseId] || {}).question || "";
+    if (window.markPicked) markPicked("x", caseId);
     $("mdToggle").checked = (caseId === "egfr_erlotinib");
     loadStructureViewer(caseId, null);
   }
   $("promptInput").addEventListener("input", () => {
     activeCaseId = null;
-    document.querySelectorAll("#caseButtons button").forEach(b => b.classList.remove("on"));
+    if (window.markPicked) markPicked("x", null);
   });
 
   /* ---------- pipeline + lifecycle + trace ---------- */
   function nodeOf(agent) { const n = NODES.find(([, members]) => members.includes(agent)); return n ? n[0] : null; }
-  function renderPipeline(active, target, action, warn) {
+  // node state: pending (grey) · active = running (blue pulse) · done (green) · fail (red, until that agent succeeds again)
+  function renderPipeline(active, target, action, failed) {
     const activeNode = nodeOf(active);
-    if (activeNode) nodesDone.add(activeNode);
+    if (activeNode) { nodesDone.add(activeNode); if (failed) nodesFailed.add(activeNode); else nodesFailed.delete(activeNode); }
     $("pipeline").innerHTML = NODES.map(([name], i) => {
-      const cls = name === activeNode ? (warn ? "warn" : "active") : nodesDone.has(name) ? "done" : "";
+      const cls = nodesFailed.has(name) ? "fail" : name === activeNode ? "active" : nodesDone.has(name) ? "done" : "";
       const sub = name === activeNode ? [active !== name ? active : null, action].filter(Boolean).join(" · ") : "";
-      return `<div class="node ${cls}"><div class="c">${cls === "done" ? "✓" : "0" + (i + 1)}</div><div class="nm">${name}</div><div class="ac" title="${escapeHtml(sub)}">${escapeHtml(sub)}</div></div>`;
+      const state = {fail: "failed", active: "running", done: "done", "": "pending"}[cls];
+      return `<div class="node ${cls}" aria-label="${name}: ${state}"><div class="c" aria-hidden="true">${cls === "done" ? "✓" : cls === "fail" ? "✕" : "0" + (i + 1)}</div><div class="nm">${name}</div><div class="ac" title="${escapeHtml(sub)}">${escapeHtml(sub)}</div></div>`;
     }).join("");
     $("pipelineAgent").innerText = active && !activeNode ? active : "";
     $("handoff").innerText = target ? `${active} → ${target}` : (active ? `${active} acting` : "no handoff yet");
@@ -845,24 +1125,26 @@
   function appendStep(e) {
     const stream = $("thoughtStream");
     const ph = stream.querySelector(".placeholder"); if (ph) ph.remove();
-    const bad = ["failed", "error", "blocked"].includes(e.status);
+    // an expected sample-mode stop of an uploaded structure is information (amber), not a failure (red)
+    const expected = window.expectedStop ? expectedStop(e) : false;
+    const bad = ["failed", "error", "blocked"].includes(e.status) && !expected;
     const mid = !bad && e.status !== "ok";
     const el = document.createElement("div");
     el.className = "ev" + (bad ? " bad" : mid ? " mid" : "");
     const ts = (e.ts || "").replace("T", " ").slice(11, 19);
     const extra = [e.confidence !== null && e.confidence !== undefined ? `conf ${Number(e.confidence).toFixed(2)}` : null, e.retry_count ? `retry ${e.retry_count}` : null].filter(Boolean).join(" ");
     const badge = bad ? "red" : e.status === "ok" ? "green" : "amber";
-    el.innerHTML = `<span class="t">${escapeHtml(ts)}</span><span class="a">${escapeHtml(e.agent_name)}</span> <span class="act">${escapeHtml(e.action)}</span> <span class="badge ${badge}">${escapeHtml(e.status)}</span> ${extra ? `<span class="x">${escapeHtml(extra)}</span>` : ""}<span class="sum">${escapeHtml(e.output_summary || "")}</span>`;
+    const sum = window.plainInternals ? plainInternals(e.output_summary || "") : (e.output_summary || "");
+    el.innerHTML = `<span class="t">${escapeHtml(ts)}</span><span class="a">${escapeHtml(e.agent_name)}</span> <span class="act">${escapeHtml(e.action)}</span> <span class="badge ${badge}">${escapeHtml(expected ? "expected stop" : e.status)}</span> ${extra ? `<span class="x">${escapeHtml(extra)}</span>` : ""}<span class="sum">${escapeHtml(sum)}</span>`;
     stream.appendChild(el);
     stream.scrollTop = stream.scrollHeight;
     $("eventCount").innerText = `(${++eventCount} event${eventCount === 1 ? "" : "s"})`;
 
-    const warn = bad || e.action === "diagnose";
-    renderPipeline(e.agent_name, e.target_agent, String(e.action || "").replace(/_/g, " "), warn);
+    renderPipeline(e.agent_name, e.target_agent, String(e.action || "").replace(/_/g, " "), bad);
 
     if (nodeOf(e.agent_name) || e.agent_name === "Orchestrator") {
       const prev = stageState.get(e.action);
-      let state = stageFrom(e);
+      let state = expected ? "warn" : stageFrom(e);
       if (prev && prev.state === "error" && state === "ok") state = "warn";   // caught and fixed: amber, not green
       // the lifecycle row says what happened in plain words; the raw summary (masks, file names) stays in the Agent trace
       const plain = window.sentenceFor ? sentenceFor(e) : null;
@@ -873,7 +1155,7 @@
     if (e.action === "run_qmmm") siteTone("run");
     if (e.action === "qmmm_result") siteTone(e.status === "ok" ? "green" : "amber");
     if (e.action === "diagnose") siteTone("amber");
-    if (e.status === "blocked") siteTone("red");
+    if (e.status === "blocked") siteTone(expected ? "amber" : "red");
     if (e.agent_name === "Orchestrator" && e.action === "done") siteTone(e.status === "ok" ? "green" : "red");
 
     if (e.run_id) {
@@ -890,6 +1172,7 @@
   // Expert view is one scrolling page now: "switching tab" means jumping to that section (and opening it if it is folded).
   const SECTION_OF = {cards: "secCards", chat: "secChat", structure: "sec3d", report: "secReport", memory: "secMemory", sql: "secSql", trace: "secTrace"};
   function switchTab(tab) {
+    if (tab === "chat") { openChat(); return; }
     const sec = $(SECTION_OF[tab] || tab); if (!sec) return;
     const fold = sec.querySelector("details.fold"); if (fold) fold.open = true;
     if (tab === "memory") loadMemory();
@@ -900,19 +1183,26 @@
   function setEngineBadge(label) {
     $("engineBadge").innerText = "engine: " + label;
     $("metricEngine").innerText = label;
-    const tone = label === "sander in Docker" ? "green" : label.startsWith("cached") ? "amber" : "red";
+    const tone = label === "sander in Docker" ? "green" : label.startsWith("cached") ? "amber" : /^proposal only/i.test(label) ? "grey" : "red";
     $("engineReadout").className = "readout " + tone;
   }
 
   function setNc(el, text) { el.innerText = text; el.classList.toggle("nc", text === "not computed"); }
 
   function showResult(payload) {
-    const st = payload.stats || {};
+    const st = payload.stats || (payload.stats = {});
     const res = payload.result || {};
+    if (customRun) {
+      // a run on an uploaded structure: the 3D view reads that file, and the case key names it (ids only, no numbers added)
+      st.structure_id = st.structure_id || customRun.structure_id;
+      if (!st.case || !caseInfo[st.case]) st.case = st.case || "upload:" + customRun.structure_id;
+      caseInfo[st.case] = Object.assign({}, caseInfo[st.case] || {}, {kind: customRun.kind, ligand: customRun.ligand_resname || "", system: customRun.name, custom: true});
+    }
     lastStats = st;
     if (st.case) runByCase[st.case] = st;     // every 3D entry point for this case now draws the run's quantum region
     currentRunId = st.run_id || currentRunId;
     currentScriptPath = payload.chimerax_script || st.chimerax_script || null;
+    $("heroCard").className = "sheet hero " + (st.qm_ok === true ? "lb-ok" : "lb-warn");
 
     $("hTitle").innerText = CASE_TITLES[st.case] || (caseInfo[st.case] || {}).system || st.case || "Run";
     // every number carries its provenance chip, as on the result screen
@@ -988,7 +1278,10 @@
   }
 
   // GET /api/structure/<run_id> only finds a file when the run wrote md/complex.pdb (an MD run); other runs use the case structure.
-  function structureIds(st) { return [st && (st.md || st.md_result) ? st.run_id : null, st && st.case].filter(Boolean); }
+  function structureIds(st) {
+    if (st && st.structure_id) return ["upload:" + st.structure_id];
+    return [st && (st.md || st.md_result) ? st.run_id : null, st && st.case].filter(Boolean);
+  }
 
   // Accuracy panel: only what the run's checks and validation carried. Missing values say "not computed".
   function renderAccuracy(payload) {
@@ -1067,24 +1360,28 @@
   function setStatus(text, cls) { const s = $("streamStatus"); s.innerText = text; s.className = "pill " + (cls || ""); }
   function runIdle() { const btn = $("runBtn"); btn.disabled = false; btn.innerHTML = `<span class="led"></span><span>Run Autonomous Setup &amp; Explanation</span>`; }
 
-  async function runSimulation() {
+  // custom: {structure_id, ligand_resname, ligand_smiles, metal_resi, chain, ph} for an uploaded structure, else a case or a prompt
+  async function runSimulation(custom) {
+    if (!custom || custom instanceof Event) { custom = null; customRun = null; }
     const btn = $("runBtn");
     btn.disabled = true;
     btn.innerHTML = `<span class="led"></span><span>Running…</span>`;
     setStatus("Starting…", "run-on");
     $("thoughtStream").innerHTML = "";
     eventCount = 0; $("eventCount").innerText = "(0 events)";
-    nodesDone = new Set(); stageState = new Map(); renderStages(); siteTone("");
+    nodesDone = new Set(); nodesFailed = new Set(); stageState = new Map(); renderStages(); siteTone("");
     renderPipeline(null, null);
     if (window.flowBegin) flowBegin();
 
-    const body = activeCaseId ? { case_id: activeCaseId } : { prompt: $("promptInput").value };
+    const body = custom ? { custom } : activeCaseId ? { case_id: activeCaseId } : { prompt: $("promptInput").value };
     body.sample_mode = $("sampleModeToggle").checked;
     body.md = $("mdToggle").checked;
 
     try {
       const resp = await fetch("/api/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (!resp.ok) throw new Error((await resp.json()).detail || resp.statusText);
+      // 422 from an uploaded structure (e.g. "metal sites from uploaded files: … not supported yet", or a missing ligand_smiles)
+      // is shown as the server's own sentence, wherever it came from
+      if (!resp.ok) throw new Error(await errText(resp));
       const { stream_id } = await resp.json();
       setStatus("Streaming…", "run-on");
       if (es) es.close();
@@ -1155,15 +1452,26 @@
   /* ---------- AI Biochemist chat ---------- */
   function sendQuickQuery(text) {
     $("chatInput").value = text;
-    if (document.body.classList.contains("expert") || !window.openChat) switchTab("chat"); else openChat();
+    if (window.openChat) openChat();
     sendChatMessage();
   }
+  const WHO_AI = `<div class="who"><span class="av" aria-hidden="true">AI</span>AI chemist</div>`;
+  // the newest message is always in view; smooth only when motion is welcome
+  function chatToBottom() {
+    const h = $("chatHistory");
+    h.scrollTo({top: h.scrollHeight, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+  }
+  function growInput() { const t = $("chatInput"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 140) + "px"; }
+  $("chatInput").addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter" && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); sendChatMessage(); }
+  });
+  $("chatInput").addEventListener("input", growInput);
 
   async function sendChatMessage() {
     const input = $("chatInput");
     const msg = input.value.trim();
     if (!msg) return;
-    input.value = "";
+    input.value = ""; growInput();
     const historyEl = $("chatHistory");
     const userMsg = document.createElement("div");
     userMsg.className = "msg me";
@@ -1173,9 +1481,11 @@
     const loadingMsg = document.createElement("div");
     loadingMsg.id = "chatLoadingIndicator";
     loadingMsg.className = "msg ai wait";
-    loadingMsg.innerHTML = `<span class="spinner"></span> AI Biochemist is evaluating chemical principles…`;
+    loadingMsg.setAttribute("role", "status");
+    loadingMsg.innerHTML = WHO_AI + `<span class="typing" aria-label="The AI chemist is typing"><i></i><i></i><i></i></span>`;
     historyEl.appendChild(loadingMsg);
-    historyEl.scrollTop = historyEl.scrollHeight;
+    $("chatSendBtn").disabled = true;
+    chatToBottom();
     chatHistoryList.push({ role: "user", content: msg });
 
     try {
@@ -1184,22 +1494,22 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: msg, run_id: currentRunId || activeCaseId, history: chatHistoryList })
       });
-      const data = await resp.json();
+      // a server failure can return a plain-text page, not JSON: never show the parser's error to the user
+      const data = await resp.json().catch(() => ({}));
       loadingMsg.remove();
-      if (!resp.ok) throw new Error(data.detail || resp.statusText);
+      if (!resp.ok) throw new Error(typeof data.detail === "string" ? data.detail
+        : "The server had a problem answering (HTTP " + resp.status + "). Please try again; your run is unaffected.");
       chatHistoryList.push({ role: "assistant", content: data.reply });
 
       const formatted = window.marked ? marked.parse(data.reply) : `<div style="white-space:pre-wrap">${escapeHtml(data.reply)}</div>`;
       // The server's provenance guard appends "⚠ not from a run" after unbacked numbers; make that mark visible.
       const flagged = formatted.split("⚠ not from a run").join(`<span class="flag">⚠ not from a run</span>`);
       const unv = data.unverified_numbers || [];
-      let thinkHtml = "";
-      if (data.thinking) {
-        thinkHtml = `<details style="margin-bottom:0.5rem;font-size:0.8rem;opacity:0.85;cursor:pointer;"><summary style="font-weight:600;color:var(--accent, #38bdf8);">💭 Thinking Process</summary><div style="white-space:pre-wrap;padding:0.4rem 0.6rem;background:rgba(0,0,0,0.15);border-radius:4px;margin-top:0.3rem;font-family:var(--font-mono, monospace);">${escapeHtml(data.thinking)}</div></details>`;
-      }
+      // the model's own reasoning, folded: read it if you want to see how it got there
+      const thinkHtml = data.thinking ? `<details class="think"><summary>How it reasoned</summary><div class="think-body">${escapeHtml(data.thinking)}</div></details>` : "";
       const aiMsg = document.createElement("div");
       aiMsg.className = "msg ai";
-      aiMsg.innerHTML = thinkHtml + `<div class="md chat-md">${flagged}</div>` +
+      aiMsg.innerHTML = WHO_AI + thinkHtml + `<div class="md chat-md">${flagged}</div>` +
         (unv.length ? `<div class="unverified">⚠ ${unv.length} number(s) not from a run: ${escapeHtml(unv.join(", "))}</div>` : "") +
         detHtml(`<span>model: ${escapeHtml(data.model || "not reported")}</span><span>answered by: ${escapeHtml(data.source || "not reported")} · numbers not from a run: ${unv.length}</span>`);
       historyEl.appendChild(aiMsg);
@@ -1214,7 +1524,8 @@
       errEl.innerText = "Error: " + err.message;
       historyEl.appendChild(errEl);
     }
-    historyEl.scrollTop = historyEl.scrollHeight;
+    $("chatSendBtn").disabled = false;
+    chatToBottom();
   }
 
   /* ---------- structure data: PDB from GET /api/structure/{id} -> active-site scene ---------- */
@@ -1225,7 +1536,9 @@
       if (!id) continue;
       if (pdbCache.has(id)) return {id, text: pdbCache.get(id)};
       try {
-        const resp = await fetch("/api/structure/" + encodeURIComponent(id));
+        // "upload:<id>" = a user's structure, served by GET /api/structures/{id}/file
+        const url = id.startsWith("upload:") ? `/api/structures/${encodeURIComponent(id.slice(7))}/file` : "/api/structure/" + encodeURIComponent(id);
+        const resp = await fetch(url);
         if (!resp.ok) { lastErr = new Error(`no structure for ${id} (HTTP ${resp.status})`); continue; }
         const text = await resp.text();
         pdbCache.set(id, text);
@@ -1273,10 +1586,17 @@
   function buildScene(pdb, stats, caseId) {
     const atoms = pdb.atoms.filter(a => isFinite(a.x));
     let focus = [], mode = "none", note = "";
-    const names = stats ? maskResidueNames(stats.mask) : null;
+    let names = stats ? maskResidueNames(stats.mask) : null;
+    // The run topology calls the drug LIG; files written for viewing (md/complex.pdb, see chimerax.py
+    // _save_pdb_with_ligand_name) rename that same residue to the case's ligand code (AQ4 for EGFR + erlotinib).
+    const ligCode = String((caseInfo[caseId] || {}).ligand || "").toUpperCase();
+    let renamed = false;
+    if (names && names.includes("LIG") && ligCode && !atoms.some(a => a.resn.toUpperCase() === "LIG") && atoms.some(a => a.resn.toUpperCase() === ligCode)) {
+      names = names.map(n => n === "LIG" ? ligCode : n); renamed = true;
+    }
     if (names) {
       focus = atoms.filter(a => names.includes(a.resn.toUpperCase()));
-      if (focus.length) { mode = "qm"; note = `QM = run mask ${stats.mask} (${focus.length} atoms in this file)`; }
+      if (focus.length) { mode = "qm"; note = `QM = run mask ${stats.mask} (${focus.length} atoms in this file${renamed ? `; LIG is named ${ligCode} in this file` : ""})`; }
       else note = `run mask ${stats.mask} selects no atom in this file`;
     } else if (stats && pdb.serialsTopology && maskSerialRanges(stats.mask)) {
       // the server wrote this file with the run topology's own atom numbers, so an "@" mask maps exactly
@@ -1345,7 +1665,7 @@
   }
   const SITE_NAMES = {ippoi_site_a: "I-PpoI active site A", ippoi_site_b: "I-PpoI active site B", egfr_erlotinib: "EGFR kinase with erlotinib",
                       abl_imatinib_a: "ABL kinase with imatinib", abl_imatinib_b: "ABL kinase with imatinib (chain A)", ecorv_endonuclease: "EcoRV endonuclease"};
-  const siteName = (id) => SITE_NAMES[id] || CASE_TITLES[id] || (caseInfo[id] || {}).system || id || "this structure";
+  const siteName = (id) => SITE_NAMES[id] || CASE_TITLES[id] || (caseInfo[id] || {}).system || (String(id || "").startsWith("upload:") ? "your structure" : id) || "this structure";
   const andList = (xs) => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
 
   // One caption line for the 3D view: what you are looking at, in plain words. Counts of the file, the source and the
@@ -1395,8 +1715,8 @@
 
   // Technical lines for the 3D Details block: where the file came from, what it holds, how the region was mapped.
   function describe(served, pdb, scene, stats) {
-    const kind = pdb.serialsTopology ? "lab topology, 12 Å cut-out (atom numbers = run topology)" : `PDB ${pdb.idcode || "no HEADER"}`;
-    return [`file: /api/structure/${served}`, `contents: ${kind}${pdb.klass ? " (" + pdb.klass.toLowerCase() + ")" : ""}`,
+    const kind = pdb.serialsTopology ? "lab topology, 12 Å cut-out (atom numbers = run topology)" : String(served).startsWith("upload:") ? "your uploaded structure" : `PDB ${pdb.idcode || "no HEADER"}`;
+    return [String(served).startsWith("upload:") ? `file: /api/structures/${served.slice(7)}/file` : `file: /api/structure/${served}`, `contents: ${kind}${pdb.klass ? " (" + pdb.klass.toLowerCase() + ")" : ""}`,
             `${pdb.atoms.length} atoms in the file · ${scene.atoms.filter(a => a.qm).length} highlighted + ${scene.atoms.filter(a => !a.qm).length} pocket atoms in the Atoms view`,
             stats && stats.run_id ? `run: ${stats.run_id}${stats.mask ? ` · mask ${stats.mask}` : ""}` : "run: none yet for this case",
             scene.note, scene.cutout ? "the ribbon is faded because a cut-out holds the chain in short pieces" : ""].filter(Boolean);
@@ -1495,7 +1815,7 @@
     const got = await loadSiteScene(ids, caseId, stats, "live");
     if (!got) { $("structureSubTitle").innerText = "No structure available."; $("molViewerLoading").style.display = "flex"; $("molViewerLoading").innerText = "No structure available."; return; }
     loadedPdbData = got.text;
-    $("molAtomCount").innerText = got.id !== caseId ? `structure from run ${got.id} (it wrote its own file)` : "";
+    $("molAtomCount").innerText = got.id.startsWith("upload:") ? "your uploaded structure" : got.id !== caseId ? `structure from run ${got.id} (it wrote its own file)` : "";
     renderRibbonLegend();
     render3Dmol();
   }
@@ -1632,9 +1952,10 @@
 
   /* ---------- boot ---------- */
   renderPipeline(null, null);
+  // the server's case list decides which systems the library shows (the page's own list is the fallback when it is unreachable)
   fetch("/api/cases").then(r => r.json()).then(d => { for (const c of d.cases || []) caseInfo[c.id] = c; })
-    .catch(() => { /* case metadata only feeds the 3D mismatch warning */ })
-    .finally(() => selectCase("ippoi_site_a"));
+    .catch(() => { /* the library falls back to the systems the page describes */ })
+    .finally(() => { renderLibrary("flow"); renderLibrary("x"); selectCase("ippoi_site_a"); });
   loadMemory();
 </script>
 
@@ -1792,22 +2113,112 @@
   const fact = (prov, html) => `<div class="fact" data-prov="${prov}">${html}${chip(prov)}</div>`;
 
   /* ---------- the cases, phrased as questions ---------- */
-  const FLOW_CASES = [
-    {id: "ippoi_site_a", k: "enzyme + DNA", q: "How does an enzyme cut DNA?", s: "I-PpoI nuclease, magnesium site A"},
-    {id: "ippoi_site_b", k: "memory", q: "Does the agent remember a lesson?", s: "I-PpoI site B, run after site A"},
-    {id: "egfr_erlotinib", k: "drug in its pocket", q: "How does a lung-cancer drug bind its target?", s: "EGFR kinase + erlotinib"},
-    {id: "abl_imatinib_a", k: "drug in its pocket", q: "How does a leukemia drug bind its target?", s: "ABL kinase + imatinib; the agents pick the best protein copy in the crystal"},
-    {id: "abl_imatinib_b", k: "drug in its pocket", q: "Does the choice of protein copy matter?", s: "ABL kinase + imatinib, the other copy in the same crystal"},
-  ];
-  const OTHER_CASES = {ecorv_endonuclease: "EcoRV restriction endonuclease"};   // reachable by free text, not offered as a question
-  const caseQ = (id) => (FLOW_CASES.find((c) => c.id === id) || (OTHER_CASES[id] ? {s: OTHER_CASES[id]} : {}));
-  let flowCase = "ippoi_site_a";
-  function renderFlowCases() {
-    $("flowCases").innerHTML = FLOW_CASES.map((c) =>
-      `<button type="button" class="qcase" data-case="${c.id}" aria-pressed="${c.id === flowCase}" onclick="flowPick('${c.id}')"><span class="k">${escapeHtml(c.k)}</span><span class="t">${escapeHtml(c.q)}</span><span class="s">${escapeHtml(c.s)}</span></button>`).join("");
+  /* ---------- the system library: grouped, searchable; one model for both views ---------- */
+  const LIB_META = JSON.parse($("libraryMeta").textContent);
+  const LIB_STATUS = {verified: (s) => s.basis === "literature" ? "verified against literature" : "verified against expert",
+                      replay: () => "replays a real run", docker: () => "needs Docker to run", unsupported: () => "not supported yet"};
+  const LIB_STATUS_WHY = {
+    verified: (s) => s.basis === "literature" ? "The agents' result is compared with contacts published for this crystal structure (cited in the case file)." : "The agents' quantum region is compared with the lab expert's setup on file.",
+    replay: () => "A saved real engine run of this setup is on file, so sample mode replays its energies (no engine runs now).",
+    docker: () => "No saved run is on file: the agents still make every decision, but the protein preparation and energy need the Docker engine.",
+    unsupported: () => "There is no structure or topology for this system in the repo yet."};
+  // the server's case list decides what exists; the page adds plain words and the status. A case the page does not
+  // describe still appears (under "Other systems") with the weakest label it can prove: none.
+  function libSystems() {
+    const known = new Map(LIB_META.systems.map((s) => [s.id, s]));
+    const ids = Object.keys(caseInfo).length ? Object.keys(caseInfo).filter((id) => !caseInfo[id].custom) : [...known.keys()];
+    const out = ids.map((id) => {
+      const s = known.get(id), c = caseInfo[id] || {};
+      if (s) return Object.assign({}, s, {code: c.ligand || ""});
+      const pdb = (/\b([0-9][A-Za-z0-9]{3})\b(?= crystal)/.exec(c.question || "") || [])[1] || null;
+      return {id, group: "other", title: c.system || id, q: c.question || id, pdb: pdb && pdb.toUpperCase(), ligand: c.ligand || "", status: null, code: c.ligand || ""};
+    });
+    const order = [...known.keys()], rank = (s) => (order.indexOf(s.id) + 1) || 999;
+    return out.sort((a, b) => rank(a) - rank(b));
   }
-  function flowPick(id) { flowCase = id; $("flowPrompt").value = ""; $("flowPickErr").innerText = ""; renderFlowCases(); }
-  $("flowPrompt").addEventListener("input", () => { if ($("flowPrompt").value.trim()) { flowCase = null; renderFlowCases(); } });
+  const caseQ = (id) => { const s = LIB_META.systems.find((x) => x.id === id); return s ? {q: s.q, s: s.title} : customRun ? {q: "Your own structure", s: customRun.name} : {}; };
+  let flowCase = null;              // nothing is chosen until the user picks: search, an example, or a description
+  function libHaystack(s) {
+    const g = LIB_META.groups.find((x) => x.id === s.group) || {label: "Other systems", words: ""};
+    return [s.title, s.q, s.pdb, s.ligand, s.code, s.source, g.label, g.words, s.id.replace(/_/g, " "), s.status ? LIB_STATUS[s.status](s) : ""].join(" ").toLowerCase();
+  }
+  // P = "flow" (default view, screen 1) or "x" (Expert view setup)
+  function renderLibrary(P) {
+    const box = $(P === "flow" ? "flowCases" : "caseButtons");
+    const q = ($(P + "LibSearch").value || "").trim().toLowerCase();
+    const words = q.split(/\s+/).filter(Boolean);
+    const all = libSystems();
+    const shown = all.filter((s) => { const h = libHaystack(s); return words.every((w) => h.includes(w)); });
+    const picked = P === "flow" ? flowCase : activeCaseId;
+    const groups = LIB_META.groups.concat([{id: "other", label: "Other systems"}]);
+    const item = (s) => {
+      const label = s.status ? LIB_STATUS[s.status](s) : "status not on file";
+      const meta = [s.pdb ? `PDB ${escapeHtml(s.pdb)}` : escapeHtml(s.source || "no PDB id"), s.ligand ? escapeHtml(s.ligand) : ""].filter(Boolean).join(" · ");
+      // a radio group: one Tab stop (the picked item, else the first), arrow keys move and pick
+      return `<button type="button" role="radio" class="${P === "flow" ? "qcase" : "case"} libitem st-${s.status || "unsupported"}${s.id === picked ? " on" : ""}" data-case="${s.id}" aria-checked="${s.id === picked}"
+        tabindex="-1" onclick="libPick('${P}', '${s.id}')"><span class="t">${escapeHtml(s.q)}</span><span class="s">${escapeHtml(s.title)}${s.note ? `; ${escapeHtml(s.note)}` : ""}</span>
+        <span class="m"><span>${meta}</span><span class="lchip ${s.status || "unsupported"}" title="${escapeHtml(s.status ? LIB_STATUS_WHY[s.status](s) : "")}">${escapeHtml(label)}</span></span></button>`;
+    };
+    box.innerHTML = groups.map((g) => {
+      const items = shown.filter((s) => s.group === g.id);
+      return items.length ? `<div class="lib-group" role="group" aria-labelledby="${P}-g-${g.id}"><h3 id="${P}-g-${g.id}">${escapeHtml(g.label)}</h3><div class="lib-list">${items.map(item).join("")}</div></div>` : "";
+    }).join("") || `<div class="lib-empty">No system matches “${escapeHtml(q)}”. Try a protein, a drug, a PDB id, or describe your own system below.</div>`;
+    $(P + "LibCount").innerText = q ? `${shown.length} of ${all.length}` : `${all.length} systems`;
+    markPicked(P, picked);
+  }
+  // radio-group keys: arrows move and pick (skipping nothing; an unsupported item explains itself), Home/End jump
+  for (const P of ["flow", "x"]) {
+    $(P === "flow" ? "flowCases" : "caseButtons").addEventListener("keydown", (ev) => {
+      const items = [...ev.currentTarget.querySelectorAll("button[data-case]")];
+      const i = items.indexOf(document.activeElement); if (i < 0) return;
+      const next = {ArrowDown: i + 1, ArrowRight: i + 1, ArrowUp: i - 1, ArrowLeft: i - 1, Home: 0, End: items.length - 1}[ev.key];
+      if (next === undefined) return;
+      ev.preventDefault();
+      const b = items[(next + items.length) % items.length];
+      b.focus(); b.click();
+    });
+  }
+  function libPick(P, id) {
+    const s = libSystems().find((x) => x.id === id) || {};
+    const note = $(P + "LibNote");
+    if (s.status === "unsupported") {
+      note.innerText = `${s.title} is not supported yet: ${LIB_STATUS_WHY.unsupported(s).replace(/^There is/, "there is")} You can still ask the AI chemist about it.`;
+      return;
+    }
+    note.innerText = s.status === "docker" ? `${s.title}: ${LIB_STATUS_WHY.docker(s)}` : "";
+    if (P === "flow") { if (byo.summary) detachQuiet(); flowPick(id); } else selectCase(id);
+  }
+  // mark the pick in place (re-rendering would drop keyboard focus from the button just pressed)
+  function markPicked(P, id) {
+    const items = [...$(P === "flow" ? "flowCases" : "caseButtons").querySelectorAll("button[data-case]")];
+    for (const b of items) {
+      const on = b.dataset.case === id;
+      b.classList.toggle("on", on); b.setAttribute("aria-checked", on ? "true" : "false"); b.removeAttribute("aria-pressed");
+      b.tabIndex = on ? 0 : -1;
+    }
+    if (items.length && !items.some((b) => b.tabIndex === 0)) items[0].tabIndex = 0;
+    if (P === "flow") showPicked();
+  }
+  // the Run area names what will run
+  // the Run button echoes the choice: "Run: EGFR + erlotinib", "Run: 4ZAU · YY3", "Run: match my description"
+  function showPicked() {
+    const s = flowCase && libSystems().find((x) => x.id === flowCase);
+    const text = $("flowPrompt").value.trim();
+    const att = typeof byo !== "undefined" && byo.summary;
+    let label, line;
+    if (att) {
+      const pick = (document.querySelector("input[name=byoTarget]:checked") || {}).value || "";
+      const lig = pick[0] === "l" ? (att.ligands || [])[Number(pick.slice(1))] : null, met = pick[0] === "m" ? (att.metals || [])[Number(pick.slice(1))] : null;
+      label = `Run: ${att.name || "attached structure"}${lig ? " · " + lig.resname : met ? " · " + (met.element || met.resname) : ""}`;
+      line = text ? "Your text is the question; the attached file is the structure." : "Add a question above if you like; the attached file is the structure.";
+    } else if (s) { label = `Run: ${s.title}`; line = `Selected: ${s.title}`; }
+    else if (text) { label = "Run: match my description"; line = "Will match your description to the closest supported system."; }
+    else { label = "Set it up and explain"; line = "Nothing selected yet: search, pick a verified example, or describe your system."; }
+    $("flowRunBtn").innerText = label; $("flowPicked").innerText = line;
+  }
+  function renderFlowCases() { markPicked("flow", flowCase); }
+  function flowPick(id) { flowCase = id; customRun = null; $("flowPrompt").value = ""; $("flowPickErr").innerText = ""; renderFlowCases(); }
+  $("flowPrompt").addEventListener("input", () => { if ($("flowPrompt").value.trim()) flowCase = null; renderFlowCases(); });
   // keep the two sets of toggles (Options here, Expert view's panel) in step
   for (const [a, b] of [["flowSample", "sampleModeToggle"], ["flowMd", "mdToggle"]]) {
     $(a).addEventListener("change", () => { $(b).checked = $(a).checked; });
@@ -1838,7 +2249,8 @@
     document.body.classList.toggle("expert", !!on);
     $("expertSwitch").setAttribute("aria-checked", on ? "true" : "false");
     try { localStorage.setItem("activesite-view", on ? "expert" : "simple"); } catch (e) { /* storage blocked: the toggle still works for this page */ }
-    if (on) { closeDialogs(); returnChat(); }
+    if (on) closeDialogs();
+    placeByo();
     window.dispatchEvent(new Event("resize"));
     if (on) requestAnimationFrame(() => { if (molDirty || !molViewerInstance) render3Dmol(); else { molViewerInstance.resize(); molViewerInstance.render(); } updateSecnav(); });
   }
@@ -1898,6 +2310,7 @@
   /* ---------- run ---------- */
   function flowRun() {
     if (flow.running) return;
+    if (byo.summary) { byoRun(); return; }          // an attached structure (file, example or PDB pick) runs with the text as its question
     const text = $("flowPrompt").value.trim();
     if (!flowCase && !text) { $("flowPickErr").innerText = "Pick a question or describe your system first."; return; }
     if (flowCase) selectCase(flowCase);
@@ -1914,7 +2327,7 @@
     $("flowRunBtn").disabled = true;
     $("flowSeeResult").hidden = true; $("flowRetry").hidden = true;
     $("s2h").innerText = "The agents are working";
-    $("s2kicker").innerText = activeCaseId ? (caseQ(activeCaseId).q || activeCaseId) : "Your request";
+    $("s2kicker").innerText = customRun ? `Your own structure · ${customRun.name}` : activeCaseId ? (caseQ(activeCaseId).q || activeCaseId) : "Your request";
     $("s2chip").innerHTML = chip("run");
     setFlowStatus("Working…", "run-on");
     renderChecklist();
@@ -1934,9 +2347,37 @@
     complex_integer_charge: "the whole complex has a whole-number charge",
     minimisation_relaxed: "the structure relaxed without large leftover forces",
   };
+  CHECK_PLAIN.prep_available = "the protein preparation is available";
   const plainCheck = (name) => CHECK_PLAIN[name] || String(name || "a check").replace(/_/g, " ");
-  function plainReason(errs) {
+  // Generic guard: Python list reprs and marker words from server summaries never reach the reader as-is.
+  // "flagged ['a', 'b']; BLOCKING ['a']" -> "flagged a, b; blocking a"
+  function plainInternals(text) {
+    return String(text ?? "")
+      .replace(/\[\s*((?:'[^']*'|"[^"]*"|[^\[\]'"])*?)\s*\]/g, (m, inner) => inner.replace(/['"]/g, "").replace(/\s*,\s*/g, ", "))
+      .replace(/\bBLOCKING\b/g, "blocking").replace(/\]\s*;\s*/g, "; ").replace(/[\[\]]/g, "");
+  }
+  // "flagged ['x']; BLOCKING ['y']" -> {flagged: ["x"], blocking: ["y"]}
+  function precheckLists(s) {
+    const list = (re) => { const m = re.exec(s); return m ? m[1].split(",").map((x) => x.replace(/['"\s]/g, "")).filter(Boolean) : []; };
+    return {flagged: list(/flagged\s*\[([^\]]*)\]/i), blocking: list(/BLOCKING\s*\[([^\]]*)\]/)};
+  }
+  // The expected stop of an uploaded structure in sample mode: preparation and energy need Docker, so the agents stop after
+  // proposing the setup. Information, not an error. Real blocks (a pocket check failing, …) are not matched here.
+  const PROPOSAL_STOP = "Preparation and the energy step need Docker; in sample mode the agents stop after proposing the setup.";
+  function expectedStop(e) {
+    const s = String(e.output_summary || "");
+    if (/proposal only|never replayed from cached output/i.test(s)) return true;
+    if (/precheck/.test(e.action || "") && customRun) {
+      const {blocking} = precheckLists(s);
+      return blocking.length > 0 && blocking.every((b) => b === "prep_available");
+    }
+    return false;
+  }
+  // st (optional): the run's stats; an uploaded structure in sample mode is labelled "proposal only" by the server
+  function plainReason(errs, st) {
     const e = (Array.isArray(errs) ? errs : [errs]).filter(Boolean).join("; ");
+    if (/proposal only/i.test(e) || /proposal only/i.test(String((st || {}).engine_label || "")))
+      return "this is a proposal only, because the engine was not run (sample mode has no saved run for your structure), so the agents chose the setup but computed no energy";
     if (/SAMPLE_MODE=true and no cached sample output/i.test(e)) return "sample mode is on and there is no saved engine result for this setup";
     if (/docker/i.test(e)) return "the chemistry engine (Docker) is not available on this machine";
     if (/topology/i.test(e)) return "this system has no Amber topology to compute with";
@@ -1944,11 +2385,18 @@
     if (e) return "the engine reported an error (the exact message is in the report and in Expert view)";
     return "the engine returned no value";
   }
+  // "QM/MM not run: blocked by pocket_built: …" -> "“the drug sits in its crystal pocket” did not hold"
+  function plainBlock(s) {
+    const names = [...String(s).matchAll(/blocked by ([a-z_]+)/gi)].map((m) => m[1]);
+    if (names.length) return names.map((n) => `“${plainCheck(n)}” did not hold`).join("; ");
+    return plainInternals(String(s).replace(/^QM\/MM not run:\s*/i, "")) || "a safety check did not hold";
+  }
   function sentenceFor(e) {
     const a = e.agent_name || "", act = e.action || "", st = String(e.status || ""), s = String(e.output_summary || "");
     const bad = ["failed", "error", "blocked"].includes(st);
     const key = a.replace(/^Ligand/, "") + "." + act;
     let m;
+    if (expectedStop(e) && key !== "Orchestrator.done" && key !== "Orchestrator.engine") return ["info", PROPOSAL_STOP];
     switch (key) {
       case "Planner.plan":
         m = /(\d+) steps?.*?theory (\S+?)(?:,|$)/.exec(s);
@@ -1967,8 +2415,10 @@
           return ["ok", q !== null ? `First guess for the charge of the quantum region: ${q} (textbook rule from the residues' formal charges).` : "Chose the charge of the quantum region."]; }
       case "Critic.precheck":
         if (st === "ok") return ["ok", "The Critic checked the setup before running: everything passed."];
-        m = /\[(.*)\]/.exec(s);
-        return ["warn", `The Critic flagged a concern before running: ${m ? m[1].split(",").map((x) => plainCheck(x.replace(/['\s]/g, ""))).map((x) => `“${x}” did not hold`).join("; ") : s}.`];
+        { const {flagged, blocking} = precheckLists(s);
+          const said = (xs) => xs.map((x) => `“${plainCheck(x)}” did not hold`).join("; ");
+          if (blocking.length) return ["bad", `The Critic stopped the run before the calculation: ${said(blocking)}.`];
+          return ["warn", `The Critic flagged a concern before running: ${flagged.length ? said(flagged) : plainInternals(s)}.`]; }
       case "Runner.run_qmmm":
         return st === "running" ? ["work", "Running the calculation…"] : null;
       case "Runner.cached_engine_output":
@@ -1984,6 +2434,8 @@
       case "Critic.postcheck":
         return ["ok", "Compared the quantum region with the lab expert's."];
       case "Critic.validate":
+        if (customRun) return /skipped/i.test(s) ? ["info", "Did not check the drug's contacts in your uploaded structure: there is no relaxed model without the preparation step."]
+                                                  : ["ok", "Compared the drug's contacts with your uploaded structure."];
         m = /(\d+)\/(\d+) recovered/.exec(s);
         return ["ok", m ? `Compared the drug's contacts with the published structure: ${m[1]} of ${m[2]} found.` : "Compared the drug's contacts with the published structure."];
       case "Setup.choose_chain":
@@ -1999,8 +2451,9 @@
       case "Setup.recall":
         return /rule recalled: True/.test(s) ? ["ok", "Recalled a lesson from an earlier run."] : ["ok", "Checked memory for earlier lessons: none apply here."];
       case "Setup.prep":
-        return st === "cached" ? ["replay", "Sample mode: loaded the saved protein preparation (protonation and drug parameters) instead of running it now."]
-                               : [bad ? "bad" : "ok", bad ? "Preparing the protein failed." : "Prepared the protein (protonation and drug parameters)."];
+        if (st === "cached") return ["replay", "Sample mode: loaded the saved protein preparation (protonation and drug parameters) instead of running it now."];
+        if (st === "skipped") return ["info", "Skipped preparing the protein (protonation and drug parameters) in this run."];
+        return [bad ? "bad" : "ok", bad ? "Preparing the protein failed." : "Prepared the protein (protonation and drug parameters)."];
       case "Explainer.cards":
         m = /(\d+) decision cards/.exec(s);
         return ["ok", m ? `Wrote ${m[1]} decision cards, one per choice, with evidence.` : "Wrote the decision cards."];
@@ -2009,10 +2462,12 @@
       case "Orchestrator.done":
         return st === "ok" ? ["ok", "Finished."] : ["bad", "Finished with problems: see the result."];
       case "Orchestrator.engine":
-        return ["bad", `No energy was computed: ${plainReason(s)}.`];
+        return [/proposal only/i.test(s) ? "info" : "bad", `No energy was computed: ${plainReason(s)}.`];
+      case "Orchestrator.blocked":
+        return ["bad", `The run stopped before the calculation: ${plainBlock(s)}.`];
     }
     if (a === "Server" || a === "ChimeraX") return null;      // failures are shown by flowFail; viewer actions are not run steps
-    if (bad) return ["bad", `${a || "An agent"} could not finish “${String(act).replace(/_/g, " ")}”.`];
+    if (bad) return ["bad", `${a || "An agent"} could not finish “${String(act).replace(/_/g, " ")}”${s ? `: ${plainInternals(s)}` : ""}.`];
     return [st === "cached" ? "replay" : "ok", `${a || "An agent"} finished the step “${String(act).replace(/_/g, " ")}”.`];
   }
   function flowStep(e) {
@@ -2026,18 +2481,20 @@
     flow.lines.push({tone, text});
     renderChecklist();
   }
-  const ICON = {ok: "✓", warn: "↻", replay: "↺", bad: "✕", work: "…"};
+  const ICON = {ok: "✓", warn: "↻", replay: "↺", bad: "✕", work: "…", info: "ℹ"};
   function renderChecklist() {
     const lines = flow.lines.slice();
     if (flow.running && !lines.some((l) => l.tone === "work")) lines.push({tone: "work", text: "Working…"});
-    $("flowChecklist").innerHTML = lines.map((l) => `<li class="c-${l.tone}"><span class="ic" aria-hidden="true">${l.tone === "work" ? '<span class="spinner"></span>' : ICON[l.tone]}</span><span>${glossify(l.text)}</span></li>`).join("");
+    $("flowChecklist").innerHTML = lines.map((l) => `<li class="c-${l.tone}"><span class="ic" aria-hidden="true">${l.tone === "work" ? '<span class="spinner"></span>' : ICON[l.tone]}</span><span>${glossify(plainInternals(l.text))}</span></li>`).join("");
   }
   function flowFail(msg) {
     flow.running = false; flow.failed = msg || "unknown error";
     flow.lines = flow.lines.filter((l) => l.tone !== "work");
     const plain = /no benchmark case matches/i.test(flow.failed) ? "No supported case matches your request. Try one of the questions on the first screen, or name the protein and drug or metal."
                 : /unknown case/i.test(flow.failed) ? "The server does not know that case."
+                : customRun ? `Your structure could not be run: ${flow.failed}`
                 : `The run stopped: ${flow.failed}`;
+    if (customRun && $("byoRunErr")) $("byoRunErr").innerText = `Your structure could not be run: ${flow.failed}`;
     flow.lines.push({tone: "bad", text: plain});
     renderChecklist();
     $("s2h").innerText = "The run did not finish";
@@ -2049,9 +2506,10 @@
     flow.running = false; flow.done = true; flow.payload = payload;
     flow.lines = flow.lines.filter((l) => l.tone !== "work");
     renderChecklist();
-    const ok = (payload.stats || {}).qm_ok;
+    const pst = payload.stats || {}, ok = pst.qm_ok;
+    const proposal = !ok && (pst.custom || customRun) && /proposal only/i.test(String(pst.engine_label || "") + (pst.errors || []).join(" "));
     $("s2h").innerText = "The agents finished";
-    setFlowStatus(ok ? "Finished" : "Finished · no energy", ok ? "ok" : "bad");
+    setFlowStatus(ok ? "Finished" : proposal ? "Proposal only" : "Finished · no energy", ok ? "ok" : proposal ? "warn" : "bad");
     $("flowRunBtn").disabled = false;
     $("flowSeeResult").hidden = false; $("flowRetry").hidden = false;
     renderResult(payload);
@@ -2076,9 +2534,15 @@
     if (v && typeof v === "object" && "recovered" in v) {
       const n = Object.keys(v.recovered || {}).length, pub = v.published;
       const pocket = checks.filter((c) => c.name === "pocket_built" || c.name === "pocket_min");
-      let s = pocket.length ? (pocket.every((c) => c.passed) ? "The drug sits in its crystal pocket" : "The drug did not stay in its crystal pocket") : "The drug was placed in its pocket";
+      const custom = !!(st.custom || customRun);
+      let s = pocket.length ? (pocket.every((c) => c.passed) ? "The drug sits in its crystal pocket" : "The drug did not stay in its crystal pocket")
+            : custom ? "The agents proposed a setup for the drug in your uploaded structure" : "The drug was placed in its pocket";
       if (pocket.length) provs.add("run");
-      if (v.available === false || !isNum(pub)) { s += "; its contacts with the protein were not compared with published data"; provs.add("nc"); }
+      if (v.available === false || !isNum(pub)) {
+        // an uploaded structure has no published contacts on file; say what was (not) checked against it
+        s += custom ? "; its contacts in your structure were not checked" : "; its contacts with the protein were not compared with published data";
+        provs.add("nc");
+      }
       else {
         provs.add("expert");
         s += `; ${n} of ${pub} published contacts ${n === 1 ? "is" : "are"} present`;
@@ -2099,7 +2563,9 @@
         }
       }
       out.push(s + ".");
-      if ((st.blocked || []).length) { out.push(`The run stopped at a safety check: ${st.blocked.map(plainCheck).join(", ")}.`); provs.add("run"); }
+      // the expected proposal-only stop (uploaded structure, sample mode) is explained by the energy sentence below, not as a failed check
+      const realBlocks = (st.blocked || []).filter((b) => !(b === "prep_available" && (st.custom || customRun) && /proposal only/i.test(String(st.engine_label || "") + (st.errors || []).join(" "))));
+      if (realBlocks.length) { out.push(`The run stopped at a safety check: ${realBlocks.map(plainCheck).join(", ")} did not hold.`); provs.add("run"); }
     } else if (v && typeof v === "object" && ("jaccard" in v || "expert_mask_present" in v)) {
       const c = metalCounts(v, st);
       let s;
@@ -2134,7 +2600,7 @@
       out.push("The agents finished the setup; nothing in this run was compared with an expert setup or published data.");
       provs.add("nc");
     }
-    if (!engineOk) { out.push(`No energy was computed: ${plainReason(st.errors || res.errors)}.`); provs.add("nc"); }
+    if (!engineOk) { out.push(`No energy was computed: ${plainReason(st.errors || res.errors, st)}.`); provs.add("nc"); }
     return {text: out.join(" "), provs};
   }
 
@@ -2143,12 +2609,13 @@
     const st = p.stats || {}, v = p.validation || {}, res = p.result || {}, checks = p.checks || st.checks || [];
     const tiles = [];
     const tile = (title, valueHtml, prov, facts, extra) => tiles.push(
-      `<div class="tile"><div class="tk">${glossify(title)}</div><div class="tv${prov === "nc" ? " nc" : ""}" data-prov="${prov}">${valueHtml}${chip(prov)}</div>${(facts || []).join("")}${extra || ""}</div>`);
+      `<div class="tile p-${prov}"><div class="tk">${glossify(title)}</div><div class="tv${prov === "nc" ? " nc" : ""}" data-prov="${prov}">${valueHtml}${chip(prov)}</div>${(facts || []).join("")}${extra || ""}</div>`);
     const isLig = v && typeof v === "object" && "recovered" in v;
     // 1. agreement with an independent reference
     if (isLig) {
       const rec = Object.entries(v.recovered || {});
-      if (!isNum(v.published) || v.available === false) tile("Published contacts found", "—", "nc", [`<div class="fact">no published contacts on file for this case</div>`]);
+      if ((st.custom || customRun) && (!isNum(v.published) || v.available === false)) tile("Contacts in your structure", "—", "nc", [`<div class="fact">not checked: there is no relaxed model without the preparation step, and no published contacts are on file for an uploaded structure</div>`]);
+      else if (!isNum(v.published) || v.available === false) tile("Published contacts found", "—", "nc", [`<div class="fact">no published contacts on file for this case</div>`]);
       else {
         const items = rec.map(([k, d]) => `<li data-prov="expert">✓ ${glossify(k)}: ${glossify(num(d, 2) + " Å")} apart (a hydrogen-bond distance)${chip("expert")}</li>`)
           .concat((v.missed || []).map((k) => `<li>✕ ${glossify(k)}: not found</li>`))
@@ -2180,7 +2647,7 @@
     const ep = engineProv(st, isNum(escf) ? escf : null), tp = engineProv(st, isNum(tot) ? tot : null);
     tile("Energy of the quantum part", isNum(escf) ? `${num(escf, 1)}<small>${glossify("kcal/mol")}</small>` : "—", ep,
          [isNum(tot) ? fact(tp, `${glossify("whole system")}: ${num(tot, 1)} ${glossify("kcal/mol")}`) : fact("nc", `${glossify("whole system")}: —`)]
-         .concat(ep === "nc" ? [`<div class="fact">${glossify(plainReason(st.errors || res.errors))}</div>`] : []));
+         .concat(ep === "nc" ? [`<div class="fact">${glossify(plainReason(st.errors || res.errors, st))}</div>`] : []));
     // 4. safety checks
     if (checks.length) {
       const passed = checks.filter((c) => c.passed).length;
@@ -2288,22 +2755,381 @@
     showInfo("Report", `<div data-prov="run"><div class="fact">Written by the Explainer agent from this run's data${chip("run")}; energies: ${chip(ep)}</div><div class="md" id="flowReport" style="margin-top:10px">${src.innerHTML}</div></div>`);
     glossifyDom($("flowReport"));
   }
+  /* ---------- the chat drawer: opens from any section (button, "Ask why", Expert's Chat section); Esc closes ---------- */
+  let chatOpener = null;
   function openChat() {
-    const panel = $("tabChat");
-    $("chatDrawerBody").appendChild(panel);
-    panel.classList.remove("hidden");
-    const d = $("dlgChat"); if (!d.open) d.showModal();
+    const d = $("dlgChat");
+    // another dialog (3D, report, a "why" card) gives way: one modal at a time
+    for (const o of document.querySelectorAll("dialog[open]")) if (o !== d) o.close();
+    if (!d.open) { chatOpener = document.activeElement; d.showModal(); }
+    document.body.classList.add("chat-open");
+    $("askFab").hidden = true;
+    requestAnimationFrame(() => { $("chatInput").focus(); chatToBottom(); });
   }
-  function returnChat() {
-    const panel = $("tabChat");
-    if (panel.parentElement !== $("chatHome").parentElement) $("chatHome").after(panel);
-    panel.classList.remove("hidden");
-  }
-  $("dlgChat").addEventListener("close", returnChat);
+  function returnChat() { /* the chat lives in the drawer now; kept for older callers */ }
+  $("dlgChat").addEventListener("close", () => {
+    document.body.classList.remove("chat-open");
+    $("askFab").hidden = false;
+    if (chatOpener && document.contains(chatOpener) && chatOpener.focus) chatOpener.focus({preventScroll: true});
+    chatOpener = null;
+  });
+  // showModal already makes the page behind inert; this keeps Tab cycling inside the drawer instead of leaving for the browser bar
+  $("dlgChat").addEventListener("keydown", (ev) => {
+    if (ev.key !== "Tab") return;
+    const f = [...$("dlgChat").querySelectorAll("button, textarea, input, summary, a[href], [tabindex]:not([tabindex='-1'])")]
+      .filter((el) => !el.disabled && el.offsetParent !== null);
+    if (!f.length) return;
+    const first = f[0], last = f[f.length - 1];
+    if (ev.shiftKey && document.activeElement === first) { ev.preventDefault(); last.focus(); }
+    else if (!ev.shiftKey && document.activeElement === last) { ev.preventDefault(); first.focus(); }
+  });
   for (const d of document.querySelectorAll("dialog")) d.addEventListener("close", hideTip);
 
+  /* ---------- bring your own structure: upload -> summary -> pick a ligand or metal -> optional SMILES and mutations -> run ----------
+     Endpoints (built on another branch): POST /api/structures/upload, POST /api/structures/{id}/mutate, GET /api/structures/{id}/file,
+     POST /api/run {custom}. A 404 means this server does not have them yet: the card says so and nothing else changes. */
+  const byo = {state: "idle", summary: null, parent: null, error: "", busy: false, source: null};
+
+  /* ---------- screen 1: one chooser, three paths (tabs: arrow keys move, Home/End jump; one Tab stop) ---------- */
+  let chooserTab = "search";
+  function setChooser(tab, focus) {
+    chooserTab = tab;
+    for (const t of ["search", "verified"]) {
+      const b = $("tab-" + t), on = t === tab;
+      b.setAttribute("aria-selected", on ? "true" : "false"); b.tabIndex = on ? 0 : -1;
+      $("pane-" + t).hidden = !on;
+    }
+    if (focus) $("tab-" + tab).focus();
+    placeByo();
+  }
+  $("chooserTabs").addEventListener("keydown", (ev) => {
+    const order = ["search", "verified"], i = order.indexOf(chooserTab);
+    const j = {ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: order.length - 1}[ev.key];
+    if (j === undefined) return;
+    ev.preventDefault();
+    setChooser(order[(j + order.length) % order.length], true);
+  });
+
+  /* ---------- search the Protein Data Bank -> pick an entry -> the server downloads it -> the own-structure flow ---------- */
+  let pdbRows = [];
+  async function pdbSearch() {
+    const q = $("pdbQuery").value.trim();
+    const st = $("pdbStatus");
+    st.className = "pane-status";
+    if (!q) { st.innerText = "Type a protein, a drug or a PDB id."; return; }
+    st.innerHTML = `<span class="spinner"></span> Searching the Protein Data Bank…`;
+    $("pdbGo").disabled = true;
+    try {
+      const resp = await fetch("/api/pdb/search?q=" + encodeURIComponent(q));
+      if (resp.status === 404) throw new Error("Search is not available on this server yet. Try a verified example or upload a file.");
+      if (!resp.ok) throw new Error(await errText(resp));
+      pdbRows = (await resp.json()).results || [];
+      st.innerText = pdbRows.length ? `${pdbRows.length} entr${pdbRows.length === 1 ? "y" : "ies"} for “${q}”. Pick one with a small molecule bound.` : `No entries for “${q}”. Try another name, a drug, or a PDB id.`;
+      renderPdbRows();
+    } catch (err) {
+      pdbRows = []; renderPdbRows();
+      st.className = "pane-status err"; st.innerText = err.message;
+    } finally { $("pdbGo").disabled = false; }
+  }
+  function renderPdbRows() {
+    const picked = byo.source === "pdb" && byo.summary ? byo.summary.pdb_id : null;
+    $("pdbResults").innerHTML = pdbRows.map((r) => {
+      const ligs = r.ligands || [], mets = r.metals || [];
+      const chips = ligs.map((l) => `<span class="lchip docker" title="${escapeHtml(l.name || "")}">${escapeHtml(l.id)}${l.name ? " · " + escapeHtml(String(l.name).toLowerCase().slice(0, 40)) : ""}</span>`)
+        .concat(mets.map((m) => `<span class="lchip unsupported" title="${escapeHtml(m.name || "")}">${escapeHtml(m.id)} (metal)</span>`));
+      const can = ligs.length > 0;
+      const note = can ? "" : mets.length ? "Only metal sites: metal sites from downloaded files are not supported yet." : "No bound small molecule: nothing here for the agents to study.";
+      const meta = [r.organism, isNum(r.resolution) ? `${num(r.resolution, 2)} Å resolution` : "resolution not reported"].filter(Boolean).join(" · ");
+      const ver = r.verified_case ? `<span class="lchip verified">used by a verified example</span> <button type="button" class="linkbtn" onclick="openVerified('${escapeHtml(r.verified_case)}')">Open the verified example</button>` : "";
+      return `<li class="pdb-row${r.pdb_id === picked ? " on" : ""}" data-pdb="${escapeHtml(r.pdb_id)}"><div><span class="id">${escapeHtml(r.pdb_id)}</span> <span class="tt">${escapeHtml(r.title || "untitled entry")}</span>
+        <div class="mt">${escapeHtml(meta)}</div><div class="chips2">${chips.join("") || `<span class="mt">no bound ligand or metal</span>`} ${ver}</div>${note ? `<div class="note">${note}</div>` : ""}</div>
+        <div><button type="button" class="${can ? "run" : "secondary"}" ${can ? "" : "disabled"} onclick="pickPdb('${escapeHtml(r.pdb_id)}')" aria-label="Use ${escapeHtml(r.pdb_id)}">Use ${escapeHtml(r.pdb_id)}</button></div></li>`;
+    }).join("");
+  }
+  /* ---------- typeahead (ARIA combobox): local matches at once, RCSB suggestions appended when they arrive ---------- */
+  const SUG = {items: [], active: -1, seq: 0, timer: 0, pending: false, q: ""};
+  const KIND_TAG = {"verified example": ["verified", "verified example"], protein: ["protein", "protein"], chemical: ["chemical", "chemical"], keyword: ["keyword", "keyword"]};
+  // the page's own vocabulary (same idea as the server's): drug, protein, ligand code and PDB id of each library system
+  function localVocab() {
+    const out = [];
+    for (const s of LIB_META.systems) {
+      const kind = s.status === "unsupported" ? "keyword" : "verified example", ref = kind === "keyword" ? null : s.id;
+      const lig = /^(.*?)\s*\(([^)]+)\)\s*$/.exec(s.ligand || "");
+      const protein = s.title.split(/\s+\+\s+|,\s*/)[0];
+      for (const text of [lig ? lig[1] : null, protein, lig ? lig[2] : null, s.pdb]) if (text && !/ion\b/i.test(text)) out.push({text, kind, case: ref});
+    }
+    return out;
+  }
+  function prefixSpan(text, q) {
+    const t = text.toLowerCase(), l = q.toLowerCase();
+    if (t.startsWith(l)) return [[0, q.length]];
+    const re = /[\s\-\/(,]+/g; let m;
+    while ((m = re.exec(t))) if (t.startsWith(l, m.index + m[0].length)) return [[m.index + m[0].length, m.index + m[0].length + q.length]];
+    return null;
+  }
+  function addSuggestions(list) {
+    const key = (t) => String(t || "").trim().toLowerCase().replace(/β/g, "beta");     // "β-lactamase" = "beta-lactamase"
+    const seen = new Set(SUG.items.map((s) => key(s.text)));
+    for (const s of list) {
+      const k = key(s.text);
+      if (!k || seen.has(k) || SUG.items.length >= 8) continue;
+      seen.add(k); SUG.items.push(s);
+    }
+  }
+  function markText(text, spans) {
+    let html = "", pos = 0;
+    for (const [a, b] of (spans || []).slice().sort((x, y) => x[0] - y[0])) {
+      if (a < pos || b > text.length) continue;
+      html += escapeHtml(text.slice(pos, a)) + `<mark>${escapeHtml(text.slice(a, b))}</mark>`; pos = b;
+    }
+    return html + escapeHtml(text.slice(pos));
+  }
+  function renderSuggest() {
+    const box = $("pdbSuggest"), input = $("pdbQuery");
+    const open = SUG.items.length > 0 && document.activeElement === input;
+    box.hidden = !open; input.setAttribute("aria-expanded", open ? "true" : "false");
+    if (!open) { input.removeAttribute("aria-activedescendant"); return; }
+    box.innerHTML = SUG.items.map((s, i) => {
+      const [cls, label] = KIND_TAG[s.kind] || ["keyword", s.kind];
+      return `<li role="option" id="sug-${i}" aria-selected="${i === SUG.active}" data-i="${i}"><span class="sx">${markText(s.text, s.spans)}</span><span class="kt ${cls}">${escapeHtml(label)}</span></li>`;
+    }).join("") + (SUG.pending ? `<li class="more" role="presentation" aria-hidden="true">searching the Protein Data Bank…</li>` : "");
+    if (SUG.active >= 0) { input.setAttribute("aria-activedescendant", "sug-" + SUG.active); const el = $("sug-" + SUG.active); if (el) el.scrollIntoView({block: "nearest"}); }
+    else input.removeAttribute("aria-activedescendant");
+  }
+  function closeSuggest() { SUG.items = []; SUG.active = -1; SUG.pending = false; SUG.seq++; clearTimeout(SUG.timer); renderSuggest(); }
+  function onQueryInput() {
+    const q = $("pdbQuery").value.trim();
+    SUG.q = q; SUG.active = -1; SUG.items = [];
+    clearTimeout(SUG.timer);
+    if (q.length < 2 || q.length > 40) { closeSuggest(); return; }
+    // instant: the page's own systems
+    addSuggestions(localVocab().map((v) => ({...v, spans: prefixSpan(v.text, q)})).filter((v) => v.spans));
+    SUG.pending = true; renderSuggest();
+    const seq = ++SUG.seq;
+    SUG.timer = setTimeout(async () => {
+      try {
+        const resp = await fetch("/api/pdb/suggest?q=" + encodeURIComponent(q));
+        const data = resp.ok ? await resp.json() : {suggestions: []};
+        if (seq !== SUG.seq) return;                  // the box changed since: drop this answer
+        addSuggestions(data.suggestions || []);       // appended after what is shown, so nothing under the cursor moves
+      } catch (e) { /* typeahead never shows an error; the local suggestions stay */ }
+      if (seq !== SUG.seq) return;
+      SUG.pending = false; renderSuggest();
+    }, 150);
+  }
+  function chooseSuggestion(i) {
+    const s = SUG.items[i]; if (!s) return;
+    $("pdbQuery").value = s.text;
+    closeSuggest();
+    pdbSearch();                                    // a verified example's own entry is pinned first in the results, with "Open the verified example"
+  }
+  $("pdbQuery").addEventListener("input", onQueryInput);
+  $("pdbQuery").addEventListener("focus", () => { if (SUG.q === $("pdbQuery").value.trim() && SUG.items.length) renderSuggest(); });
+  $("pdbQuery").addEventListener("keydown", (ev) => {
+    const n = SUG.items.length, open = !$("pdbSuggest").hidden;
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+      if (!n) return;
+      ev.preventDefault();
+      const down = ev.key === "ArrowDown";
+      if (!open) SUG.active = down ? 0 : n - 1;
+      else if (down) SUG.active = SUG.active + 1 >= n ? -1 : SUG.active + 1;     // past the last item: back to the text box
+      else SUG.active = SUG.active <= -1 ? n - 1 : SUG.active - 1;
+      renderSuggest();
+    } else if (ev.key === "Enter" && open && SUG.active >= 0) {
+      ev.preventDefault(); chooseSuggestion(SUG.active);
+    } else if (ev.key === "Escape" && open) {
+      ev.preventDefault(); ev.stopPropagation(); closeSuggest();
+    } else if (ev.key === "Enter") {
+      closeSuggest();                                 // plain Enter: the form runs the search with the typed text
+    }
+  });
+  $("pdbSuggest").addEventListener("mousedown", (ev) => ev.preventDefault());   // keep focus in the box while choosing
+  $("pdbSuggest").addEventListener("click", (ev) => { const li = ev.target.closest("li[role=option]"); if (li) chooseSuggestion(Number(li.dataset.i)); });
+  $("pdbSuggest").addEventListener("mousemove", (ev) => {
+    const li = ev.target.closest("li[role=option]"); if (!li || Number(li.dataset.i) === SUG.active) return;
+    SUG.active = Number(li.dataset.i); renderSuggest();
+  });
+  document.addEventListener("mousedown", (ev) => { if (!$("pdbCombo").contains(ev.target)) closeSuggest(); });
+  $("pdbQuery").addEventListener("blur", () => setTimeout(() => { if (document.activeElement !== $("pdbQuery")) closeSuggest(); }, 0));
+
+  function openVerified(caseId) { setChooser("verified", true); libPick("flow", caseId); }
+  async function pickPdb(id) {
+    const st = $("pdbStatus");
+    st.className = "pane-status"; st.innerHTML = `<span class="spinner"></span> Downloading ${escapeHtml(id)} from the Protein Data Bank…`;
+    try {
+      const resp = await fetch("/api/structures/fetch", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({pdb_id: id})});
+      if (!resp.ok) {
+        const detail = await errText(resp);   // a missing route says "Not Found"; an unknown entry says so in words
+        throw new Error(resp.status === 404 && detail === "Not Found" ? "Downloading from the Protein Data Bank is not available on this server yet." : detail);
+      }
+      attach(await resp.json(), "pdb");
+      st.innerText = `${id} is attached below: add your question, choose what to study, then run.`;
+      $("composerBlock").scrollIntoView({block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+    } catch (err) { st.className = "pane-status err"; st.innerText = err.message; }
+  }
+  const AA1 = "ACDEFGHIKLMNPQRSTVWY";
+  const MUT_RE = new RegExp(`^([A-Za-z0-9]):([${AA1}])(-?\\d+)([A-Z]?)([${AA1}])$`);
+  // The composer (free text + attached structure + its set-up) lives on screen 1, or in Expert view's setup section.
+  function placeByo() {
+    const host = $(document.body.classList.contains("expert") ? "byoHostX" : "composerHostFlow");
+    if ($("composerBlock").parentElement !== host) host.appendChild($("composerBlock"));
+    if ($("byoCard").parentElement !== $("byoHostFlow")) $("byoHostFlow").appendChild($("byoCard"));   // the set-up sits right under the composer
+    renderByo();
+  }
+  async function byoExample(name) {
+    byo.state = "uploading"; byo.error = ""; byo.source = "example"; renderByo();
+    try {
+      const resp = await fetch("/api/structures/example", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({example: name})});
+      if (offline(resp)) throw new Error("Example files are not available on this server yet.");
+      if (!resp.ok) throw new Error(await errText(resp));
+      attach(await resp.json(), "example");
+    } catch (err) { byo.state = "error"; byo.error = err.message; renderByo(); }
+  }
+  // a structure becomes "attached": it replaces any verified pick (the file is the structure; the text stays the question)
+  function attach(summary, source) {
+    Object.assign(byo, {summary, parent: null, state: "summary", source, error: ""});
+    flowCase = null; markPicked("flow", null);
+    renderByo(); renderPdbRows();
+  }
+  function detachQuiet() {
+    Object.assign(byo, {summary: null, parent: null, state: "idle", source: null, error: ""});
+    renderByo(); renderPdbRows(); showPicked();
+  }
+  function detach() { detachQuiet(); $("attachBtn").focus(); }
+  const offline = (resp) => resp.status === 404 || resp.status === 405 || resp.status === 501;
+  // a server error as one plain sentence: a string detail as is; FastAPI's list form as its messages joined
+  async function errText(resp) {
+    try {
+      const j = await resp.json(), d = j.detail;
+      if (typeof d === "string") return d;
+      if (Array.isArray(d)) return d.map((x) => (x && (x.msg || x.message)) || String(x)).join("; ");
+      return (d && (d.msg || d.message)) || resp.statusText || `HTTP ${resp.status}`;
+    } catch (e) { return resp.statusText || `HTTP ${resp.status}`; }
+  }
+  const SOURCE_WORDS = {pdb: "from the Protein Data Bank", example: "example file shipped with ActiveSite", upload: "your file"};
+
+  function renderByo() {
+    const el = $("byoBody"), status = $("attachStatus"), chip = $("attachChip"), s = byo.summary;
+    $("composerBlock").classList.toggle("attached", !!s);
+    status.className = "pane-status";
+    status.innerHTML = byo.state === "uploading" ? `<span class="spinner"></span> Reading the structure…`
+      : byo.state === "offline" ? "Attaching files is not available on this server yet."
+      : byo.state === "error" ? escapeHtml(byo.error) : "";
+    if (byo.state === "error") status.className = "pane-status err";
+    // the attachment as a removable chip inside the composer: name · chains · ligands
+    chip.innerHTML = s ? `<span class="att"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.9-8.9a3.7 3.7 0 0 1 5.2 5.2l-8.9 8.9a1.8 1.8 0 0 1-2.6-2.6l8.2-8.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <b>${escapeHtml(s.name || "structure")}</b><span class="att-meta">${escapeHtml(SOURCE_WORDS[byo.source] || "your file")} · chains ${escapeHtml((s.chains || []).map((c) => c.id).join(", ") || "none")} · ligands ${escapeHtml((s.ligands || []).map((l) => l.resname).join(", ") || "none")}</span>
+        <button type="button" class="att-x" aria-label="Remove the attached structure ${escapeHtml(s.name || "")}" onclick="detach()">✕</button></span>` : "";
+    $("byoCard").hidden = !s;
+    if (!s) { el.innerHTML = ""; showPicked(); return; }
+    const chains = (s.chains || []).map((c) => `${escapeHtml(c.id)} (${escapeHtml(c.n_residues)} residues)`).join(", ") || "none found";
+    const ligs = s.ligands || [], mets = s.metals || [];
+    const opts = ligs.map((l, i) => `<label><input type="radio" name="byoTarget" value="l${i}"${i === 0 ? " checked" : ""}><span>Small molecule <b>${escapeHtml(l.resname)}</b>, chain ${escapeHtml(l.chain)}, residue ${escapeHtml(l.resi)} (${escapeHtml(l.n_heavy_atoms)} heavy atoms)</span></label>`)
+      .concat(mets.map((m, i) => `<label><input type="radio" name="byoTarget" value="m${i}"${!ligs.length && i === 0 ? " checked" : ""}><span>Metal ion <b>${escapeHtml(m.element || m.resname)}</b> (${escapeHtml(m.resname)}), chain ${escapeHtml(m.chain)}, residue ${escapeHtml(m.resi)}</span></label>`));
+    el.innerHTML = `<div class="byo-sum" id="byoSummary">
+      <div class="row"><b>${escapeHtml(s.name || "your structure")}</b> <span class="muted">· ${escapeHtml(SOURCE_WORDS[byo.source] || "your file")} · ${escapeHtml(String(s.format || "").toUpperCase() || "format not reported")} · ${escapeHtml(s.n_atoms ?? "not reported")} atoms</span></div>
+      <div class="row"><b>Chains:</b> ${chains}</div>
+      <div class="row"><b>Small molecules:</b> ${ligs.length ? ligs.map((l) => escapeHtml(l.resname)).join(", ") : "none"} · <b>Metal ions:</b> ${mets.length ? mets.map((m) => escapeHtml(m.element || m.resname)).join(", ") : "none"}</div>
+      <div class="row" id="byoApplied" role="status"></div>
+      ${(s.warnings || []).length ? `<div class="byo-warn" role="note"><b>Warnings from reading the file</b><ul>${s.warnings.map((w) => `<li>${escapeHtml(w)}</li>`).join("")}</ul></div>` : ""}
+      ${opts.length ? `<fieldset class="pick"><legend>What should the agents study?</legend>${opts.join("")}</fieldset>`
+                    : `<div class="byo-err" role="alert">This file has no small molecule or metal ion, so there is no active site to centre the quantum region on.</div>`}
+      ${!ligs.length && mets.length ? `<div class="byo-warn" role="note">Only metal sites here. Metal sites from uploaded or downloaded files are not supported yet (the metal rules need an Amber topology); the I-PpoI verified examples cover metal sites.</div>` : ""}
+      <div class="field"><label for="byoSmiles">Drug structure as SMILES (optional)</label><input id="byoSmiles" autocomplete="off" spellcheck="false" placeholder="e.g. CC(=O)Oc1ccccc1C(=O)O">
+        <div class="hint">Needed only if the small molecule is new. Known PDB ligands are looked up by their three-letter code.</div></div>
+      <div class="field"><label for="byoMut">Mutations (optional)</label><input id="byoMut" autocomplete="off" spellcheck="false" placeholder="A:Y61F, A:T766M" aria-describedby="byoMutHint byoMutErr" oninput="byoCheckMut()">
+        <div class="hint" id="byoMutHint">Chain:old residue, number, new residue, comma-separated. Each new side chain is rebuilt from a template; neighbouring side chains are not repacked.</div>
+        <div class="ferr" id="byoMutErr" role="alert"></div></div>
+      <div class="field ph"><label for="byoPh">pH</label><input id="byoPh" type="number" min="0" max="14" step="0.1" value="7.4"></div>
+      <span class="inline-err" id="byoRunErr" role="alert"></span>
+    </div>`;
+    el.querySelector("fieldset.pick") && el.querySelector("fieldset.pick").addEventListener("change", showPicked);
+    showApplied(s);
+    showPicked();
+  }
+  // drop a file anywhere on the composer
+  (function wireComposerDrop() {
+    const d = $("composer");
+    d.addEventListener("dragover", (ev) => { ev.preventDefault(); d.classList.add("drag"); });
+    d.addEventListener("dragleave", (ev) => { if (!d.contains(ev.relatedTarget)) d.classList.remove("drag"); });
+    d.addEventListener("drop", (ev) => { ev.preventDefault(); d.classList.remove("drag"); const f = ev.dataTransfer.files[0]; if (f) byoUpload(f); });
+  })();
+  // inline check of "A:Y61F, A:T766M": format, residue letters, and that the chain is in the file
+  function parseMutations(text) {
+    const items = String(text || "").split(/[,\s;]+/).map((x) => x.trim().toUpperCase()).filter(Boolean);
+    const chains = new Set(((byo.summary || {}).chains || []).map((c) => String(c.id).toUpperCase()));
+    const bad = [];
+    for (const it of items) {
+      const m = MUT_RE.exec(it);
+      if (!m) bad.push(`“${it}” is not in the form A:Y61F`);
+      else if (chains.size && !chains.has(m[1])) bad.push(`chain ${m[1]} is not in this file`);
+    }
+    return {items, bad};
+  }
+  function byoCheckMut() {
+    const {bad} = parseMutations($("byoMut").value);
+    $("byoMutErr").innerText = bad.length ? bad.join("; ") + "." : "";
+    $("byoMut").setAttribute("aria-invalid", bad.length ? "true" : "false");
+    return !bad.length;
+  }
+  async function byoUpload(file) {
+    if (!file) return;
+    byo.state = "uploading"; byo.error = ""; byo.source = "upload"; renderByo();
+    const fd = new FormData(); fd.append("file", file); fd.append("name", file.name.replace(/\.[^.]+$/, ""));
+    try {
+      const resp = await fetch("/api/structures/upload", {method: "POST", body: fd});
+      if (offline(resp)) { byo.state = "offline"; renderByo(); return; }
+      if (!resp.ok) throw new Error(await errText(resp));
+      attach(await resp.json(), "upload");
+    } catch (err) { byo.state = "error"; byo.error = `Could not read that file: ${err.message}`; renderByo(); }
+  }
+  async function byoRun() {
+    if (byo.busy || !byo.summary) return;
+    const err = $("byoRunErr"); err.innerText = "";
+    if (!byoCheckMut()) { $("byoMut").focus(); return; }
+    const pick = (document.querySelector("input[name=byoTarget]:checked") || {}).value;
+    if (!pick) { err.innerText = "Choose a small molecule or a metal ion to study."; return; }
+    const ph = Number($("byoPh").value);
+    if (!(ph >= 0 && ph <= 14)) { err.innerText = "pH must be between 0 and 14."; return; }
+    const smiles = $("byoSmiles").value.trim();
+    const {items} = parseMutations($("byoMut").value);
+    const question = $("flowPrompt").value.trim().slice(0, 500);   // the composer text is the question; the file is the structure
+    byo.busy = true; $("flowRunBtn").disabled = true;
+    try {
+      let s = byo.summary;
+      if (items.length) {
+        const resp = await fetch(`/api/structures/${encodeURIComponent(s.structure_id)}/mutate`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({mutations: items})});
+        if (offline(resp)) throw new Error("Mutations are not available on this server yet.");
+        if (!resp.ok) throw new Error(await errText(resp));
+        s = await resp.json();
+        byo.parent = byo.summary; byo.summary = s;
+        showApplied(s);
+      }
+      const lig = pick[0] === "l" ? (s.ligands || [])[Number(pick.slice(1))] : null;
+      const met = pick[0] === "m" ? (s.metals || [])[Number(pick.slice(1))] : null;
+      // a mutated structure keeps its residues, so the same pick is looked up by name in the new summary
+      const same = lig ? (s.ligands || []).find((l) => l.resname === lig.resname && l.chain === lig.chain) || lig : null;
+      const custom = {structure_id: s.structure_id, ligand_resname: same ? same.resname : null, ligand_smiles: smiles || null,
+                      metal_resi: met ? met.resi : null, chain: (same || met || {}).chain || null, ph};
+      if (question) custom.question = question;
+      customRun = {structure_id: s.structure_id, name: s.name || "your structure", ligand_resname: custom.ligand_resname, metal_resi: custom.metal_resi, chain: custom.chain, kind: lig ? "ligand" : "metal"};
+      activeCaseId = null; flow.request = null; flowCase = null; markPicked("flow", null); markPicked("x", null);
+      runSimulation(custom);
+    } catch (e) {
+      err.innerText = e.message;
+    } finally {
+      byo.busy = false;
+      if (!flow.running) $("flowRunBtn").disabled = false;
+    }
+  }
+  function showApplied(s) {
+    const el = $("byoApplied"); if (!el) return;
+    el.innerHTML = (s.applied || []).length ? `<b>Mutations applied:</b> ${s.applied.map((a) => `${escapeHtml(a.chain)}:${escapeHtml(a.from)}${escapeHtml(a.resi)}${escapeHtml(a.to)}`).join(", ")}${s.method ? ` <span class="muted">(${escapeHtml(s.method)})</span>` : ""}` : "";
+  }
+
   /* ---------- boot ---------- */
-  renderFlowCases();
+  renderLibrary("flow"); renderLibrary("x"); renderFlowCases();
+  placeByo(); renderByo();
   $("expertSwitch").setAttribute("aria-checked", document.body.classList.contains("expert") ? "true" : "false");
   flowGo(1, false);
 </script>

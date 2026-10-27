@@ -311,6 +311,12 @@ def run_ligand_case(case: Dict[str, Any] | str, adapter: Any = None, hmem_db: Pa
             )
             chimerax_script = str(cxc_file)
 
+    engine_label = _engine_label(result)
+    if case.get("custom"):
+        from activesite.agent import custom as custom_run
+        cards = custom_run.merge_cards(case, cards, custom_run.custom_cards(case, setup, result, val, sample_mode))
+        engine_label = custom_run.engine_label(result, sample_mode, engine_label)
+
     trace.log("Explainer", "cards", f"{len(checks)} checks, {len(setup.get('overrides') or [])} overrides", f"{len(cards)} decision cards",
               data={"ids": [c.decision_id for c in cards]})
 
@@ -323,9 +329,13 @@ def run_ligand_case(case: Dict[str, Any] | str, adapter: Any = None, hmem_db: Pa
         "engine_skipped": bool(result.get("skipped")), "errors": result.get("errors") or [], "blocked": blocking,
         "chain": setup.get("chain"), "overrides": setup.get("overrides"), "checks": checks, "validation": val,
         "catalog": data.get("label"), "sql": data.get("sql"), "prep_skipped": setup.get("prep_skipped"),
-        "engine_label": _engine_label(result),
+        "engine_label": engine_label,
         "md": bool(md), "md_result": md_result, "md_stability": md_stability, "chimerax_script": chimerax_script,
     }
+    if case.get("custom"):
+        from activesite.agent.custom import custom_summary
+        stats["custom"] = custom_summary(case)
+        stats["sample_mode"] = bool(sample_mode)
     report = _ligand_report(case, run_id, stats, cards, result, val, trace.path, setup)
     log_dir = Path(log_dir)
     (log_dir / f"report-{run_id}.md").write_text(report, encoding="utf-8")
@@ -348,10 +358,18 @@ def _ligand_report(case, run_id, stats, cards, result, val, trace_path, setup) -
     if ok:
         line = (f"**Result:** converged — ESCF {result['qm_escf_kcal']:.3f} kcal/mol, total {result['total_energy_kcal']:.2f} kcal/mol, "
                 f"{result.get('link_atoms')} link atoms, {result.get('wall_time_s')} s engine time")
+    elif case.get("custom") and stats.get("engine_label", "").startswith("proposal only"):
+        line = f"**Result:** {stats['engine_label']} — ESCF `null`, total `null`"
     else:
         line = f"**Result:** FAILED — ESCF `null`, total `null` ({'; '.join(result.get('errors') or ['no energy'])})"
     lines = [f"# ActiveSite report — `{case.get('id')}` (run `{run_id}`)", "", f"**Question:** {case.get('question', '')}", "", line, "",
-             f"**Engine:** {stats.get('engine_label')}", "",
+             f"**Engine:** {stats.get('engine_label')}", ""]
+    if case.get("custom"):
+        p = case["custom"]
+        lines += [f"**Structure:** your uploaded structure {p['name']} (id `{p['structure_id']}`)"
+                  + (f"; mutations applied: {', '.join(p['mutations'])} (template rebuild, no rotamer search)" if p.get("mutations") else "")
+                  + f"; ligand SMILES from {p['smiles_source']}", ""]
+    lines += [
              f"**Ligand charge:** {'null' if setup.get('charge') is None else f'{setup['charge']:+d}'}; chain {setup.get('chain')} ({setup.get('chain_source')}); "
              f"His overrides {len(setup.get('overrides') or [])}; memory used: {stats['memory_used']}", "", "## Binding mode"]
     if val.get("available"):
