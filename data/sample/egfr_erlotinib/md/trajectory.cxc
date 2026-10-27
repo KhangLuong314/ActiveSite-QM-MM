@@ -6,11 +6,11 @@ coordset slider #1
 # Styling: ribbon for protein, magenta ball/stick for ligand, yellow pseudobonds for hbonds
 hide
 cartoon
-color /A-Z grey(0.85)
-transparency 50 cartoon
+color #1 lightgray
 show :AQ4 atoms
 color :AQ4 magenta
 style :AQ4 ball
 hbonds :AQ4 reveal true makePseudobonds true color yellow radius 0.08
 view :AQ4
-lighting soft
+clip off
+lighting soft shadows false depthCue false

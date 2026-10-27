@@ -788,6 +788,60 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-26 23:30 CDT] — P28 chat replies cut off by Nemotron's reasoning budget
+- **Tool / Environment:** Claude Code (Opus 5.5) on Sidd's Mac, live NVIDIA Nemotron (nemotron-3.5-lightning-30b-a3b)
+- **Target Component:** activesite/llm.py, activesite/server/main.py, tests/test_llm.py
+- **Developer Prompt:**
+  > (found while recording the demo video: the chat quick-question buttons returned cut-off or raw-reasoning replies)
+- **Agent Action:**
+  - Root cause: Nemotron reasons before answering and both count against max_tokens. At 1500 tokens the answer was cut mid-sentence (finish_reason "length"), or empty, in which case the old code showed the model's reasoning as the reply.
+  - chat_detailed now retries once with a larger budget on finish_reason "length", never returns reasoning as the reply (no answer means the existing rule-based fallback answers), handles an unclosed <think> tag, and marks a reply still cut off after the retry. The chat system prompt asks for answers under 180 words.
+- **Verification:**
+  - Live probe, 3 quick-button questions x 2 against an I-PpoI site A run: before 6/6 replies cut off (2 were raw reasoning, 5740 and 6152 chars); after 0/6 cut off, 13 to 31 s each. The EcoRV reply says no EcoRV model or energy exists and invents none (0 unverified numbers).
+  - 4 new tests in tests/test_llm.py (retry with larger budget, reasoning never shown as the answer, unclosed think tag, still-cut-off marker). uv run pytest -q -m "not slow": 205 passed (one server test now mocks chat_detailed, the path the endpoint uses, plus a fallback test); ruff clean.
+
+---
+
+### [2026-10-27 00:17 CDT] — ChimeraX Trajectory Viewer & Command Script Compatibility
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/chem/chimerax.py`, `activesite/server/main.py`, `tests/test_chimerax.py`, `data/sample/egfr_erlotinib/md/`
+- **Developer Prompt:**
+  > "Can you scan this repo structure to understand the architecture and objectives? After that, I want to fix the ChimeraX viewer. Here, when clicking ChimeraX Launcher button, the MD for EGFR + Erlotinib can be open but I receive this error within the application
+  > Failed opening file /Users/khangluong/Desktop/Projects/ActiveSite-QM-MM/data/runs/20261027-050145-3c9a79/md/trajectory.cxc:
+  > Expected a color or one of 'byatom', 'bychain', 'byelement', 'byhetero', 'byidentity', 'bymodel', 'bynucleotide', 'bypolymer', 'fromatoms', 'fromcartoons', 'fromribbons', or 'random' or a keyword"
+- **Agent Action:**
+  - Scanned repository architecture, agent pipelines, and Track 02 objectives ("The Agent That Can Explain Why").
+  - Diagnosed ChimeraX syntax failure: `color /A-Z grey(0.85)` is invalid in UCSF ChimeraX (causing `Expected a color or one of 'byatom' ...`). Replaced with standard `color #1 lightgray` across `ChimeraXGenerator.generate_script` and `ChimeraXGenerator.generate_trajectory_script`.
+  - Resolved secondary residue mismatch: Amber/antechamber parameterization names the ligand `LIG`, leaving `show :AQ4` and `hbonds :AQ4` unable to match atoms in `complex.pdb`. Updated `generate_trajectory_script` so parmed renames `LIG` to `ligand_resname` (e.g. `AQ4`) when generating `complex.pdb` and ensured column-aligned updates for existing PDBs.
+  - Enhanced desktop binary detection in `activesite/server/main.py` (`launch_chimerax`) to automatically discover versioned app bundles in `/Applications/` (e.g., `/Applications/ChimeraX-1.12.app/Contents/MacOS/ChimeraX`).
+  - Updated legacy `.cxc` files and sample PDBs to remove all invalid `grey(0.85)` occurrences.
+- **Verification:**
+  - Executed script directly inside local `/Applications/ChimeraX-1.12.app/Contents/MacOS/ChimeraX` on the actual run `data/runs/20261027-050145-3c9a79/md/trajectory.cxc`: parsed with exit code 0, 14 hydrogen bonds dynamically detected across 20 trajectory frames.
+  - `pytest tests/test_chimerax.py -v`: 2/2 passed in 0.21s.
+  - `pytest -q -m "not slow"`: **205 passed, 3 deselected, 0 failures**.
+
+---
+
+### [2026-10-27 00:38 CDT] — ChimeraX Clipping Plane & Shadow Fix, Endpoint Resolution
+- **Tool / Environment:** Antigravity Builder Agent
+- **Target Component:** `activesite/chem/chimerax.py`, `activesite/server/main.py`, `tests/test_chimerax.py`, `tests/test_server.py`, `data/sample/egfr_erlotinib/md/`
+- **Developer Prompt:**
+  > "This is what the chimerax window looks like after the update. Looks like the QM part is highlighed in pink and the rest is gray. And it seems that something is obscuring the view like there is a shadow that make the full system not rendered fully. Also, I receive this error from the terminal
+  > INFO: 127.0.0.1:61459 - "GET /api/chimerax/20261027-052813-d3f64a HTTP/1.1" 404 Not Found
+  > INFO: 127.0.0.1:61459 - "POST /api/chimerax/launch HTTP/1.1" 200 OK
+  > [10731:259:1027/002840.879052:ERROR:service_utils.cc(339)] Skia Graphite backend = "" not found - falling back to Ganesh!"
+- **Agent Action:**
+  - Diagnosed ChimeraX visual obstruction:
+    1. `view :AQ4` tightly centered the camera's front/back clipping slab around the ligand, severing outer protein loops and front helices. Added `clip off` immediately after `view :AQ4` so the full protein structure is completely visible without slicing.
+    2. `lighting soft` enabled ambient occlusion and deep shadows that, when combined with black background and depth cueing, created black shadow blotches inside ribbon crevices. Switched to `lighting soft shadows false depthCue false`.
+    3. Removed `transparency 50 cartoon`, which made ribbons appear dark and murky due to 50% opacity blending over black.
+  - Resolved `GET /api/chimerax/{run_id}` 404 error: `download_chimerax_script` previously checked only `visualize.cxc`, missing `md/trajectory.cxc` produced by MD runs. Added candidate resolution across `md/trajectory.cxc`, `trajectory.cxc`, `visualize.cxc`, and sample fallback.
+  - Noted Chromium `Skia Graphite` stderr log is a harmless standard Qt WebEngine message on macOS.
+- **Verification:**
+  - Script tested live in ChimeraX-1.12 with `clip off` and shadowless soft lighting: exit code 0.
+  - `pytest tests/test_chimerax.py tests/test_server.py -v`: 27 passed in 2.43s.
+  - `pytest -q -m "not slow"`: **205 passed, 3 deselected, 0 failures**.
+
 ### [2026-10-27 00:30 CDT] — P29 bring your own structure: upload, mutate, custom ligand runs (branch `feat/p29-own-structures`)
 - **Tool / Environment:** Claude Code (Opus 5.5) sub-agent in an isolated worktree; own server on port 8094 (stopped at the end); Docker on Colima with `activesite-prep:at26` / `activesite-engine:at26`
 - **Target Component:** `activesite/chem/uploads.py` (new), `activesite/adapters/chemcomp.py` (new), `activesite/agent/custom.py` (new), `activesite/agent/ligand.py`, `activesite/agent/orchestrator.py`, `activesite/server/main.py`, `tests/test_custom_structures.py`, `tests/fixtures/egfr_1m17_pocket.pdb`
