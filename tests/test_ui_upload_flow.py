@@ -53,7 +53,7 @@ def _chromium(p):
         pytest.skip(f"no Chromium for Playwright: {exc}")
 
 
-def _page(browser, upload_status=200, calls=None):
+def _page(browser, upload_status=200, calls=None, run_error=None):
     calls = [] if calls is None else calls
     page = browser.new_page(viewport={"width": 1280, "height": 900})
     errors = []
@@ -77,6 +77,8 @@ def _page(browser, upload_status=200, calls=None):
             return route.fulfill(json=MUTATED)
         if path.startswith("/api/structures/") and path.endswith("/file"):
             return route.fulfill(status=200, content_type="chemical/x-pdb", body=TINY_PDB)
+        if path == "/api/run" and run_error:
+            return route.fulfill(status=422, json={"detail": run_error})
         if path == "/api/run":
             return route.fulfill(json={"stream_id": "stream_mock", "sample_mode": True})
         if path == "/run/stream":
@@ -139,4 +141,23 @@ def test_upload_mutate_run_shows_proposal_only_with_not_computed_chips(browser):
     assert "not computed" in page.inner_text("#metricEnergy")
     assert page.locator("#metricEnergy .chip-nc").count() == 1
     assert page.evaluate("structureIds(lastStats)") == ["upload:s_mock2"]
+    assert not errors
+
+
+@pytest.mark.parametrize("pick, detail", [
+    ("m0", "metal sites from uploaded files: QM-region proposal not supported yet"),
+    ("l0", [{"loc": ["body", "custom", "ligand_smiles"], "msg": "ligand_smiles is required for a ligand the server does not know", "type": "value_error"}]),
+])
+def test_run_422_is_shown_as_a_plain_message(browser, pick, detail):
+    page, errors = _page(browser, run_error=detail)
+    page.set_input_files("#byoFile", files=[{"name": "m.pdb", "mimeType": "chemical/x-pdb", "buffer": TINY_PDB.encode()}])
+    page.wait_for_selector("#byoSummary")
+    page.check(f"input[name=byoTarget][value={pick}]")
+    page.click("#byoRun")
+    page.wait_for_selector("#flowRetry:not([hidden])")
+    want = detail if isinstance(detail, str) else detail[0]["msg"]
+    assert f"Your structure could not be run: {want}" in page.inner_text("#flowChecklist")
+    assert "[object Object]" not in page.inner_text("body")
+    page.click("#flowRetry")
+    assert want in page.inner_text("#byoRunErr")
     assert not errors

@@ -1249,7 +1249,9 @@
 
     try {
       const resp = await fetch("/api/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (!resp.ok) throw new Error((await resp.json()).detail || resp.statusText);
+      // 422 from an uploaded structure (e.g. "metal sites from uploaded files: … not supported yet", or a missing ligand_smiles)
+      // is shown as the server's own sentence, wherever it came from
+      if (!resp.ok) throw new Error(await errText(resp));
       const { stream_id } = await resp.json();
       setStatus("Streaming…", "run-on");
       if (es) es.close();
@@ -2275,7 +2277,9 @@
     flow.lines = flow.lines.filter((l) => l.tone !== "work");
     const plain = /no benchmark case matches/i.test(flow.failed) ? "No supported case matches your request. Try one of the questions on the first screen, or name the protein and drug or metal."
                 : /unknown case/i.test(flow.failed) ? "The server does not know that case."
+                : customRun ? `Your structure could not be run: ${flow.failed}`
                 : `The run stopped: ${flow.failed}`;
+    if (customRun && $("byoRunErr")) $("byoRunErr").innerText = `Your structure could not be run: ${flow.failed}`;
     flow.lines.push({tone: "bad", text: plain});
     renderChecklist();
     $("s2h").innerText = "The run did not finish";
@@ -2567,7 +2571,15 @@
     if ($("byoCard").parentElement !== host) host.appendChild($("byoCard"));
   }
   const offline = (resp) => resp.status === 404 || resp.status === 405 || resp.status === 501;
-  async function errText(resp) { try { const j = await resp.json(); return typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail || j); } catch (e) { return resp.statusText || `HTTP ${resp.status}`; } }
+  // a server error as one plain sentence: a string detail as is; FastAPI's list form as its messages joined
+  async function errText(resp) {
+    try {
+      const j = await resp.json(), d = j.detail;
+      if (typeof d === "string") return d;
+      if (Array.isArray(d)) return d.map((x) => (x && (x.msg || x.message)) || String(x)).join("; ");
+      return (d && (d.msg || d.message)) || resp.statusText || `HTTP ${resp.status}`;
+    } catch (e) { return resp.statusText || `HTTP ${resp.status}`; }
+  }
 
   function renderByo() {
     const el = $("byoBody");
