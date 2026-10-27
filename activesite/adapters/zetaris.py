@@ -1,10 +1,12 @@
 """ActiveSite — Zetaris REST adapter and adapter selection.
 
-``ZetarisAdapter.run_sql`` posts ``{"sql": ...}`` to ``<ZETARIS_REST_URL>/sql-editor/sqls/run``
-with a bearer token, the org id and a fresh request id per call, and parses
-the reply defensively. ``get_adapter`` returns it when the URL and key are
-set, otherwise the DuckDB stand-in; whichever ran is named in the DataScout
-trace line and in every card source.
+``ZetarisAdapter.run_sql`` posts ``{"select": ..., "pageLimit": ...}`` to ``<ZETARIS_REST_URL>/query/sql/start``
+(the documented Zetaris query API, verified against a local Zetaris platform 2.4.3) with a bearer token, the org
+id and a fresh request id per call, then pages through ``/query/sql/page`` and closes the query. The token is
+either ``ZETARIS_API_KEY`` or an id token from ``GET /auth/login`` with ``ZETARIS_USER``/``ZETARIS_PASSWORD``
+(refreshed once on 401). Zetaris returns every value as text, so known numeric columns are converted back.
+``get_adapter`` returns it when the URL and a credential are set, otherwise the DuckDB stand-in; whichever ran is
+named in the DataScout trace line and in every card source.
 """
 from __future__ import annotations
 
@@ -44,32 +46,84 @@ def _rows(payload: Any) -> List[Dict[str, Any]]:
     return []
 
 
+NUMERIC_COLUMNS = {"qmcharge": int, "total": float, "resolution": float}
+PAGE_LIMIT = 100   # the API's maximum
+
+
+def _typed(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Zetaris returns every value as a string; convert the columns DataScout compares as numbers."""
+    for r in rows:
+        for col, cast in NUMERIC_COLUMNS.items():
+            v = r.get(col)
+            if isinstance(v, str):
+                try:
+                    r[col] = cast(float(v)) if cast is int else cast(v)
+                except ValueError:
+                    r[col] = None if v.strip() in ("", "null", "NULL") else v
+    return rows
+
+
 class ZetarisAdapter:
     label = LABEL
 
     def __init__(self, base_url: Optional[str] = None, api_key: Optional[str] = None, org_id: Optional[str] = None,
-                 timeout: float = 30.0):
+                 timeout: float = 30.0, user: Optional[str] = None, password: Optional[str] = None):
         self.base_url = (base_url or os.getenv("ZETARIS_REST_URL", "")).rstrip("/")
         self.api_key = api_key if api_key is not None else os.getenv("ZETARIS_API_KEY", "")
+        self.user = user if user is not None else os.getenv("ZETARIS_USER", "")
+        self.password = password if password is not None else os.getenv("ZETARIS_PASSWORD", "")
         self.org_id = str(org_id or os.getenv("ZETARIS_ORG_ID", "1"))
         self.timeout = timeout
         self.tables = {
-            "lab_runs": os.getenv("ZETARIS_TABLE_LAB_RUNS", "lab_runs"),
-            "eda": os.getenv("ZETARIS_TABLE_EDA", "eda_residues"),
-            "pdb": os.getenv("ZETARIS_TABLE_PDB", "pdb_entries"),
+            # `or`, not a getenv default: an empty ZETARIS_TABLE_* line in .env must still get the default name
+            "lab_runs": os.getenv("ZETARIS_TABLE_LAB_RUNS") or "ACTIVESITE.expert_runs",
+            "eda": os.getenv("ZETARIS_TABLE_EDA") or "ACTIVESITE.eda_synthetic",
+            "pdb": os.getenv("ZETARIS_TABLE_PDB") or "ACTIVESITE.rcsb_entries",
         }
         self.last_request_id: Optional[str] = None
+        self._token: Optional[str] = None
 
     def prepare(self, case: Dict[str, Any]) -> None:  # same hook as the stand-in; nothing to pre-register
         return None
 
-    def run_sql(self, sql: str) -> List[Dict[str, Any]]:
+    def _headers(self) -> Dict[str, str]:
         self.last_request_id = str(uuid.uuid4())
-        headers = {"Authorization": f"Bearer {self.api_key}", "X-Org-ID": self.org_id,
-                   "X-Request-ID": self.last_request_id, "Content-Type": "application/json"}
-        r = httpx.post(f"{self.base_url}/sql-editor/sqls/run", json={"sql": sql}, headers=headers, timeout=self.timeout)
+        return {"X-Org-ID": self.org_id, "X-Request-ID": self.last_request_id, "Content-Type": "application/json"}
+
+    def _bearer(self, refresh: bool = False) -> str:
+        if not (self.user and self.password):
+            return self.api_key
+        if self._token is None or refresh:
+            r = httpx.get(f"{self.base_url}/auth/login", auth=(self.user, self.password), headers=self._headers(),
+                          timeout=self.timeout)
+            r.raise_for_status()
+            self._token = r.json()["idToken"]
+        return self._token
+
+    def _call(self, method: str, path: str, **kw: Any) -> httpx.Response:
+        for attempt in (0, 1):
+            headers = {**self._headers(), "Authorization": f"Bearer {self._bearer(refresh=attempt == 1)}"}
+            r = httpx.request(method, f"{self.base_url}{path}", headers=headers, timeout=self.timeout, **kw)
+            if r.status_code != 401 or not (self.user and self.password):
+                break
         r.raise_for_status()
-        return _rows(r.json())
+        return r
+
+    def run_sql(self, sql: str) -> List[Dict[str, Any]]:
+        first = self._call("POST", "/query/sql/start", json={"select": sql, "pageLimit": PAGE_LIMIT}).json()
+        rows = _rows(first.get("records", first) if isinstance(first, dict) else first)
+        token = first.get("queryToken") if isinstance(first, dict) else None
+        pages = int(first.get("totalPages") or 1) if isinstance(first, dict) else 1
+        for n in range(2, pages + 1):
+            page = self._call("GET", "/query/sql/page",
+                              params={"queryToken": token, "pageLimit": PAGE_LIMIT, "pageNumber": n}).json()
+            rows.extend(_rows(page.get("records", [])))
+        if token:
+            try:
+                self._call("DELETE", f"/query/sql/close/{token}")
+            except httpx.HTTPError:
+                pass   # closing frees server memory; a failed close must not lose the rows
+        return _typed(rows)
 
 
 class ResilientCatalog:
@@ -138,6 +192,7 @@ class ResilientCatalog:
 
 
 def get_adapter() -> Any:
-    if os.getenv("ZETARIS_REST_URL") and os.getenv("ZETARIS_API_KEY"):
+    has_login = os.getenv("ZETARIS_USER") and os.getenv("ZETARIS_PASSWORD")
+    if os.getenv("ZETARIS_REST_URL") and (os.getenv("ZETARIS_API_KEY") or has_login):
         return ResilientCatalog()
     return CatalogStandin()

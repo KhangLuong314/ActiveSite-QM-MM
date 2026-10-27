@@ -4,7 +4,26 @@ This document records the exact investigation into how Zetaris and the DataScout
 
 ---
 
-## 1. How This Machine Reaches Zetaris (Environment Audit)
+## 0. Verified setup (26 Oct 2026, Sidd's Mac): read this first
+
+Sections 1 and 2 below record the earlier investigation, when no team machine had Zetaris. This is what works now.
+
+1. **Get the platform.** Sign in to Zetaris Cloud Gateway (email one-time code). It is a launcher only: the dashboard shows 0 computes until you start one. Choose **Run locally** (free). Skip "Set up on AWS" (it creates resources billed to your own AWS account).
+2. **Docker resources.** 8 GB memory, 4+ CPUs and Rosetta (the images are amd64). On Colima: `colima start --cpu 6 --memory 8 --vm-type vz --vz-rosetta`. The bundle's `./preflight.sh` needs the `docker compose` plugin.
+3. **Registry login.** Run the `docker login zetarishackathon.azurecr.io -u ... --password-stdin` command from the Run locally page in your own terminal (it carries a password; do not paste it into chats or logs).
+4. **Start.** In the unzipped `zetaris-platform` folder: `docker compose pull`, `docker compose up -d`, then `./verify.sh` until all checks pass (first start under emulation takes about 5 to 10 minutes). Web UI on `http://localhost:3000`, REST on `http://localhost:8888/api/v1.0`, JDBC on `localhost:10000`.
+5. **Load our tables.** From this repo: `scripts/zetaris/load.sh <path-to-zetaris-platform>`. It exports `expert_runs` (lab expert QM regions), `eda_synthetic` (SYNTHETIC placeholder) and `rcsb_entries` to CSV and registers them as `ACTIVESITE.*` Lightning filestore tables.
+6. **Configure `.env`.** `ZETARIS_REST_URL=http://localhost:8888/api/v1.0`, `ZETARIS_USER` and `ZETARIS_PASSWORD` = the platform admin login (in the bundle's own `.env`), `ZETARIS_ORG_ID=1`, and the three `ZETARIS_TABLE_*` names from `.env.example`.
+7. **Check.** `uv run python smoke_test.py` gives 3/3 PASS (REST line: `ACTIVESITE.expert_runs: 6 rows`). `uv run python run.py --case ippoi_site_a --json` shows `"catalog": "zetaris"` and Jaccard 1.0.
+
+**API facts learned the hard way**
+- SQL goes to `POST /api/v1.0/query/sql/start` with `{"select": "...", "pageLimit": 1..100}` and headers `Authorization: Bearer <token>`, `X-Org-ID`, `X-Request-ID` (UUID). `/sql-editor/sqls/run` exists but needs a different body; the adapter no longer uses it.
+- The token is the `idToken` from `GET /api/v1.0/auth/login` (HTTP Basic, with `X-Org-ID` and `X-Request-ID`). It expires; the adapter logs in again once on a 401.
+- Every value comes back as a string. The adapter converts `qmcharge`, `total` and `resolution` back to numbers.
+- The query API accepts SELECT only. DDL (`CREATE LIGHTNING ...`) runs through `bin/lightning-sql.sh` in a one-off `bootstrap` container; inside the live `driver` container it hangs at the metastore step.
+- A first registration attempt that hung left a table named `lab_runs` unusable, which is why the table is called `expert_runs`.
+
+ (Environment Audit)
 
 ### Docker Inspection
 ```bash

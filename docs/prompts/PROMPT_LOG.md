@@ -611,6 +611,24 @@ This log documents key prompt engineering cycles, Cursor Composer iterations, an
 
 ---
 
+### [2026-10-26 21:00 CDT] — P25 live Zetaris (local platform) and adapter on the documented query API
+- **Tool / Environment:** Claude Code (Opus 5.5) on Sidd's Mac; Zetaris platform 2.4.3 from Zetaris Cloud "Run locally" in Docker (Colima, Rosetta)
+- **Target Component:** activesite/adapters/zetaris.py, smoke_test.py, scripts/zetaris/, docs/ZETARIS_SETUP.md, .env.example, README.md
+- **Developer Prompt:**
+  > "continue with the zetaris setup"
+- **Agent Action:**
+  - Brought up the local Zetaris platform (`./verify.sh`: postgres, driver, api, ui healthy; login and a query through ui -> api -> driver passed).
+  - Probed the live API: `POST /api/v1.0/query/sql/start` returns rows; the old adapter path `/sql-editor/sqls/run` returned 400 with our body, so the adapter never could have worked live.
+  - Rewrote `ZetarisAdapter` for the documented API: login (`ZETARIS_USER`/`ZETARIS_PASSWORD`) or API token, paging, close, one re-login on 401, numeric columns converted back from strings, empty `ZETARIS_TABLE_*` lines fall back to the defaults. `smoke_test.py` now checks through the same adapter and counts the expert table.
+  - Registered `ACTIVESITE.expert_runs`, `ACTIVESITE.eda_synthetic` (SYNTHETIC placeholder) and `ACTIVESITE.rcsb_entries` as Lightning filestore tables; `scripts/zetaris/load.sh` reproduces this.
+- **Verification:**
+  - All 6 `expert_runs` rows read back through the adapter match `seed.lab_rows()` field by field (0 mismatches).
+  - `uv run python smoke_test.py`: PASS Zetaris Web UI, PASS Zetaris REST API (`ACTIVESITE.expert_runs: 6 rows`), PASS NVIDIA Nemotron.
+  - `uv run python run.py --case ippoi_site_a --json`: `catalog: zetaris`, SQL `SELECT * FROM ACTIVESITE.expert_runs WHERE system = 'ippoi_wt' AND site = 'A' LIMIT 1`, Jaccard 1.0, 64 expert atoms, qmcharge 1, ESCF -456.5628 kcal/mol (engine step replayed from a recorded real run, labelled "cached engine output (sample mode)").
+  - `uv run pytest -q -m "not slow"`: 196 passed; ruff clean.
+
+---
+
 ### [Template for Future Entries]
 ```markdown
 ### [YYYY-MM-DD HH:MM CDT] — Component Name
