@@ -39,10 +39,21 @@ def _err(req_id: Any, code: int, message: str) -> Dict[str, Any]:
     return {"jsonrpc": "2.0", "id": req_id, "error": {"code": code, "message": message}}
 
 
-def handle_zetaris_request(adapter: Any, req: Dict[str, Any]) -> Dict[str, Any]:
+def handle_zetaris_request(adapter: Any, req: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     method = req.get("method", "")
     params = req.get("params", {}) or {}
     req_id = req.get("id")
+    # MCP handshake: clients (Cursor, Claude Code) open with `initialize` and refuse servers that lack it.
+    # Notifications (no id, e.g. notifications/initialized) get no reply.
+    if method.startswith("notifications/"):
+        return None
+    if method == "initialize":
+        return {"jsonrpc": "2.0", "id": req_id, "result": {
+            "protocolVersion": params.get("protocolVersion") or "2024-11-05",
+            "capabilities": {"tools": {}},
+            "serverInfo": {"name": "zetaris-data-catalog", "version": "1.0"}}}
+    if method == "ping":
+        return {"jsonrpc": "2.0", "id": req_id, "result": {}}
     if method == "tools/list":
         return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": [
             {"name": "list_sources", "description": f"Active data adapter ({adapter.label}): label and logical->physical tables",
@@ -80,6 +91,8 @@ def run_mcp_server(adapter: Optional[Any] = None) -> None:
             resp = handle_zetaris_request(adapter, json.loads(line))
         except Exception as exc:
             resp = _err(None, -32700, str(exc))
+        if resp is None:
+            continue
         sys.stdout.write(json.dumps(resp, default=str) + "\n")
         sys.stdout.flush()
 
