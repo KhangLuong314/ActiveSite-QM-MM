@@ -8,14 +8,25 @@ from __future__ import annotations
 import json
 import sys
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from activesite.memory.meterless import EpisodicMemoryRecord, MeterlessHMEM
 
 
-def handle_request(hmem: MeterlessHMEM, req: Dict[str, Any]) -> Dict[str, Any]:
+def handle_request(hmem: MeterlessHMEM, req: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     method = req.get("method", "")
-    params = req.get("params", {})
+    params = req.get("params", {}) or {}
     req_id = req.get("id")
+
+    # MCP handshake: clients open with `initialize`; notifications (no id) get no reply.
+    if method.startswith("notifications/"):
+        return None
+    if method == "initialize":
+        return {"jsonrpc": "2.0", "id": req_id, "result": {
+            "protocolVersion": params.get("protocolVersion") or "2024-11-05",
+            "capabilities": {"tools": {}},
+            "serverInfo": {"name": "meterless-memory", "version": "1.0"}}}
+    if method == "ping":
+        return {"jsonrpc": "2.0", "id": req_id, "result": {}}
 
     if method == "tools/list":
         return {
@@ -119,6 +130,8 @@ def run_mcp_server() -> None:
         try:
             req = json.loads(line)
             resp = handle_request(hmem, req)
+            if resp is None:
+                continue
             sys.stdout.write(json.dumps(resp) + "\n")
             sys.stdout.flush()
         except Exception as exc:
